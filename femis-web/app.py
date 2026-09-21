@@ -14,6 +14,9 @@ app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "femis-web-dev-key-chang
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///femis.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["TEMPLATES_AUTO_RELOAD"] = True
+app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max upload
+UPLOAD_FOLDER = Path(__file__).parent / "uploads"
+UPLOAD_FOLDER.mkdir(exist_ok=True)
 
 db = SQLAlchemy(app)
 
@@ -154,6 +157,7 @@ class Student(db.Model):
     # Tab 6 — Health Details
     has_major_disability = db.Column(db.String(10))
     disability_types = db.Column(db.String(200))
+    disability_certificate = db.Column(db.String(500))
     major_disability = db.Column(db.String(200))
     has_mental_disability = db.Column(db.String(10))
     mental_disability_type = db.Column(db.String(50))
@@ -304,6 +308,29 @@ def api_final_submit():
     student.submitted = True
     db.session.commit()
     return jsonify({"ok": True, "student_id": student.id})
+
+
+@app.route("/api/upload-file", methods=["POST"])
+def api_upload_file():
+    student_id = request.form.get("student_id")
+    field_name = request.form.get("field_name", "file")
+    if not student_id:
+        return jsonify({"ok": False, "error": "No student_id"}), 400
+    student = Student.query.get(student_id)
+    if not student:
+        return jsonify({"ok": False, "error": "Student not found"}), 404
+    if field_name not in request.files:
+        return jsonify({"ok": False, "error": "No file provided"}), 400
+    f = request.files[field_name]
+    if not f.filename:
+        return jsonify({"ok": False, "error": "Empty filename"}), 400
+    ext = Path(f.filename).suffix
+    safe_name = f"student_{student_id}_{field_name}{ext}"
+    save_path = UPLOAD_FOLDER / safe_name
+    f.save(str(save_path))
+    setattr(student, field_name, safe_name)
+    db.session.commit()
+    return jsonify({"ok": True, "filename": safe_name})
 
 
 @app.route("/submit", methods=["POST"])
@@ -531,7 +558,7 @@ def api_districts(province):
             "Naushahro Feroze", "Nawabshah", "Sanghar", "Shikarpur", "Sukkur",
             "Tando Allahyar", "Tando Muhammad Khan", "Thatta", "Umerkot"
         ],
-        "Khyber Pakhtunkhwa": [
+        "Khyber Pakhtonkhawa": [
             "Abbottabad", "Bannu", "Barikot", "Battagram", "Buner", "Charsadda",
             "Chitral", "Dera Ismail Khan", "Dir Lower", "Dir Upper", "Haripur",
             "Kohat", "Kohistan", "Lakki Marwat", "Lower Dir", "Malakand", "Mansehra",

@@ -93,13 +93,13 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!sectorSelect || !subSectorSelect) return;
 
         sectorSelect.addEventListener("change", function () {
-            var sector = this.value;
-            if (!sector) {
+            var sectorText = this.options[this.selectedIndex] ? this.options[this.selectedIndex].text : "";
+            if (!sectorText || this.value === "") {
                 subSectorSelect.innerHTML = '<option value="">- Select Sector first -</option>';
                 if (subSectorDiv) subSectorDiv.style.display = "none";
                 return;
             }
-            fetch("/api/sub-sectors/" + encodeURIComponent(sector))
+            fetch("/api/sub-sectors/" + encodeURIComponent(sectorText))
                 .then(function (r) { return r.json(); })
                 .then(function (subSectors) {
                     subSectorSelect.innerHTML = '<option value="">- Select -</option>';
@@ -216,29 +216,52 @@ document.addEventListener("DOMContentLoaded", function () {
     // === Orphan → show guardian details when is_orphan=yes ===
     radioToggle("is_orphan", "orphan_fields", ["1"]);
 
-    // === Auto-set is_orphan=yes when both parents dead ===
+    // === Auto-set is_orphan=yes + orphan_type when parent(s) dead ===
     (function () {
         var fatherRadios = document.querySelectorAll('input[name="is_father_alive"]');
         var motherRadios = document.querySelectorAll('input[name="is_mother_alive"]');
         var orphanYes = document.getElementById("is_orphan_yes");
         var orphanNo = document.getElementById("is_orphan_no");
+        var orphanTypeSelect = document.getElementById("orphan_type");
         if (!orphanYes) return;
-        function checkBothDead() {
+        function checkParentStatus() {
             var fatherSel = document.querySelector('input[name="is_father_alive"]:checked');
             var motherSel = document.querySelector('input[name="is_mother_alive"]:checked');
             var fatherDead = fatherSel && fatherSel.value === "0";
             var motherDead = motherSel && motherSel.value === "0";
-            if (fatherDead && motherDead) {
+            if (fatherDead || motherDead) {
                 orphanYes.checked = true;
                 orphanYes.dispatchEvent(new Event("change"));
+                if (orphanTypeSelect) {
+                    if (fatherDead && motherDead) {
+                        orphanTypeSelect.value = "Double Orphan";
+                    } else {
+                        orphanTypeSelect.value = "Single Orphan";
+                    }
+                    orphanTypeSelect.dispatchEvent(new Event("change"));
+                }
+            } else if (fatherSel && fatherSel.value === "1" && motherSel && motherSel.value === "1") {
+                orphanNo.checked = true;
+                orphanNo.dispatchEvent(new Event("change"));
+                if (orphanTypeSelect) orphanTypeSelect.value = "";
             }
         }
-        fatherRadios.forEach(function (r) { r.addEventListener("change", checkBothDead); });
-        motherRadios.forEach(function (r) { r.addEventListener("change", checkBothDead); });
+        fatherRadios.forEach(function (r) { r.addEventListener("change", checkParentStatus); });
+        motherRadios.forEach(function (r) { r.addEventListener("change", checkParentStatus); });
     })();
 
-    // === Father Profession (select) → show Other ===
+    // === Father Profession (select) → show Other + show BPS only for Govt Employee ===
     selectToggle("father_profession", "father_profession_other_group", ["Other"]);
+    (function () {
+        var profSel = document.getElementById("father_profession");
+        var bpsDiv = document.getElementById("father_bps_group");
+        if (!profSel) return;
+        function toggleBps() {
+            if (bpsDiv) bpsDiv.style.display = profSel.value === "Govt Employee" ? "block" : "none";
+        }
+        profSel.addEventListener("change", toggleBps);
+        toggleBps();
+    })();
 
     // === Mother Profession (select) → show Other ===
     selectToggle("mother_profession", "mother_profession_other_group", ["Other"]);
@@ -264,7 +287,41 @@ document.addEventListener("DOMContentLoaded", function () {
     // === Hearing Aid → show details ===
     radioToggle("uses_hearing_aid", "hearing_aid_details_group", ["1"]);
 
-    // === Other conditional toggles ===
+    // === Class → Section dynamic: 1-8 → A,B; 9-10 → A,B,C ===
+    (function () {
+        var sectionGroup = document.getElementById("section_group");
+        if (!sectionGroup) return;
+        var classRadios = document.querySelectorAll('input[name="class_id"]');
+        function updateSections() {
+            var checked = document.querySelector('input[name="class_id"]:checked');
+            if (!checked) return;
+            var classText = checked.value;
+            var classNum = parseInt(classText.replace("Class ", ""), 10);
+            var sections = classNum >= 9 ? ["A", "B", "C"] : ["A", "B"];
+            var currentSection = document.querySelector('input[name="section_id"]:checked');
+            var currentVal = currentSection ? currentSection.value : "";
+            sectionGroup.innerHTML = "";
+            sections.forEach(function (s) {
+                var div = document.createElement("div");
+                div.className = "form-check form-check-inline";
+                var input = document.createElement("input");
+                input.className = "form-check-input";
+                input.type = "radio";
+                input.name = "section_id";
+                input.id = "section_" + s;
+                input.value = s;
+                if (s === currentVal) input.checked = true;
+                var label = document.createElement("label");
+                label.className = "form-check-label";
+                label.htmlFor = "section_" + s;
+                label.textContent = s;
+                div.appendChild(input);
+                div.appendChild(label);
+                sectionGroup.appendChild(div);
+            });
+        }
+        classRadios.forEach(function (r) { r.addEventListener("change", updateSections); });
+    })();
     radioToggle("has_major_disability", "disability_fields", ["1"]);
     radioToggle("has_mental_disability", "mental_disability_type_group", ["1"]);
     radioToggle("has_hearing_difficulties", "hearing_aid_group", ["1"]);
@@ -457,17 +514,43 @@ document.addEventListener("DOMContentLoaded", function () {
                     studentId.value = res.student_id;
                 }
 
-                markClean();
-
-                if (isLastTab) {
-                    window.location.href = "/success/" + res.student_id;
-                } else {
-                    // Advance to next tab
-                    var nextTab = tabPills[currentTab + 1];
-                    if (nextTab) {
-                        bootstrap.Tab.getOrCreateInstance(nextTab).show();
+                // Upload any file inputs on this tab
+                var fileInputs = activeTab.querySelectorAll('input[type="file"]');
+                var uploadPromises = [];
+                fileInputs.forEach(function (fi) {
+                    if (fi.files.length > 0 && studentId.value) {
+                        var fd = new FormData();
+                        fd.append("student_id", studentId.value);
+                        fd.append("field_name", fi.name);
+                        fd.append(fi.name, fi.files[0]);
+                        uploadPromises.push(
+                            fetch("/api/upload-file", { method: "POST", body: fd })
+                                .then(function (r) { return r.json(); })
+                        );
                     }
-                }
+                });
+
+                Promise.all(uploadPromises).then(function () {
+                    markClean();
+                    if (isLastTab) {
+                        window.location.href = "/success/" + res.student_id;
+                    } else {
+                        var nextTab = tabPills[currentTab + 1];
+                        if (nextTab) {
+                            bootstrap.Tab.getOrCreateInstance(nextTab).show();
+                        }
+                    }
+                }).catch(function () {
+                    markClean();
+                    if (isLastTab) {
+                        window.location.href = "/success/" + res.student_id;
+                    } else {
+                        var nextTab = tabPills[currentTab + 1];
+                        if (nextTab) {
+                            bootstrap.Tab.getOrCreateInstance(nextTab).show();
+                        }
+                    }
+                });
             })
             .catch(function (err) {
                 saveNextBtn.disabled = false;
@@ -491,9 +574,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     "class_id": "class_id", "section_id": "section_id",
                     "last_class_result": "result_percentage",
                     "last_fde_institution_id": "last_fde_institution_id",
+                    "last_institution_other": "last_other_institution",
                     "class_admitted_id": "class_admitted_id",
                     "school_meal_program_availing": "school_meal_program_availing",
-                    "is_hafiz": "is_hafiz", "siblings_same_institution": "siblings_same_institution",
+                    "is_hafiz": "is_hafiz",                     "siblings_same": "siblings_same_institution",
                     "cocurricular_activities": "cocurricular_activities",
                     "emergency_name": "emergency_name",
                     "emergency_contact": "emergency_contact",

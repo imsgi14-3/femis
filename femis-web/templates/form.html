@@ -419,7 +419,7 @@
         {% endfor %}
       </select>
     </div>
-    <div class="col-md-6">
+    <div class="col-md-6" id="father_bps_group" style="display:none;">
       <label class="form-label">Father's BPS</label>
       <select class="form-select" name="father_bps" id="father_bps">
         <option value="">— Select —</option>
@@ -634,7 +634,7 @@
   <div class="row g-3 mb-4">
     <div class="col-md-6">
       <label class="form-label">Class <span class="text-danger">*</span></label>
-      <div>
+      <div id="class_group">
         {% for cl in opts.classes %}
         <div class="form-check form-check-inline">
           <input class="form-check-input" type="radio" name="class_id" id="class_{{ loop.index }}" value="{{ cl }}" required>
@@ -645,21 +645,29 @@
     </div>
     <div class="col-md-6">
       <label class="form-label">Section <span class="text-danger">*</span></label>
-      <div>
-        {% for s in ['A', 'B', 'C', 'D'] %}
+      <div id="section_group">
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="section_id" id="section_{{ s }}" value="{{ s }}" required>
-          <label class="form-check-label" for="section_{{ s }}">{{ s }}</label>
+          <input class="form-check-input" type="radio" name="section_id" id="section_A" value="A" required>
+          <label class="form-check-label" for="section_A">A</label>
         </div>
-        {% endfor %}
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="section_id" id="section_B" value="B">
+          <label class="form-check-label" for="section_B">B</label>
+        </div>
       </div>
     </div>
     <div class="col-md-6">
       <label class="form-label">Class Group</label>
-      <input type="text" class="form-control" name="class_group_id" placeholder="e.g., Science, Arts">
+      <select class="form-select" name="class_group_id" id="class_group_id">
+        <option value="">— Select —</option>
+        <option value="Science">Science</option>
+        <option value="Computer">Computer</option>
+        <option value="Arts">Arts</option>
+        <option value="General">General</option>
+      </select>
     </div>
     <div class="col-md-6">
-      <label class="form-label">Result / Percentage</label>
+      <label class="form-label">Result / Percentage of Last Class passed completely</label>
       <input type="text" class="form-control" name="result_percentage">
     </div>
     <div class="col-md-6">
@@ -760,17 +768,8 @@
       <input type="text" class="form-control" name="siblings_other_fde">
     </div>
     <div class="col-md-6">
-      <label class="form-label">Is Same Institution</label>
-      <div>
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="siblings_same_institution" id="isi_yes" value="1">
-          <label class="form-check-label" for="isi_yes">Yes</label>
-        </div>
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="siblings_same_institution" id="isi_no" value="0">
-          <label class="form-check-label" for="isi_no">No</label>
-        </div>
-      </div>
+      <label class="form-label">Siblings in Same Institution (Number)</label>
+      <input type="number" class="form-control" name="siblings_same_institution" min="0" placeholder="0">
     </div>
     <div class="col-md-6">
       <label class="form-label">Siblings in Private</label>
@@ -953,8 +952,8 @@
         </div>
       </div>
       <div class="col-md-6">
-        <label class="form-label">Major Disability Description</label>
-        <input type="text" class="form-control" name="major_disability_text">
+        <label class="form-label">Disability Certificate</label>
+        <input type="file" class="form-control" name="disability_certificate" accept="image/*,.pdf">
       </div>
     </div>
   </div>
