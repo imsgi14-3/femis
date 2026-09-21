@@ -469,18 +469,24 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Collect all visible form fields from active tab
             var fields = activeTab.querySelectorAll("input, select, textarea");
+            var deviceChecked = [];
             fields.forEach(function (f) {
                 if (f.offsetParent === null && f.type !== "hidden") return;
                 if (f.type === "radio") {
                     if (f.checked) data[f.name] = f.value;
                 } else if (f.type === "checkbox") {
-                    data[f.name] = f.checked ? (f.value || "1") : "";
+                    if (f.name === "digital_device_type[]") {
+                        if (f.checked) deviceChecked.push(f.value);
+                    } else {
+                        data[f.name] = f.checked ? (f.value || "1") : "";
+                    }
                 } else if (f.tagName === "SELECT") {
                     data[f.name] = f.value;
                 } else {
                     data[f.name] = f.value;
                 }
             });
+            data["digital_device_type[]"] = deviceChecked.join(",");
 
             // Also collect all hidden fields in the form
             document.querySelectorAll("#admissionForm input[type='hidden']").forEach(function (f) {
