@@ -1,0 +1,790 @@
+# FEMIS Portal Field Mapping
+# Maps: portal field name -> source field name -> type/validation
+# Tab 1 is pre-filled from screenshots. Tabs 2-7 will be filled in Phase 2.
+
+# ============================================================
+# TAB 1: Personal Details
+# ============================================================
+tab_1_personal_details:
+  personal_information:
+    name_of_student:
+      label: "Name of Student"
+      type: text
+      required: true
+      source_field: name
+      validation: alpha_with_spaces
+
+    is_cnic_form_b_available:
+      label: "Is CNIC/Form-B Available?"
+      type: radio
+      required: true
+      source_field: is_bform_available
+      options: ["Yes", "No"]
+
+    gender:
+      label: "Gender"
+      type: dropdown
+      required: true
+      source_field: gender
+      options: ["Male", "Female", "Transgender"]
+
+    date_of_birth:
+      label: "Date of Birth"
+      type: date
+      required: true
+      source_field: date_of_birth
+      format: "YYYY-MM-DD"
+
+    province_of_birth:
+      label: "Province of Birth"
+      type: dropdown
+      required: true
+      source_field: birth_province_id
+      options:
+        - "Punjab"
+        - "Balochistan"
+        - "Sindh"
+        - "KPK"
+        - "ICT"
+        - "Gilgit Baltistan"
+        - "AJK"
+
+    district_of_birth:
+      label: "District of Birth"
+      type: dropdown
+      required: true
+      source_field: birth_district_id
+      note: "Options depend on Province of Birth selection"
+
+  domicile_information:
+    nationality:
+      label: "Nationality"
+      type: dropdown
+      required: true
+      source_field: nationality
+      options:
+        - "Pakistani"
+        - "Others (specify)"
+
+  address_temporary:
+    address_type:
+      label: "Address Type"
+      type: dropdown
+      required: true
+      source_field: address_type
+      options:
+        - "Sector"
+        - "Housing Society"
+        - "Village"
+        - "Others"
+
+    house_number:
+      label: "House #"
+      type: text
+      required: false
+      source_field: house
+
+    street_number:
+      label: "Street #"
+      type: text
+      required: false
+      source_field: street
+
+    contact_number:
+      label: "Contact Number / WhatsApp"
+      type: text
+      required: true
+      source_field: contact_number
+      validation: mobile_pakistani
+
+  address_permanent:
+    city:
+      label: "City"
+      type: dropdown
+      required: true
+      source_field: city_id
+
+    same_as_temporary:
+      label: "Same as Temporary Address"
+      type: checkbox
+      source_field: same_address
+
+    address_type:
+      label: "Address Type"
+      type: dropdown
+      required: true
+      source_field: present_address_type
+
+    house_number:
+      label: "House #"
+      type: text
+      source_field: present_house
+
+    street_number:
+      label: "Street #"
+      type: text
+      source_field: present_street
+
+  religion_language_other:
+    religion:
+      label: "Religion"
+      type: dropdown
+      required: true
+      source_field: religion
+      options:
+        - "Muslim"
+        - "Non-Muslim (specify)"
+
+    mother_language:
+      label: "Mother Language"
+      type: dropdown
+      required: true
+      source_field: language_id
+      options:
+        - "Pashto"
+        - "English"
+        - "Saraiki"
+        - "Punjabi"
+        - "Balti"
+        - "Shina"
+        - "Urdu"
+        - "Hindko"
+        - "Sindhi"
+        - "Balochi"
+
+    blood_group:
+      label: "Blood Group"
+      type: dropdown
+      required: false
+      source_field: blood_group
+      options:
+        - "A+"
+        - "A-"
+        - "AB+"
+        - "AB-"
+        - "B+"
+        - "B-"
+        - "O+"
+        - "O-"
+
+    email:
+      label: "Email ID"
+      type: text
+      required: false
+      source_field: email
+      validation: email
+
+# ============================================================
+# TAB 2: Parents / Guardian
+# ============================================================
+tab_2_parents_guardian:
+  fathers_information:
+    fathers_name:
+      label: "Father's Name"
+      type: text
+      required: true
+      source_field: father_name
+
+    fathers_cnic:
+      label: "Father's CNIC"
+      type: text
+      required: true
+      source_field: father_cnic
+      validation: cnic
+
+    is_father_alive:
+      label: "Is Father Alive"
+      type: radio
+      required: true
+      source_field: is_father_alive
+      options: ["Yes", "No"]
+
+    contact_number:
+      label: "Contact Number / WhatsApp"
+      type: text
+      required: true
+      source_field: father_contact
+      validation: mobile_pakistani
+
+    landline_number:
+      label: "Landline Number"
+      type: text
+      required: false
+      source_field: father_landline
+      validation: landline
+
+    email:
+      label: "Email"
+      type: text
+      required: false
+      source_field: father_email
+      validation: email
+
+    qualification:
+      label: "Qualification"
+      type: text
+      required: false
+      source_field: father_qualification
+
+    profession:
+      label: "Profession"
+      type: dropdown
+      required: true
+      source_field: father_profession
+      options:
+        - "Govt Employee"
+        - "Private Employee"
+        - "Businessman"
+        - "Farmer"
+        - "Overseas"
+        - "Other"
+
+    income_per_month:
+      label: "Income (per month)"
+      type: text
+      required: false
+      source_field: father_monthly_income
+
+    bps:
+      label: "BPS (Only for Govt. Employees)"
+      type: text
+      required: false
+      source_field: father_bps
+
+    domicile_province:
+      label: "Father Domicile - Province"
+      type: dropdown
+      required: false
+      source_field: father_domicile_province_id
+
+    domicile_district:
+      label: "Father Domicile - District"
+      type: dropdown
+      required: false
+      source_field: father_domicile_district_id
+
+  mothers_information:
+    mothers_name:
+      label: "Mother's Name"
+      type: text
+      required: true
+      source_field: mother_name
+
+    is_mother_alive:
+      label: "Is Mother Alive"
+      type: radio
+      required: true
+      source_field: is_mother_alive
+      options: ["Yes", "No"]
+
+    mother_cnic:
+      label: "Mother CNIC"
+      type: text
+      required: false
+      source_field: mother_cnic
+      validation: cnic
+
+    contact_number:
+      label: "Contact Number / WhatsApp"
+      type: text
+      required: true
+      source_field: mother_contact
+      validation: mobile_pakistani
+
+    landline_number:
+      label: "Landline Number"
+      type: text
+      required: false
+      source_field: mother_landline
+      validation: landline
+
+    email:
+      label: "Email"
+      type: text
+      required: false
+      source_field: mother_email
+      validation: email
+
+    qualification:
+      label: "Qualification"
+      type: text
+      required: false
+      source_field: mother_qualification
+
+    profession:
+      label: "Profession"
+      type: dropdown
+      required: true
+      source_field: mother_profession
+      options:
+        - "Govt Employee"
+        - "Private Employee"
+        - "Businessman"
+        - "Farmer"
+        - "Overseas"
+        - "Other"
+
+    income_per_month:
+      label: "Income (per month)"
+      type: text
+      required: false
+      source_field: mother_monthly_income
+
+    bps:
+      label: "BPS (Only for Govt. Employees)"
+      type: text
+      required: false
+      source_field: mother_bps
+
+  orphan_guardian_information:
+    is_orphan_child:
+      label: "Is Orphan Child"
+      type: radio
+      required: false
+      source_field: is_orphan
+      options: ["Yes", "No"]
+
+    orphan_type:
+      label: "Orphan Type"
+      type: radio
+      required: false
+      source_field: orphan_type
+      options: ["Double Orphan", "Single Orphan"]
+
+    contact_number:
+      label: "Contact Number / WhatsApp"
+      type: text
+      required: false
+      source_field: guardian_contact
+      validation: mobile_pakistani
+
+    qualification:
+      label: "Qualification"
+      type: text
+      required: false
+      source_field: guardian_qualification
+
+    profession:
+      label: "Profession"
+      type: dropdown
+      required: false
+      source_field: guardian_profession
+      options:
+        - "Govt Employee"
+        - "Private Employee"
+        - "Businessman"
+        - "Farmer"
+        - "Overseas"
+        - "Other"
+
+    income_per_month:
+      label: "Income (per month)"
+      type: text
+      required: false
+      source_field: guardian_income
+
+    bps:
+      label: "BPS (Only for Govt. Employees)"
+      type: text
+      required: false
+      source_field: guardian_bps
+
+# ============================================================
+# TAB 3: Educational Details
+# ============================================================
+tab_3_educational_details:
+  class_section:
+    class:
+      label: "Class"
+      type: dropdown
+      required: true
+      source_field: class_id
+      note: "Group field only for 9, 10, 11 & 12 grade students"
+
+    section:
+      label: "Section"
+      type: text
+      required: true
+      source_field: section_id
+
+    result_percentage:
+      label: "Result / Percentage of Last Class passed"
+      type: text
+      required: false
+      source_field: last_class_result
+
+    date_of_admission:
+      label: "Date of Admission"
+      type: date
+      required: true
+      source_field: date_of_admission
+      format: "YYYY-MM-DD"
+
+    admission_number:
+      label: "Admission Number"
+      type: text
+      required: false
+      source_field: admission_number
+
+    last_institution_under_fde:
+      label: "Last institution Attended (Under FDE)"
+      type: text
+      required: false
+      source_field: last_fde_institution_id
+
+    class_admitted_in:
+      label: "Class Admitted In"
+      type: dropdown
+      required: true
+      source_field: class_admitted_id
+
+    last_institution_other_fde:
+      label: "Last institution Attended (Other than FDE)"
+      type: text
+      required: false
+      source_field: last_institution_other
+
+    shift:
+      label: "Shift"
+      type: radio
+      required: true
+      source_field: shift
+      options: ["Morning", "Evening"]
+
+    medium_of_instruction:
+      label: "Medium of Instruction"
+      type: radio
+      required: true
+      source_field: medium_of_instruction
+      options: ["Urdu", "English"]
+
+    number_of_years_primary:
+      label: "Number of Years Spent Completing Primary Education"
+      type: text
+      required: false
+      source_field: primary_education_completion_years
+
+    avail_institutional_meal:
+      label: "Availing Institutional Meal Program"
+      type: radio
+      required: false
+      source_field: school_meal_program_availing
+      options: ["Yes", "No"]
+
+    mode_of_study:
+      label: "Mode of Study"
+      type: radio
+      required: true
+      source_field: mode_of_study
+      options: ["Day Scholars", "Boarders"]
+
+  sibling_details:
+    total_siblings:
+      label: "Total Number of Siblings"
+      type: text
+      required: false
+      source_field: total_siblings
+
+    in_other_fde:
+      label: "In Other FDE institutions"
+      type: text
+      required: false
+      source_field: siblings_other_fde
+
+    is_same_institution:
+      label: "Is Same Institution"
+      type: radio
+      required: false
+      source_field: siblings_same
+      options: ["Yes", "No"]
+
+    in_private_institutions:
+      label: "In Private institutions"
+      type: text
+      required: false
+      source_field: siblings_private
+
+  transport_facility:
+    transport_facility:
+      label: "Transport Facility"
+      type: radio
+      required: false
+      source_field: transport
+      options: ["Institution Bus", "Private"]
+
+  scholarships_and_co_curricular:
+    recipient_of_scholarship:
+      label: "Recipient of Scholarship?"
+      type: radio
+      required: false
+      source_field: scholarship
+      options: ["Yes", "No"]
+
+    special_interest:
+      label: "Special Interest/Achievement in co-curricular Activities"
+      type: radio
+      required: false
+      source_field: cocurricular_activities
+      options: ["Yes", "No"]
+
+    scholarship_details:
+      label: "Scholarship Details"
+      type: text
+      required: false
+      source_field: scholarship_details
+
+    achievement_details:
+      label: "Achievement Details"
+      type: text
+      required: false
+      source_field: achievement_details
+
+# ============================================================
+# TAB 4: Emergency Contact
+# ============================================================
+tab_4_emergency_contact:
+  emergency_contact_name:
+    label: "Emergency Contact Name"
+    type: text
+    required: true
+    source_field: emergency_name
+
+  contact_number:
+    label: "Contact Number"
+    type: text
+    required: true
+    source_field: emergency_contact
+    validation: mobile_pakistani
+
+  relation:
+    label: "Relation"
+    type: dropdown
+    required: true
+    source_field: emergency_relation
+    options:
+      - "Father"
+      - "Mother"
+      - "Sister"
+      - "Brother"
+      - "Aunt"
+      - "Uncle"
+      - "Other"
+
+# ============================================================
+# TAB 5: IDPs Details
+# ============================================================
+tab_5_idps_details:
+  is_student_refugee_idp:
+    label: "Is Student a Refugee/IDP"
+    type: radio
+    required: false
+    source_field: is_refugee
+    options: ["Yes", "No"]
+
+  idp_status:
+    label: "IDP Status"
+    type: text
+    required: false
+    source_field: idp_status_id
+
+  is_registered_as_refugee:
+    label: "Is Registered as Refugee?"
+    type: radio
+    required: false
+    source_field: is_registered_refugee
+    options: ["Yes", "No"]
+
+  refugee_card_number:
+    label: "Refugee Card Number"
+    type: text
+    required: false
+    source_field: refugee_card_number
+
+# ============================================================
+# TAB 6: Health Details
+# ============================================================
+tab_6_health_details:
+  major_disability:
+    label: "Major Disability"
+    type: text
+    required: false
+    source_field: has_major_disability
+
+  any_major_disability:
+    label: "Any Major Disability"
+    type: radio
+    required: false
+    source_field: has_major_disability
+    options: ["Yes", "No"]
+
+  disability_certificate:
+    label: "Disability Certificate"
+    type: radio
+    required: false
+    source_field: disability_cert
+    options: ["Attachment"]
+
+  disability_type:
+    label: "Disability Type"
+    type: radio
+    required: false
+    source_field: disability_types
+    options:
+      - "Physical"
+      - "Visual"
+      - "Hearing"
+      - "Intellectual"
+      - "Multiple"
+      - "Other"
+
+  any_mental_disability:
+    label: "Any Mental Disability"
+    type: radio
+    required: false
+    source_field: has_mental_disability
+    options: ["Yes", "No"]
+
+  mental_disability_type:
+    label: "Mental Disability Type"
+    type: radio
+    required: false
+    source_field: mental_disability_type
+    options:
+      - "Autism"
+      - "ADHD"
+      - "Other"
+
+  other_medical_conditions:
+    label: "Other Medical Conditions / Remarks"
+    type: text
+    required: false
+    source_field: other_conditions
+
+  # Vision
+  visually_impaired:
+    label: "Visually FIT / 6/6"
+    type: radio
+    required: false
+    source_field: vision
+    options: ["Yes", "No"]
+
+  wear_glasses:
+    label: "Does wear glasses or contact lenses?"
+    type: radio
+    required: false
+    source_field: uses_glasses
+    options: ["Yes", "No"]
+
+  vision_difficulty:
+    label: "Difficulty while seeing the board or reading textbook"
+    type: radio
+    required: false
+    source_field: vision_difficulty
+    options:
+      - "No Difficulty"
+      - "Some Difficulty"
+      - "A lot of Difficulty"
+      - "Cannot Do at All"
+
+  # Hearing
+  hearing_difficulty:
+    label: "Has Hearing Difficulty?"
+    type: radio
+    required: false
+    source_field: has_hearing_difficulties
+    options: ["Yes", "No"]
+
+  using_hearing_aid:
+    label: "Using hearing aid?"
+    type: radio
+    required: false
+    source_field: hearing_aid
+    options: ["Yes", "No"]
+
+  difficulty_listening:
+    label: "Difficulty Listening?"
+    type: radio
+    required: false
+    source_field: difficulty_listening
+    options: ["Yes", "No"]
+
+  # Walking
+  difficulty_walking:
+    label: "Difficulty Walking?"
+    type: radio
+    required: false
+    source_field: difficulty_walking
+    options: ["Yes", "No"]
+
+  use_crutches_walker:
+    label: "Use Crutches / Walker"
+    type: radio
+    required: false
+    source_field: use_crutches
+    options: ["Yes", "No"]
+
+  # Learning
+  difficulty_reading_writing:
+    label: "Difficulty Reading / Writing"
+    type: radio
+    required: false
+    source_field: reading_writing_difficulty
+    options:
+      - "No Difficulty"
+      - "Some Difficulty"
+      - "A lot of Difficulty"
+      - "Cannot Do at All"
+
+  difficulty_remembering:
+    label: "Difficulty Remembering"
+    type: radio
+    required: false
+    source_field: remembering_difficulty
+    options:
+      - "No Difficulty"
+      - "Some Difficulty"
+      - "A lot of Difficulty"
+      - "Cannot Do at All"
+
+  difficulty_concentrating:
+    label: "Difficulty Concentrating"
+    type: radio
+    required: false
+    source_field: concentrating_difficulty
+    options:
+      - "No Difficulty"
+      - "Some Difficulty"
+      - "A lot of Difficulty"
+      - "Cannot Do at All"
+
+  # Vaccination
+  basic_vaccination_completed:
+    label: "Basic Vaccination Completed?"
+    type: radio
+    required: false
+    source_field: vaccination_completed
+    options: ["Yes", "No"]
+
+# ============================================================
+# TAB 7: Digital Access
+# ============================================================
+tab_7_digital_access:
+  access_to_digital_device:
+    label: "Access to Digital Device at Home?"
+    type: radio
+    required: false
+    source_field: digital_device
+    options: ["Yes", "No"]
+
+  device_type:
+    label: "Device Type"
+    type: text
+    required: false
+    source_field: device_type
+
+  internet_access:
+    label: "Internet Access at Home?"
+    type: radio
+    required: false
+    source_field: internet_access
+    options: ["Yes", "No"]

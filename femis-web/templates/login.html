@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Login — FEMIS{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-5">
+    <div class="card shadow-sm">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-box-arrow-in-right me-2"></i>FEMIS Portal Login</h5>
+      </div>
+      <div class="card-body">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for cat, msg in messages %}
+              <div class="alert alert-{{ cat }} alert-dismissible fade show" role="alert">
+                {{ msg }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="/login">
+          <div class="mb-3">
+            <label class="form-label">I am a</label>
+            <div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="role" id="role_student" value="student" checked>
+                <label class="form-check-label" for="role_student">Student / Parent</label>
+              </div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="role" id="role_teacher" value="teacher">
+                <label class="form-check-label" for="role_teacher">Teacher</label>
+              </div>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Your Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="name" required placeholder="Enter your name">
+          </div>
+
+          <div id="student-fields">
+            <div class="mb-3">
+              <label class="form-label">Class <span class="text-danger">*</span></label>
+              <select class="form-select" name="class_id" id="login_class" required>
+                <option value="">Select Class</option>
+                <option value="Nursery">Nursery</option>
+                <option value="KG">KG</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Section <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="section" required placeholder="e.g. A, B, C">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Roll No <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="roll_no" required placeholder="e.g. 1, 2, 15">
+            </div>
+          </div>
+
+          <div class="text-end">
+            <button type="submit" class="btn btn-primary btn-lg">
+              <i class="bi bi-arrow-right-circle me-2"></i>Continue
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('input[name="role"]').forEach(function(radio) {
+  radio.addEventListener("change", function() {
+    var sf = document.getElementById("student-fields");
+    sf.style.display = this.value === "teacher" ? "none" : "block";
+    var inputs = sf.querySelectorAll("input, select");
+    inputs.forEach(function(inp) {
+      inp.required = (this.value === "student");
+    }.bind(this));
+  });
+});
+</script>
+{% endblock %}

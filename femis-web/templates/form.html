@@ -1,0 +1,1226 @@
+﻿{% extends "base.html" %}
+{% block title %}{{ "Edit" if edit_id else "New" }} Student Admission — FEMIS{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+  <div class="card-header bg-primary text-white">
+    <h5 class="mb-0">
+      <i class="bi bi-person-plus-fill me-2"></i>
+      {{ "Edit Student Record" if edit_id else "New Student Admission" }}
+    </h5>
+  </div>
+  <div class="card-body">
+
+    <ul class="nav nav-pills mb-4" role="tablist">
+      <li class="nav-item"><a class="nav-link active" data-bs-toggle="pill" href="#tab-1">1. Personal Details</a></li>
+      <li class="nav-item"><a class="nav-link" data-bs-toggle="pill" href="#tab-2">2. Parents / Guardian</a></li>
+      <li class="nav-item"><a class="nav-link" data-bs-toggle="pill" href="#tab-3">3. Educational Details</a></li>
+      <li class="nav-item"><a class="nav-link" data-bs-toggle="pill" href="#tab-4">4. Emergency Contact</a></li>
+      <li class="nav-item"><a class="nav-link" data-bs-toggle="pill" href="#tab-5">5. IDPs Details</a></li>
+      <li class="nav-item"><a class="nav-link" data-bs-toggle="pill" href="#tab-6">6. Health Details</a></li>
+      <li class="nav-item"><a class="nav-link" data-bs-toggle="pill" href="#tab-7">7. Digital Access</a></li>
+    </ul>
+
+    <form method="POST" action="/submit" id="admissionForm">
+      <input type="hidden" name="student_id" id="student_id" value="{{ edit_id or '' }}">
+      <input type="hidden" id="is_locked" value="{{ 'true' if is_locked else 'false' }}">
+
+      <div class="tab-content">
+
+{# ============================================================= #}
+{# TAB 1 — Personal Details #}
+{# ============================================================= #}
+<div class="tab-pane fade show active" id="tab-1">
+
+  <h6 class="text-primary mb-3 border-bottom pb-2">Student Information</h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <label class="form-label">Name of Student <span class="text-danger">*</span></label>
+      <input type="text" class="form-control" name="name" required>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Is CNIC / Form-B Available? <span class="text-danger">*</span></label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="is_bform_available" id="cnic_avail_yes" value="1" required>
+          <label class="form-check-label" for="cnic_avail_yes">Yes</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="is_bform_available" id="cnic_avail_no" value="0">
+          <label class="form-check-label" for="cnic_avail_no">No</label>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6" id="cnic_number_group">
+      <label class="form-label">CNIC / Form-B No. <span class="text-danger">*</span></label>
+      <input type="text" class="form-control" name="b_form" id="cnic_number_input" placeholder="XXXXX-XXXXXXX-X" required>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Gender <span class="text-danger">*</span></label>
+      <select class="form-select" name="gender" id="gender" required>
+        <option value="">— Select Gender —</option>
+        {% for g in opts.genders %}
+        <option value="{{ g }}">{{ g }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Date of Birth <span class="text-danger">*</span></label>
+      <input type="date" class="form-control" name="date_of_birth" required>
+    </div>
+  </div>
+
+  <h6 class="text-primary mb-3 border-bottom pb-2">Birthplace &amp; Nationality</h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <label class="form-label">Province of Birth <span class="text-danger">*</span></label>
+      <select class="form-select" name="birth_province_id" id="birth_province_id" required>
+        <option value="">— Select Province —</option>
+        {% for p in opts.provinces %}
+        <option value="{{ p.value }}">{{ p.text }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">District of Birth <span class="text-danger">*</span></label>
+      <select class="form-select" name="birth_district_id" id="birth_district_id" required>
+        <option value="">— Select Province first —</option>
+      </select>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Nationality <span class="text-danger">*</span></label>
+      <select class="form-select" name="nationality" id="nationality" required>
+        <option value="">— Select Nationality —</option>
+        {% for n in opts.nationalities %}
+        <option value="{{ n }}">{{ n }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-6" id="nationality_other_group" style="display:none;">
+      <label class="form-label">Other Nationality</label>
+      <select class="form-select" name="nationality_id">
+        <option value="">— Select —</option>
+        {% for n in opts.other_nationalities %}
+        <option value="{{ n.value }}">{{ n.text }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <h6 class="text-primary mb-3 border-bottom pb-2">Domicile</h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <label class="form-label">Student Domicile — Province</label>
+      <select class="form-select" name="domicile_province_id" id="domicile_province_id">
+        <option value="">— Select Province —</option>
+        {% for p in opts.provinces %}
+        <option value="{{ p.value }}">{{ p.text }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Student Domicile — District</label>
+      <select class="form-select" name="domicile_district_id" id="domicile_district_id">
+        <option value="">— Select Province first —</option>
+      </select>
+    </div>
+  </div>
+
+  <h6 class="text-primary mb-3 border-bottom pb-2">Temporary Address</h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <label class="form-label">Address Type <span class="text-danger">*</span></label>
+      <select class="form-select" name="address_type" id="address_type" required>
+        <option value="">— Select Type —</option>
+        {% for a in opts.address_types %}
+        <option value="{{ a }}">{{ a }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-6" id="sector_group" style="display:none;">
+      <label class="form-label">Sector</label>
+      <select class="form-select" name="sector_id" id="sector_select">
+        <option value="">— Select —</option>
+        {% for s in opts.sectors %}
+        <option value="{{ s.value }}">{{ s.text }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-6" id="sub_sector_group" style="display:none;">
+      <label class="form-label">Sub-Sector</label>
+      <select class="form-select" name="sub_sector_id" id="sub_sector_select">
+        <option value="">— Select Sector first —</option>
+      </select>
+    </div>
+    <div class="col-md-6" id="village_group" style="display:none;">
+      <label class="form-label">Village</label>
+      <select class="form-select" name="village_id">
+        <option value="">— Select —</option>
+        {% for v in opts.villages %}
+        <option value="{{ v.value }}">{{ v.text }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-6" id="housing_society_group" style="display:none;">
+      <label class="form-label">Housing Society</label>
+      <select class="form-select" name="housing_society_id">
+        <option value="">— Select —</option>
+        {% for hs in opts.housing_societies %}
+        <option value="{{ hs.value }}">{{ hs.text }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-12" id="other_address_group" style="display:none;">
+      <label class="form-label">Address <span class="text-danger">*</span></label>
+      <textarea class="form-control" name="address_other" rows="3" placeholder="Enter full address"></textarea>
+    </div>
+    <div id="house_street_group">
+      <div class="col-md-6">
+        <label class="form-label">House # (Temporary) <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" name="house" required>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Street # (Temporary) <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" name="street" required>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Contact Number / WhatsApp <span class="text-danger">*</span></label>
+      <input type="tel" class="form-control" name="contact_number" required>
+    </div>
+  </div>
+
+  <h6 class="text-primary mb-3 border-bottom pb-2">Permanent Address</h6>
+  <div class="row g-3 mb-2">
+    <div class="col-md-6">
+      <label class="form-label">City <span class="text-danger">*</span></label>
+      <select class="form-select" name="city_id" required>
+        <option value="">— Select —</option>
+        {% for c in opts.cities %}
+        <option value="{{ c }}">{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+  <div class="form-check mb-3">
+    <input class="form-check-input" type="checkbox" name="same_as_permanent_address" id="same_as_temporary" value="1">
+    <label class="form-check-label" for="same_as_temporary">Same as Temporary Address</label>
+  </div>
+
+  <div id="permanent_address_fields">
+    <div class="row g-3 mb-4">
+      <div class="col-md-6">
+        <label class="form-label">Address Type <span class="text-danger">*</span></label>
+        <select class="form-select" name="present_address_type" id="present_address_type">
+          <option value="">— Select Type —</option>
+          {% for a in opts.address_types %}
+          <option value="{{ a }}">{{ a }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6" id="present_sector_group" style="display:none;">
+        <label class="form-label">Sector</label>
+        <select class="form-select" name="present_sector_id" id="present_sector_select">
+          <option value="">— Select —</option>
+          {% for s in opts.sectors %}
+          <option value="{{ s.value }}">{{ s.text }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6" id="present_sub_sector_group" style="display:none;">
+        <label class="form-label">Sub-Sector</label>
+        <select class="form-select" name="present_sub_sector_id" id="present_sub_sector_select">
+          <option value="">— Select Sector first —</option>
+        </select>
+      </div>
+      <div class="col-md-6" id="present_village_group" style="display:none;">
+        <label class="form-label">Village</label>
+        <select class="form-select" name="present_village_id">
+          <option value="">— Select —</option>
+          {% for v in opts.villages %}
+          <option value="{{ v.value }}">{{ v.text }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6" id="present_housing_society_group" style="display:none;">
+        <label class="form-label">Housing Society</label>
+        <select class="form-select" name="present_housing_society_id">
+          <option value="">— Select —</option>
+          {% for hs in opts.housing_societies %}
+          <option value="{{ hs.value }}">{{ hs.text }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-12" id="present_other_address_group" style="display:none;">
+        <label class="form-label">Address</label>
+        <textarea class="form-control" name="present_address_other" rows="3" placeholder="Enter full address"></textarea>
+      </div>
+      <div id="present_house_street_group">
+        <div class="col-md-6">
+          <label class="form-label">House # (Permanent)</label>
+          <input type="text" class="form-control" name="present_house">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Street # (Permanent)</label>
+          <input type="text" class="form-control" name="present_street">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h6 class="text-primary mb-3 border-bottom pb-2">Other Information</h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <label class="form-label">Religion <span class="text-danger">*</span></label>
+      <select class="form-select" name="religion" id="religion" required>
+        <option value="">— Select Religion —</option>
+        {% for r in opts.religions %}
+        <option value="{{ r }}">{{ r }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-6" id="other_religion_group" style="display:none;">
+      <label class="form-label">Other Religion</label>
+      <select class="form-select" name="religion_id" id="other_religion">
+        <option value="">— Select —</option>
+        {% for r in opts.other_religions %}
+        <option value="{{ r }}">{{ r }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Mother Language <span class="text-danger">*</span></label>
+      <select class="form-select" name="mother_language" id="mother_language" required>
+        <option value="">— Select Language —</option>
+        {% for l in opts.languages %}
+        <option value="{{ l }}">{{ l }}</option>
+        {% endfor %}
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div class="col-md-6" id="mother_language_other_group" style="display:none;">
+      <label class="form-label">Other Language</label>
+      <input type="text" class="form-control" name="mother_language_other" placeholder="Specify language">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Blood Group</label>
+      <select class="form-select" name="blood_group" id="blood_group">
+        <option value="">— Select Blood Group —</option>
+        {% for b in opts.blood_groups %}
+        <option value="{{ b }}">{{ b }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Email ID</label>
+      <input type="email" class="form-control" name="email">
+    </div>
+  </div>
+</div>
+
+{# ============================================================= #}
+{# TAB 2 — Parents / Guardian Information #}
+{# ============================================================= #}
+<div class="tab-pane fade" id="tab-2">
+
+  <div id="father_fields_group">
+  <h6 class="text-primary mb-3 border-bottom pb-2">Father's Information</h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <label class="form-label">Father's Name <span class="text-danger">*</span></label>
+      <input type="text" class="form-control" name="father_name" required>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Father's CNIC <span class="text-danger">*</span></label>
+      <input type="text" class="form-control" name="father_cnic" placeholder="XXXXX-XXXXXXX-X" required>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Is Father Alive <span class="text-danger">*</span></label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="is_father_alive" id="father_alive_yes" value="1" required>
+          <label class="form-check-label" for="father_alive_yes">Yes</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="is_father_alive" id="father_alive_no" value="0">
+          <label class="form-check-label" for="father_alive_no">No</label>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="father_details_group" style="display:none;">
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <label class="form-label">Father's Contact Number / WhatsApp <span class="text-danger">*</span></label>
+      <input type="tel" class="form-control" name="father_contact">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Father's Landline Number</label>
+      <input type="tel" class="form-control" name="father_landline">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Father's Email</label>
+      <input type="email" class="form-control" name="father_email">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Father's Qualification</label>
+      <select class="form-select" name="father_qualification" id="father_qualification">
+        <option value="">— Select —</option>
+        {% for q in opts.father_qualifications %}
+        <option value="{{ q }}">{{ q }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Father's Profession <span class="text-danger">*</span></label>
+      <select class="form-select" name="father_profession" id="father_profession">
+        <option value="">— Select —</option>
+        {% for p in opts.father_professions %}
+        <option value="{{ p }}">{{ p }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-6" id="father_profession_other_group" style="display:none;">
+      <label class="form-label">Other Profession</label>
+      <input type="text" class="form-control" name="father_profession_other" placeholder="Specify profession">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Father's Income (per month)</label>
+      <select class="form-select" name="father_monthly_income" id="father_income">
+        <option value="">— Select —</option>
+        {% for i in opts.father_income %}
+        <option value="{{ i }}">{{ i }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Father's BPS</label>
+      <select class="form-select" name="father_bps" id="father_bps">
+        <option value="">— Select —</option>
+        {% for b in opts.father_bps %}
+        <option value="{{ b }}">{{ b }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Father Domicile — Province</label>
+      <select class="form-select" name="father_domicile_province_id" id="father_domicile_province_id">
+        <option value="">— Select Province —</option>
+        {% for p in opts.provinces %}
+        <option value="{{ p.value }}">{{ p.text }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Father Domicile — District</label>
+      <select class="form-select" name="father_domicile_district_id" id="father_domicile_district_id">
+        <option value="">— Select Province first —</option>
+      </select>
+    </div>
+  </div>
+  </div>
+  </div>
+
+  <div id="mother_fields_group">
+  <h6 class="text-primary mb-3 border-bottom pb-2">Mother's Information</h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <label class="form-label">Mother's Name <span class="text-danger">*</span></label>
+      <input type="text" class="form-control" name="mother_name" required>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Is Mother Alive <span class="text-danger">*</span></label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="is_mother_alive" id="mother_alive_yes" value="1" required>
+          <label class="form-check-label" for="mother_alive_yes">Yes</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="is_mother_alive" id="mother_alive_no" value="0">
+          <label class="form-check-label" for="mother_alive_no">No</label>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="mother_details_group" style="display:none;">
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <label class="form-label">Mother's CNIC</label>
+      <input type="text" class="form-control" name="mother_cnic" placeholder="XXXXX-XXXXXXX-X">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Mother's Contact Number / WhatsApp <span class="text-danger">*</span></label>
+      <input type="tel" class="form-control" name="mother_contact">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Mother's Landline Number</label>
+      <input type="tel" class="form-control" name="mother_landline">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Mother's Email</label>
+      <input type="email" class="form-control" name="mother_email">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Mother's Qualification</label>
+      <select class="form-select" name="mother_qualification" id="mother_qualification">
+        <option value="">— Select —</option>
+        {% for q in opts.mother_qualifications %}
+        <option value="{{ q }}">{{ q }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Mother's Profession <span class="text-danger">*</span></label>
+      <select class="form-select" name="mother_profession" id="mother_profession">
+        <option value="">— Select —</option>
+        {% for p in opts.mother_professions %}
+        <option value="{{ p }}">{{ p }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-6" id="mother_profession_other_group" style="display:none;">
+      <label class="form-label">Other Profession</label>
+      <input type="text" class="form-control" name="mother_profession_other" placeholder="Specify profession">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Mother's Income (per month)</label>
+      <select class="form-select" name="mother_monthly_income" id="mother_income">
+        <option value="">— Select —</option>
+        {% for i in opts.mother_income %}
+        <option value="{{ i }}">{{ i }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Mother's BPS</label>
+      <select class="form-select" name="mother_bps" id="mother_bps">
+        <option value="">— Select —</option>
+        {% for b in opts.mother_bps %}
+        <option value="{{ b }}">{{ b }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+  </div>
+  </div>
+
+  <h6 class="text-primary mb-3 border-bottom pb-2">Orphan / Guardian Information</h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <label class="form-label">Is Orphan Child</label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="is_orphan" id="is_orphan_yes" value="1">
+          <label class="form-check-label" for="is_orphan_yes">Yes</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="is_orphan" id="is_orphan_no" value="0">
+          <label class="form-check-label" for="is_orphan_no">No</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="orphan_fields" style="display:none;">
+    <div class="row g-3 mb-4">
+      <div class="col-md-6">
+        <label class="form-label">Orphan Type</label>
+        <div>
+          {% for ot in opts.orphan_types %}
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="orphan_type" id="ot_{{ loop.index }}" value="{{ ot }}">
+            <label class="form-check-label" for="ot_{{ loop.index }}">{{ ot }}</label>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Guardian Name</label>
+        <input type="text" class="form-control" name="guardian_name">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Guardian CNIC</label>
+        <input type="text" class="form-control" name="guardian_cnic" placeholder="XXXXX-XXXXXXX-X">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Guardian Relation</label>
+        <select class="form-select" name="guardian_relation" id="guardian_relation">
+          <option value="">— Select —</option>
+          {% for gr in opts.guardian_relations %}
+          <option value="{{ gr }}">{{ gr }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6" id="guardian_relation_other_group" style="display:none;">
+        <label class="form-label">Other Relation</label>
+        <input type="text" class="form-control" name="guardian_relation_other" placeholder="Specify relation">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Guardian Contact</label>
+        <input type="tel" class="form-control" name="guardian_contact">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Guardian Qualification</label>
+        <input type="text" class="form-control" name="guardian_qualification">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Guardian Profession</label>
+        <select class="form-select" name="guardian_profession" id="guardian_profession">
+          <option value="">— Select —</option>
+          {% for gp in opts.guardian_professions %}
+          <option value="{{ gp }}">{{ gp }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6" id="guardian_profession_other_group" style="display:none;">
+        <label class="form-label">Other Profession</label>
+        <input type="text" class="form-control" name="guardian_profession_other" placeholder="Specify profession">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Guardian Income</label>
+        <select class="form-select" name="guardian_income" id="guardian_income">
+          <option value="">— Select —</option>
+          {% for gi in opts.guardian_income %}
+          <option value="{{ gi }}">{{ gi }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Guardian BPS</label>
+        <select class="form-select" name="guardian_bps" id="guardian_bps">
+          <option value="">— Select —</option>
+          {% for gb in opts.guardian_bps %}
+          <option value="{{ gb }}">{{ gb }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{# TAB 3 - Educational Details #}
+<div class="tab-pane fade" id="tab-3">
+
+  <h6 class="text-primary mb-3 border-bottom pb-2">Academic Information</h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <label class="form-label">Class <span class="text-danger">*</span></label>
+      <div>
+        {% for cl in opts.classes %}
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="class_id" id="class_{{ loop.index }}" value="{{ cl }}" required>
+          <label class="form-check-label" for="class_{{ loop.index }}">{{ cl }}</label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Section <span class="text-danger">*</span></label>
+      <div>
+        {% for s in ['A', 'B', 'C', 'D'] %}
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="section_id" id="section_{{ s }}" value="{{ s }}" required>
+          <label class="form-check-label" for="section_{{ s }}">{{ s }}</label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Class Group</label>
+      <input type="text" class="form-control" name="class_group_id" placeholder="e.g., Science, Arts">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Result / Percentage</label>
+      <input type="text" class="form-control" name="last_class_result">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Date of Admission <span class="text-danger">*</span></label>
+      <input type="date" class="form-control" name="date_of_admission" required>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Admission Number</label>
+      <input type="text" class="form-control" name="admission_number">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Last Institution Attended Under FDE</label>
+      <select class="form-select" name="last_fde_institution_id" id="last_institution_fde">
+        <option value="">-- Select --</option>
+        {% for inst in opts.fde_institutions %}
+        <option value="{{ inst }}">{{ inst }}</option>
+        {% endfor %}
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Class Admitted In <span class="text-danger">*</span></label>
+      <div>
+        {% for cl in opts.classes %}
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="class_admitted_id" id="cai_{{ loop.index }}" value="{{ cl }}" required>
+          <label class="form-check-label" for="cai_{{ loop.index }}">{{ cl }}</label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="col-md-6" id="last_institution_other_group" style="display:none;">
+      <label class="form-label">Last Institution Other than FDE</label>
+      <input type="text" class="form-control" name="last_other_institution">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Shift <span class="text-danger">*</span></label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="shift" id="shift_morning" value="Morning" required>
+          <label class="form-check-label" for="shift_morning">Morning</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="shift" id="shift_evening" value="Evening">
+          <label class="form-check-label" for="shift_evening">Evening</label>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Medium of Instruction <span class="text-danger">*</span></label>
+      <div>
+        {% for m in opts.medium %}
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="medium_of_instruction" id="moi_{{ loop.index }}" value="{{ m }}" required>
+          <label class="form-check-label" for="moi_{{ loop.index }}">{{ m }}</label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <h6 class="text-primary mb-3 border-bottom pb-2">Additional Information</h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <label class="form-label">Primary Education Completion (Years)</label>
+      <input type="text" class="form-control" name="primary_education_completion_years">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Meal Program</label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="school_meal_program_availing" id="meal_yes" value="1">
+          <label class="form-check-label" for="meal_yes">Yes</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="school_meal_program_availing" id="meal_no" value="0">
+          <label class="form-check-label" for="meal_no">No</label>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Mode of Study <span class="text-danger">*</span></label>
+      <div>
+        {% for ms in opts.mode_of_study %}
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="mode_of_study" id="mos_{{ loop.index }}" value="{{ ms }}" required>
+          <label class="form-check-label" for="mos_{{ loop.index }}">{{ ms }}</label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="col-md-6" id="hafiz_group" style="display:none;">
+      <label class="form-label">Hafiz-e-Quran</label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="hafiz_e_quran" id="hq_yes" value="1">
+          <label class="form-check-label" for="hq_yes">Yes</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="hafiz_e_quran" id="hq_no" value="0">
+          <label class="form-check-label" for="hq_no">No</label>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Girls Stipend</label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="girls_stipend" id="gs_yes" value="1">
+          <label class="form-check-label" for="gs_yes">Yes</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="girls_stipend" id="gs_no" value="0">
+          <label class="form-check-label" for="gs_no">No</label>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Total Siblings</label>
+      <input type="text" class="form-control" name="total_siblings">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Siblings in Other FDE</label>
+      <input type="text" class="form-control" name="siblings_other_fde">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Is Same Institution</label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="siblings_same_institution" id="isi_yes" value="1">
+          <label class="form-check-label" for="isi_yes">Yes</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="siblings_same_institution" id="isi_no" value="0">
+          <label class="form-check-label" for="isi_no">No</label>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Siblings in Private</label>
+      <input type="text" class="form-control" name="siblings_private">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Transport Facility</label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="transport_facility" id="tf_bus" value="Bus">
+          <label class="form-check-label" for="tf_bus">Bus</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="transport_facility" id="tf_private" value="Private">
+          <label class="form-check-label" for="tf_private">Private</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="transport_facility" id="tf_none" value="None">
+          <label class="form-check-label" for="tf_none">None</label>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6" id="bus_route_group" style="display:none;">
+      <label class="form-label">Bus Route</label>
+      <div>
+        {% for br in opts.bus_routes %}
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="bus_route" id="br_{{ loop.index }}" value="{{ br }}">
+          <label class="form-check-label" for="br_{{ loop.index }}">{{ br }}</label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Scholarship</label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="scholarship" id="sch_yes" value="1">
+          <label class="form-check-label" for="sch_yes">Yes</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="scholarship" id="sch_no" value="0">
+          <label class="form-check-label" for="sch_no">No</label>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Co-curricular Activities</label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="cocurricular_activities" id="cc_yes" value="1">
+          <label class="form-check-label" for="cc_yes">Yes</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="cocurricular_activities" id="cc_no" value="0">
+          <label class="form-check-label" for="cc_no">No</label>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6" id="scholarship_details_group" style="display:none;">
+      <label class="form-label">Scholarship Details</label>
+      <input type="text" class="form-control" name="scholarship_details">
+    </div>
+    <div class="col-md-6" id="co_curricular_details_group" style="display:none;">
+      <label class="form-label">Achievement Details</label>
+      <input type="text" class="form-control" name="achievement_details">
+    </div>
+  </div>
+</div>
+
+{# TAB 4 - Emergency Contact #}
+<div class="tab-pane fade" id="tab-4">
+  <h6 class="text-primary mb-3 border-bottom pb-2">Emergency Contact Information</h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <label class="form-label">Emergency Contact Name <span class="text-danger">*</span></label>
+      <input type="text" class="form-control" name="emergency_name" required>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Emergency Contact Number <span class="text-danger">*</span></label>
+      <input type="tel" class="form-control" name="emergency_contact" required>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Relation <span class="text-danger">*</span></label>
+      <select class="form-select" name="emergency_relation" id="emergency_relation" required>
+        <option value="">— Select Relation —</option>
+        {% for er in opts.emergency_relations %}
+        <option value="{{ er }}">{{ er }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-6" id="emergency_relation_other_group" style="display:none;">
+      <label class="form-label">Other Relation</label>
+      <input type="text" class="form-control" name="emergency_relation_other" placeholder="Specify relation">
+    </div>
+  </div>
+</div>
+
+{# TAB 5 - IDPs Details #}
+<div class="tab-pane fade" id="tab-5">
+  <h6 class="text-primary mb-3 border-bottom pb-2">Refugee / IDP Information</h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <label class="form-label">Is Student Refugee / IDP</label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="is_refugee" id="iridp_yes" value="1">
+          <label class="form-check-label" for="iridp_yes">Yes</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="is_refugee" id="iridp_no" value="0">
+          <label class="form-check-label" for="iridp_no">No</label>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="idp_fields" style="display:none;">
+    <div class="row g-3 mb-4">
+      <div class="col-md-6">
+        <label class="form-label">IDP Status</label>
+        <div>
+          {% for ids in opts.idp_status %}
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="idp_status_id" id="ids_{{ loop.index }}" value="{{ ids }}">
+            <label class="form-check-label" for="ids_{{ loop.index }}">{{ ids }}</label>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Is Registered as Refugee</label>
+        <div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="is_registered_refugee" id="irr_yes" value="1">
+            <label class="form-check-label" for="irr_yes">Yes</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="is_registered_refugee" id="irr_no" value="0">
+            <label class="form-check-label" for="irr_no">No</label>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6" id="refugee_card_group" style="display:none;">
+        <label class="form-label">Refugee Card Number</label>
+        <input type="text" class="form-control" name="refugee_card_number">
+      </div>
+    </div>
+  </div>
+</div>
+
+{# TAB 6 - Health Details #}
+<div class="tab-pane fade" id="tab-6">
+  <h6 class="text-primary mb-3 border-bottom pb-2">Disability Information</h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <label class="form-label">Any Major Disability</label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="has_major_disability" id="md_yes" value="1">
+          <label class="form-check-label" for="md_yes">Yes</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="has_major_disability" id="md_no" value="0">
+          <label class="form-check-label" for="md_no">No</label>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="disability_fields" style="display:none;">
+    <div class="row g-3 mb-4">
+      <div class="col-md-6">
+        <label class="form-label">Disability Type</label>
+        <div>
+          {% for dt in opts.disability_types %}
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="disability_types[]" id="dt_{{ loop.index }}" value="{{ dt }}">
+            <label class="form-check-label" for="dt_{{ loop.index }}">{{ dt }}</label>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Major Disability Description</label>
+        <input type="text" class="form-control" name="major_disability_text">
+      </div>
+    </div>
+  </div>
+
+  <h6 class="text-primary mb-3 border-bottom pb-2">Mental Health</h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <label class="form-label">Any Mental Disability</label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="has_mental_disability" id="mnd_yes" value="1">
+          <label class="form-check-label" for="mnd_yes">Yes</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="has_mental_disability" id="mnd_no" value="0">
+          <label class="form-check-label" for="mnd_no">No</label>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6" id="mental_disability_type_group" style="display:none;">
+      <label class="form-label">Mental Disability Type</label>
+      <select class="form-select" name="mental_disability_type" id="mental_disability_type">
+        <option value="">— Select —</option>
+        {% for md in opts.mental_disability_types %}
+        <option value="{{ md }}">{{ md }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-6" id="mental_disability_other_group" style="display:none;">
+      <label class="form-label">Other Mental Disability</label>
+      <input type="text" class="form-control" name="mental_disability_other" placeholder="Specify condition">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Other Medical Conditions</label>
+      <input type="text" class="form-control" name="other_medical_condition">
+    </div>
+  </div>
+
+  <h6 class="text-primary mb-3 border-bottom pb-2">Vision</h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <label class="form-label">Visually FIT</label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="visually_fit" id="vf_yes" value="1">
+          <label class="form-check-label" for="vf_yes">Yes</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="visually_fit" id="vf_no" value="0">
+          <label class="form-check-label" for="vf_no">No</label>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Wears Glasses</label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="uses_glasses" id="wg_yes" value="1">
+          <label class="form-check-label" for="wg_yes">Yes</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="uses_glasses" id="wg_no" value="0">
+          <label class="form-check-label" for="wg_no">No</label>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6" id="glass_prescription_group" style="display:none;">
+      <label class="form-label">Glasses Prescription</label>
+      <input type="text" class="form-control" name="glass_prescription" placeholder="Specify prescription details">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Difficulty Seeing Board</label>
+      <div>
+        {% for dl in opts.difficulty_levels %}
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="difficulty_seeing_board" id="dsb_{{ loop.index }}" value="{{ dl }}">
+          <label class="form-check-label" for="dsb_{{ loop.index }}">{{ dl }}</label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <h6 class="text-primary mb-3 border-bottom pb-2">Hearing</h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <label class="form-label">Has Hearing Difficulty</label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="has_hearing_difficulties" id="hd_yes" value="1">
+          <label class="form-check-label" for="hd_yes">Yes</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="has_hearing_difficulties" id="hd_no" value="0">
+          <label class="form-check-label" for="hd_no">No</label>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6" id="hearing_aid_group" style="display:none;">
+      <label class="form-label">Uses Hearing Aid</label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="uses_hearing_aid" id="uha_yes" value="1">
+          <label class="form-check-label" for="uha_yes">Yes</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="uses_hearing_aid" id="uha_no" value="0">
+          <label class="form-check-label" for="uha_no">No</label>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6" id="hearing_aid_details_group" style="display:none;">
+      <label class="form-label">Hearing Aid Details</label>
+      <input type="text" class="form-control" name="hearing_aid_details" placeholder="Specify hearing aid details">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Difficulty Listening</label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="difficulty_listening" id="dlis_yes" value="1">
+          <label class="form-check-label" for="dlis_yes">Yes</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="difficulty_listening" id="dlis_no" value="0">
+          <label class="form-check-label" for="dlis_no">No</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h6 class="text-primary mb-3 border-bottom pb-2">Mobility</h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <label class="form-label">Difficulty Walking</label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="difficulty_walking" id="dw_yes" value="1">
+          <label class="form-check-label" for="dw_yes">Yes</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="difficulty_walking" id="dw_no" value="0">
+          <label class="form-check-label" for="dw_no">No</label>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6" id="crutches_group" style="display:none;">
+      <label class="form-label">Uses Crutches / Walker</label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="uses_crutches_walker" id="ucw_yes" value="1">
+          <label class="form-check-label" for="ucw_yes">Yes</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="uses_crutches_walker" id="ucw_no" value="0">
+          <label class="form-check-label" for="ucw_no">No</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h6 class="text-primary mb-3 border-bottom pb-2">Learning Difficulties</h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <label class="form-label">Difficulty Reading / Writing</label>
+      <div>
+        {% for dl in opts.difficulty_levels %}
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="difficulty_reading_writing" id="drw_{{ loop.index }}" value="{{ dl }}">
+          <label class="form-check-label" for="drw_{{ loop.index }}">{{ dl }}</label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Difficulty Remembering</label>
+      <div>
+        {% for dl in opts.difficulty_levels %}
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="difficulty_remembering" id="drem_{{ loop.index }}" value="{{ dl }}">
+          <label class="form-check-label" for="drem_{{ loop.index }}">{{ dl }}</label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Difficulty Concentrating</label>
+      <div>
+        {% for dl in opts.difficulty_levels %}
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="difficulty_concentrating" id="dcon_{{ loop.index }}" value="{{ dl }}">
+          <label class="form-check-label" for="dcon_{{ loop.index }}">{{ dl }}</label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <h6 class="text-primary mb-3 border-bottom pb-2">Vaccination</h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <label class="form-label">Basic Vaccination Completed</label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="basic_vaccination_completed" id="bvc_yes" value="1">
+          <label class="form-check-label" for="bvc_yes">Yes</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="basic_vaccination_completed" id="bvc_no" value="0">
+          <label class="form-check-label" for="bvc_no">No</label>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# TAB 7 - Digital Access #}
+<div class="tab-pane fade" id="tab-7">
+  <h6 class="text-primary mb-3 border-bottom pb-2">Digital Access Information</h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <label class="form-label">Access to Digital Device</label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="digital_device_at_home" id="dda_yes" value="1">
+          <label class="form-check-label" for="dda_yes">Yes</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="digital_device_at_home" id="dda_no" value="0">
+          <label class="form-check-label" for="dda_no">No</label>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6" id="device_type_group" style="display:none;">
+      <label class="form-label">Device Type</label>
+      <div>
+        {% for dt in opts.device_types %}
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="digital_device_type" id="dv_{{ loop.index }}" value="{{ dt }}">
+          <label class="form-check-label" for="dv_{{ loop.index }}">{{ dt }}</label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Internet Access</label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="internet_at_home" id="ia_yes" value="1">
+          <label class="form-check-label" for="ia_yes">Yes</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="internet_at_home" id="ia_no" value="0">
+          <label class="form-check-label" for="ia_no">No</label>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+      </div>{# end tab-content #}
+
+      <div class="text-end mt-4" id="tab-actions">
+        <button type="button" class="btn btn-primary btn-lg" id="save-next-btn">
+          <i class="bi bi-save me-2"></i><span id="btn-label">Save & Next</span> <i class="bi bi-arrow-right ms-1" id="btn-arrow"></i>
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,2734 @@
+{
+  "provinces": [
+    {
+      "value": "7",
+      "text": "Azad Jammu and Kashmir"
+    },
+    {
+      "value": "4",
+      "text": "Balochistan"
+    },
+    {
+      "value": "6",
+      "text": "Gilgit-Baltistan"
+    },
+    {
+      "value": "5",
+      "text": "Islamabad Capital Territory"
+    },
+    {
+      "value": "3",
+      "text": "Khyber Pakhtonkhawa"
+    },
+    {
+      "value": "8",
+      "text": "Other than Pakistan"
+    },
+    {
+      "value": "1",
+      "text": "Punjab"
+    },
+    {
+      "value": "2",
+      "text": "Sindh"
+    }
+  ],
+  "sectors": [
+    {
+      "value": "1",
+      "text": "G-10"
+    },
+    {
+      "value": "2",
+      "text": "G-9"
+    },
+    {
+      "value": "3",
+      "text": "G-8"
+    },
+    {
+      "value": "4",
+      "text": "G-7"
+    },
+    {
+      "value": "5",
+      "text": "F-5"
+    },
+    {
+      "value": "6",
+      "text": "F-6"
+    },
+    {
+      "value": "7",
+      "text": "F-7"
+    },
+    {
+      "value": "8",
+      "text": "F-8"
+    },
+    {
+      "value": "9",
+      "text": "F-9"
+    },
+    {
+      "value": "10",
+      "text": "F-10"
+    },
+    {
+      "value": "11",
+      "text": "F-11"
+    },
+    {
+      "value": "12",
+      "text": "F-12"
+    },
+    {
+      "value": "13",
+      "text": "F-13"
+    },
+    {
+      "value": "14",
+      "text": "G-5"
+    },
+    {
+      "value": "15",
+      "text": "G-6"
+    },
+    {
+      "value": "16",
+      "text": "G-11"
+    },
+    {
+      "value": "17",
+      "text": "G-12"
+    },
+    {
+      "value": "18",
+      "text": "G-13"
+    },
+    {
+      "value": "19",
+      "text": "G-14"
+    },
+    {
+      "value": "20",
+      "text": "G-15"
+    },
+    {
+      "value": "21",
+      "text": "G-16"
+    },
+    {
+      "value": "22",
+      "text": "G-17"
+    },
+    {
+      "value": "23",
+      "text": "H-8"
+    },
+    {
+      "value": "24",
+      "text": "H-9"
+    },
+    {
+      "value": "25",
+      "text": "H-10"
+    },
+    {
+      "value": "26",
+      "text": "H-11"
+    },
+    {
+      "value": "27",
+      "text": "H-12"
+    },
+    {
+      "value": "28",
+      "text": "I-8"
+    },
+    {
+      "value": "29",
+      "text": "I-9"
+    },
+    {
+      "value": "30",
+      "text": "I-10"
+    },
+    {
+      "value": "31",
+      "text": "I-11"
+    },
+    {
+      "value": "32",
+      "text": "I-12"
+    },
+    {
+      "value": "33",
+      "text": "I-13"
+    },
+    {
+      "value": "34",
+      "text": "I-14"
+    },
+    {
+      "value": "35",
+      "text": "I-15"
+    },
+    {
+      "value": "36",
+      "text": "I-16"
+    },
+    {
+      "value": "37",
+      "text": "I-17"
+    },
+    {
+      "value": "38",
+      "text": "E-7"
+    },
+    {
+      "value": "39",
+      "text": "E-9"
+    },
+    {
+      "value": "40",
+      "text": "E-8"
+    },
+    {
+      "value": "41",
+      "text": "E-11"
+    },
+    {
+      "value": "42",
+      "text": "E-12"
+    },
+    {
+      "value": "43",
+      "text": "B-12"
+    },
+    {
+      "value": "44",
+      "text": "H-13"
+    },
+    {
+      "value": "45",
+      "text": "D-12"
+    }
+  ],
+  "villages": [
+    {
+      "value": "1",
+      "text": "Saidpur"
+    },
+    {
+      "value": "2",
+      "text": "Talhar"
+    },
+    {
+      "value": "3",
+      "text": "Gokina"
+    },
+    {
+      "value": "4",
+      "text": "Muslim Colony"
+    },
+    {
+      "value": "5",
+      "text": "Noor Pur Shahan"
+    },
+    {
+      "value": "6",
+      "text": "Malpur"
+    },
+    {
+      "value": "7",
+      "text": "Bhara Kahu"
+    },
+    {
+      "value": "8",
+      "text": "Bani Gala"
+    },
+    {
+      "value": "9",
+      "text": "Phulgran"
+    },
+    {
+      "value": "10",
+      "text": "Athal"
+    },
+    {
+      "value": "11",
+      "text": "Begwal"
+    },
+    {
+      "value": "12",
+      "text": "Kirpa"
+    },
+    {
+      "value": "13",
+      "text": "Kuri"
+    },
+    {
+      "value": "14",
+      "text": "Tumair"
+    },
+    {
+      "value": "15",
+      "text": "Nilore"
+    },
+    {
+      "value": "16",
+      "text": "Chirah"
+    },
+    {
+      "value": "17",
+      "text": "Tarlai"
+    },
+    {
+      "value": "18",
+      "text": "Alipur"
+    },
+    {
+      "value": "19",
+      "text": "Chak Shahzad"
+    },
+    {
+      "value": "20",
+      "text": "Sihala"
+    },
+    {
+      "value": "21",
+      "text": "Rawat"
+    },
+    {
+      "value": "22",
+      "text": "Humak"
+    },
+    {
+      "value": "23",
+      "text": "Koral"
+    },
+    {
+      "value": "24",
+      "text": "Khanna Dak"
+    },
+    {
+      "value": "25",
+      "text": "Sohan"
+    },
+    {
+      "value": "26",
+      "text": "Jhangi Syedan"
+    },
+    {
+      "value": "27",
+      "text": "Tarnol"
+    },
+    {
+      "value": "28",
+      "text": "Sangjani"
+    },
+    {
+      "value": "29",
+      "text": "Golra"
+    },
+    {
+      "value": "30",
+      "text": "Shah Allah Ditta"
+    },
+    {
+      "value": "31",
+      "text": "Sarai Kharboza"
+    },
+    {
+      "value": "32",
+      "text": "Malot"
+    },
+    {
+      "value": "33",
+      "text": "Lohi Bher"
+    },
+    {
+      "value": "34",
+      "text": "Maira Akku"
+    },
+    {
+      "value": "35",
+      "text": "Mughal"
+    },
+    {
+      "value": "36",
+      "text": "Shakrial"
+    },
+    {
+      "value": "37",
+      "text": "Banni Saran"
+    },
+    {
+      "value": "38",
+      "text": "Chellow"
+    },
+    {
+      "value": "39",
+      "text": "Jhang Syedan"
+    },
+    {
+      "value": "40",
+      "text": "Herno"
+    },
+    {
+      "value": "41",
+      "text": "Jagiot"
+    },
+    {
+      "value": "42",
+      "text": "JABA TALI"
+    },
+    {
+      "value": "43",
+      "text": "PUNJGRAN"
+    },
+    {
+      "value": "44",
+      "text": "THANDA PANI"
+    },
+    {
+      "value": "45",
+      "text": "KHANNA NAI ABADI"
+    },
+    {
+      "value": "46",
+      "text": "ALIPUR FRASH"
+    },
+    {
+      "value": "47",
+      "text": "DALLA"
+    },
+    {
+      "value": "48",
+      "text": "HARNO THANDA PANI"
+    },
+    {
+      "value": "49",
+      "text": "PEHOUNT"
+    },
+    {
+      "value": "50",
+      "text": "NEW SHAKRIAL"
+    },
+    {
+      "value": "51",
+      "text": "KALIA"
+    },
+    {
+      "value": "52",
+      "text": "JABA TELI"
+    },
+    {
+      "value": "53",
+      "text": "SHARIFABAD"
+    },
+    {
+      "value": "54",
+      "text": "KHADRAPPER"
+    },
+    {
+      "value": "56",
+      "text": "KIJNAH"
+    },
+    {
+      "value": "57",
+      "text": "MOHRA SOLINA"
+    },
+    {
+      "value": "58",
+      "text": "MOHRA TUMAIR"
+    },
+    {
+      "value": "59",
+      "text": "KHANNA KAK"
+    },
+    {
+      "value": "60",
+      "text": "PIND MISTRIAN"
+    },
+    {
+      "value": "61",
+      "text": "KHANA NAI AABADI"
+    },
+    {
+      "value": "62",
+      "text": "No.1 Tarlai islamabad"
+    },
+    {
+      "value": "63",
+      "text": "TARLAI, (No-2)"
+    },
+    {
+      "value": "64",
+      "text": "TAMMA"
+    },
+    {
+      "value": "65",
+      "text": "ALI PUR FRASH (M.V)"
+    },
+    {
+      "value": "66",
+      "text": "ALI PUR FRASH"
+    },
+    {
+      "value": "67",
+      "text": "CHANOUL BANGIAL"
+    },
+    {
+      "value": "68",
+      "text": "HERNO T.P"
+    },
+    {
+      "value": "69",
+      "text": "DARKALA"
+    },
+    {
+      "value": "70",
+      "text": "DHOKE FATEH HALL"
+    },
+    {
+      "value": "71",
+      "text": "CHAPPAR Ghasota"
+    },
+    {
+      "value": "72",
+      "text": "CHAKHTAN"
+    },
+    {
+      "value": "73",
+      "text": "ALI PUR SOUTH"
+    },
+    {
+      "value": "74",
+      "text": "SIRRI"
+    },
+    {
+      "value": "75",
+      "text": "ALI PUR FARASH TOWN"
+    },
+    {
+      "value": "76",
+      "text": "BIATH"
+    },
+    {
+      "value": "77",
+      "text": "NAUGAZI"
+    },
+    {
+      "value": "78",
+      "text": "NOON"
+    },
+    {
+      "value": "79",
+      "text": "HERDOGHER"
+    },
+    {
+      "value": "80",
+      "text": "BHADANA KALAN"
+    },
+    {
+      "value": "81",
+      "text": "NARA SYEDAN"
+    },
+    {
+      "value": "82",
+      "text": "DHOKE GANGAL"
+    },
+    {
+      "value": "83",
+      "text": "PIND MALKAN"
+    },
+    {
+      "value": "84",
+      "text": "TARNOUL"
+    },
+    {
+      "value": "85",
+      "text": "MOHRA NAGIAL"
+    },
+    {
+      "value": "86",
+      "text": "GAGRI"
+    },
+    {
+      "value": "87",
+      "text": "BADIA QADIR BUKSH"
+    },
+    {
+      "value": "88",
+      "text": "DHOKE JOURI"
+    },
+    {
+      "value": "89",
+      "text": "UPRAN GOHRA"
+    },
+    {
+      "value": "90",
+      "text": "DHOKE PRACHA"
+    },
+    {
+      "value": "91",
+      "text": "MAIRA BERI"
+    },
+    {
+      "value": "92",
+      "text": "BHIMBER TRAR"
+    },
+    {
+      "value": "93",
+      "text": "MOHRI RAWAT"
+    },
+    {
+      "value": "94",
+      "text": "PIND PARACHA"
+    },
+    {
+      "value": "95",
+      "text": "RADIO COLONY RAWAT"
+    },
+    {
+      "value": "96",
+      "text": "DHREAK MOHRI"
+    },
+    {
+      "value": "97",
+      "text": "Bhangril Khurd"
+    },
+    {
+      "value": "98",
+      "text": "RAJWAL"
+    },
+    {
+      "value": "99",
+      "text": "DHALIALA"
+    },
+    {
+      "value": "100",
+      "text": "DHOKE PARACHA"
+    },
+    {
+      "value": "101",
+      "text": "SARAI KHARBUZA"
+    },
+    {
+      "value": "102",
+      "text": "NIAZIAN"
+    },
+    {
+      "value": "103",
+      "text": "TAMMAN"
+    },
+    {
+      "value": "104",
+      "text": "PEIJA"
+    },
+    {
+      "value": "105",
+      "text": "SANG JANI"
+    },
+    {
+      "value": "106",
+      "text": "PINDORY SYEDAN"
+    },
+    {
+      "value": "107",
+      "text": "MIANA THUB"
+    },
+    {
+      "value": "108",
+      "text": "DORA"
+    },
+    {
+      "value": "109",
+      "text": "JANDALA"
+    },
+    {
+      "value": "110",
+      "text": "Sheikhpur Noon"
+    },
+    {
+      "value": "111",
+      "text": "PIND HOON"
+    },
+    {
+      "value": "112",
+      "text": "SHEIKH PUR RAWAT"
+    },
+    {
+      "value": "113",
+      "text": "Karamabad"
+    },
+    {
+      "value": "114",
+      "text": "DHOKE LUBANA"
+    },
+    {
+      "value": "115",
+      "text": "JOHD"
+    },
+    {
+      "value": "116",
+      "text": "SIHALA MIRZIAN"
+    },
+    {
+      "value": "117",
+      "text": "PIND PARIAN"
+    },
+    {
+      "value": "118",
+      "text": "HOON DHAMIAL"
+    },
+    {
+      "value": "119",
+      "text": "GOHRA MAST"
+    },
+    {
+      "value": "120",
+      "text": "SERI SARAL"
+    },
+    {
+      "value": "121",
+      "text": "LADHIOT"
+    },
+    {
+      "value": "122",
+      "text": "BOKRA"
+    },
+    {
+      "value": "123",
+      "text": "SORAIN , Jhangi Syedan"
+    },
+    {
+      "value": "124",
+      "text": "GHANGOTA SYEDAN"
+    },
+    {
+      "value": "125",
+      "text": "BOORA BANGIAL"
+    },
+    {
+      "value": "126",
+      "text": "MOHRI MUGHAL"
+    },
+    {
+      "value": "127",
+      "text": "BHEKA SYEDAN"
+    },
+    {
+      "value": "128",
+      "text": "PTC SIHALA"
+    },
+    {
+      "value": "129",
+      "text": "Dhoke Hashoo"
+    },
+    {
+      "value": "130",
+      "text": "PAK PWD COLONY"
+    },
+    {
+      "value": "131",
+      "text": "DHOKE SULEMAN"
+    },
+    {
+      "value": "132",
+      "text": "SIHALA KHURD"
+    },
+    {
+      "value": "133",
+      "text": "SARAI MADHU"
+    },
+    {
+      "value": "134",
+      "text": "MHS, D-17"
+    },
+    {
+      "value": "135",
+      "text": "PAHG PANWAL"
+    },
+    {
+      "value": "136",
+      "text": "GHAGRI"
+    },
+    {
+      "value": "137",
+      "text": "(BSK) BHARA KAU"
+    },
+    {
+      "value": "138",
+      "text": "BANI SARAN"
+    },
+    {
+      "value": "139",
+      "text": "CHAKSHAHZAD"
+    },
+    {
+      "value": "140",
+      "text": "BHARA KAU"
+    },
+    {
+      "value": "141",
+      "text": "CHATTAR"
+    },
+    {
+      "value": "142",
+      "text": "ARA BURJI"
+    },
+    {
+      "value": "143",
+      "text": "PIND BEGWAL"
+    },
+    {
+      "value": "144",
+      "text": "Shahdara"
+    },
+    {
+      "value": "145",
+      "text": "Darwala"
+    },
+    {
+      "value": "146",
+      "text": "RAWAL DAM"
+    },
+    {
+      "value": "147",
+      "text": "Pind  Malkan"
+    },
+    {
+      "value": "148",
+      "text": "SAID PUR"
+    },
+    {
+      "value": "149",
+      "text": "MOHRA KALU"
+    },
+    {
+      "value": "150",
+      "text": "BOBRI"
+    },
+    {
+      "value": "151",
+      "text": "DHOKE MAI NAWAB"
+    },
+    {
+      "value": "152",
+      "text": "MAIRA BEGWAL"
+    },
+    {
+      "value": "153",
+      "text": "KORTANA"
+    },
+    {
+      "value": "154",
+      "text": "CHAK"
+    },
+    {
+      "value": "155",
+      "text": "MOHRA NOOR"
+    },
+    {
+      "value": "156",
+      "text": "MOHRI (RAWAT)"
+    },
+    {
+      "value": "157",
+      "text": "KOT HATHIAL"
+    },
+    {
+      "value": "158",
+      "text": "MALWAR"
+    },
+    {
+      "value": "159",
+      "text": "SATRA MEEL"
+    },
+    {
+      "value": "160",
+      "text": "BHUDDO"
+    },
+    {
+      "value": "161",
+      "text": "CHAK KAMDAR"
+    },
+    {
+      "value": "162",
+      "text": "CHAN MASTAL"
+    },
+    {
+      "value": "163",
+      "text": "SIGGA"
+    },
+    {
+      "value": "164",
+      "text": "DHOKE JERRANI"
+    },
+    {
+      "value": "165",
+      "text": "CBR Colony"
+    },
+    {
+      "value": "166",
+      "text": "DHOKE SYEDAN"
+    },
+    {
+      "value": "167",
+      "text": "SOAN GARDEN  LOHI BHEER"
+    },
+    {
+      "value": "168",
+      "text": "DOHALA SYEDAN"
+    },
+    {
+      "value": "169",
+      "text": "Gohra Shahan"
+    },
+    {
+      "value": "170",
+      "text": "KALRAN"
+    },
+    {
+      "value": "171",
+      "text": "MANGIAL"
+    },
+    {
+      "value": "172",
+      "text": "MAL"
+    },
+    {
+      "value": "173",
+      "text": "NOORPUR SHAHAN"
+    },
+    {
+      "value": "174",
+      "text": "PALALI"
+    },
+    {
+      "value": "175",
+      "text": "Rumli"
+    },
+    {
+      "value": "176",
+      "text": "SIHALI"
+    },
+    {
+      "value": "177",
+      "text": "QAZIABAD"
+    },
+    {
+      "value": "178",
+      "text": "KUREE"
+    },
+    {
+      "value": "179",
+      "text": "MARGALLA TOWN"
+    },
+    {
+      "value": "180",
+      "text": "UNIVERSITY COLONY"
+    },
+    {
+      "value": "181",
+      "text": "NHC"
+    },
+    {
+      "value": "182",
+      "text": "NCH, CHAK SHAHZAD"
+    },
+    {
+      "value": "183",
+      "text": "Kurri"
+    },
+    {
+      "value": "184",
+      "text": "RAWAL TOWN"
+    },
+    {
+      "value": "185",
+      "text": "LAKHWAL"
+    },
+    {
+      "value": "186",
+      "text": "SHAHDRA KHURD"
+    },
+    {
+      "value": "187",
+      "text": "SHAHDRA KALAN"
+    },
+    {
+      "value": "188",
+      "text": "BAIN NALA"
+    },
+    {
+      "value": "189",
+      "text": "MANDLA"
+    },
+    {
+      "value": "190",
+      "text": "SANJALIAN"
+    },
+    {
+      "value": "191",
+      "text": "NHC Chak Shezad Islamabad"
+    },
+    {
+      "value": "192",
+      "text": "KOT HATHIAL, NAI ABADI"
+    },
+    {
+      "value": "193",
+      "text": "MOHRIAN"
+    },
+    {
+      "value": "194",
+      "text": "PIND BEGWAL, DANNA"
+    },
+    {
+      "value": "195",
+      "text": "SHAH PUR"
+    },
+    {
+      "value": "196",
+      "text": "SUBBAN"
+    },
+    {
+      "value": "197",
+      "text": "SHAHZAD TOWN"
+    },
+    {
+      "value": "198",
+      "text": "BHARA KAU, NAI ABADI"
+    },
+    {
+      "value": "199",
+      "text": "MULPUR"
+    },
+    {
+      "value": "200",
+      "text": "MAIRA MALPUR"
+    },
+    {
+      "value": "201",
+      "text": "Arra"
+    },
+    {
+      "value": "202",
+      "text": "Chohar Sharif"
+    },
+    {
+      "value": "203",
+      "text": "Chakian"
+    },
+    {
+      "value": "204",
+      "text": "Mughal Pari"
+    },
+    {
+      "value": "205",
+      "text": "Kangota Syedan"
+    },
+    {
+      "value": "206",
+      "text": "Druni"
+    },
+    {
+      "value": "207",
+      "text": "Dhandi"
+    },
+    {
+      "value": "208",
+      "text": "Arri Syedan"
+    },
+    {
+      "value": "209",
+      "text": "Maira"
+    },
+    {
+      "value": "210",
+      "text": "Dadocha"
+    },
+    {
+      "value": "211",
+      "text": "Upra Ghora"
+    },
+    {
+      "value": "212",
+      "text": "Chatro"
+    },
+    {
+      "value": "213",
+      "text": "Bhoon"
+    },
+    {
+      "value": "214",
+      "text": "Kangota Gujran"
+    },
+    {
+      "value": "215",
+      "text": "Sain Mirchu (H-13)"
+    },
+    {
+      "value": "216",
+      "text": "Dhoke Parathi"
+    },
+    {
+      "value": "217",
+      "text": "Dhoke Malaika"
+    },
+    {
+      "value": "218",
+      "text": "Jarakee"
+    },
+    {
+      "value": "219",
+      "text": "Gurha Mistrian"
+    },
+    {
+      "value": "220",
+      "text": "Sihala Baag"
+    },
+    {
+      "value": "221",
+      "text": "Panyali"
+    },
+    {
+      "value": "222",
+      "text": "Trikhian"
+    },
+    {
+      "value": "223",
+      "text": "Dandee"
+    },
+    {
+      "value": "224",
+      "text": "Chuchkal"
+    }
+  ],
+  "housing_societies": [
+    {
+      "value": "1",
+      "text": "Alhamra Avenue"
+    },
+    {
+      "value": "2",
+      "text": "Al-Makkah City"
+    },
+    {
+      "value": "3",
+      "text": "Anza Zephyr Dale Agro Farms"
+    },
+    {
+      "value": "4",
+      "text": "Bahria Enclave-II Agro Farming"
+    },
+    {
+      "value": "5",
+      "text": "Bahria Enclave-II Phase-II"
+    },
+    {
+      "value": "6",
+      "text": "Bahria Town Phase-VII"
+    },
+    {
+      "value": "7",
+      "text": "Bahria Town Ph-II"
+    },
+    {
+      "value": "8",
+      "text": "Bahria Town Phase-I"
+    },
+    {
+      "value": "9",
+      "text": "Bahria Town Phase-III"
+    },
+    {
+      "value": "10",
+      "text": "Bahria Town Phase-IV"
+    },
+    {
+      "value": "11",
+      "text": "Bahria Town Phase-V"
+    },
+    {
+      "value": "12",
+      "text": "Bahria Town Phase-VI"
+    },
+    {
+      "value": "13",
+      "text": "Bahria Town Phase-VIII"
+    },
+    {
+      "value": "14",
+      "text": "DHA Phase - I"
+    },
+    {
+      "value": "15",
+      "text": "DHA Phase - II"
+    },
+    {
+      "value": "16",
+      "text": "DHA Phase - III"
+    },
+    {
+      "value": "17",
+      "text": "DHA Phase - IV"
+    },
+    {
+      "value": "18",
+      "text": "DHA Phase - V"
+    },
+    {
+      "value": "19",
+      "text": "DHA Phase - VI"
+    },
+    {
+      "value": "20",
+      "text": "DHA Phase - VII"
+    },
+    {
+      "value": "21",
+      "text": "Cabinet Division Employees Cooperative Housing Society"
+    },
+    {
+      "value": "22",
+      "text": "CBR Town"
+    },
+    {
+      "value": "23",
+      "text": "Engineers Housing Scheme"
+    },
+    {
+      "value": "24",
+      "text": "Grace Valley"
+    },
+    {
+      "value": "25",
+      "text": "Gulberg Greens Farm Housing Scheme"
+    },
+    {
+      "value": "26",
+      "text": "Gulberg Residencia"
+    },
+    {
+      "value": "27",
+      "text": "Gulshan-e-Sehat"
+    },
+    {
+      "value": "28",
+      "text": "Islamabad Gardens"
+    },
+    {
+      "value": "29",
+      "text": "Jeddah Town"
+    },
+    {
+      "value": "30",
+      "text": "Khayaban-e-Kashmir Phase-I"
+    },
+    {
+      "value": "31",
+      "text": "Ministry of Interior Employees Cooperative Housing Society"
+    },
+    {
+      "value": "32",
+      "text": "Multi Gardens Phase-I"
+    },
+    {
+      "value": "33",
+      "text": "Multi Gardens Phase-II"
+    },
+    {
+      "value": "34",
+      "text": "Naval Anchorage"
+    },
+    {
+      "value": "35",
+      "text": "OPF Housing Scheme"
+    },
+    {
+      "value": "36",
+      "text": "Paradise City"
+    },
+    {
+      "value": "37",
+      "text": "Park View City"
+    },
+    {
+      "value": "38",
+      "text": "Rahman Enclave"
+    },
+    {
+      "value": "39",
+      "text": "Senate Avenue"
+    },
+    {
+      "value": "40",
+      "text": "Supreme Court Employees Housing Scheme"
+    },
+    {
+      "value": "41",
+      "text": "T&T Employees Cooperative Housing Society"
+    },
+    {
+      "value": "42",
+      "text": "Tele Gardens F-17"
+    },
+    {
+      "value": "43",
+      "text": "Zaraj Housing"
+    },
+    {
+      "value": "44",
+      "text": "Bahria Enclave Phase-I"
+    },
+    {
+      "value": "45",
+      "text": "Bahria Garden City"
+    },
+    {
+      "value": "46",
+      "text": "Army Welfare Trust"
+    },
+    {
+      "value": "47",
+      "text": "Engineers Cooperative"
+    },
+    {
+      "value": "48",
+      "text": "Faisal Residencia Housing Scheme"
+    },
+    {
+      "value": "49",
+      "text": "FIA Park Enclave"
+    },
+    {
+      "value": "50",
+      "text": "Icon Garden"
+    },
+    {
+      "value": "51",
+      "text": "Islamabad Model Town"
+    },
+    {
+      "value": "52",
+      "text": "Jinnah Garden Phase-I"
+    },
+    {
+      "value": "53",
+      "text": "Jinnah Garden Phase-II"
+    },
+    {
+      "value": "54",
+      "text": "Jinnah Town"
+    },
+    {
+      "value": "55",
+      "text": "Khayaban-e-Kashmir"
+    },
+    {
+      "value": "56",
+      "text": "Margalla View Housing Scheme"
+    },
+    {
+      "value": "57",
+      "text": "National Cooperative Housing Society & New Islamabad Enclave"
+    },
+    {
+      "value": "58",
+      "text": "River Garden"
+    },
+    {
+      "value": "59",
+      "text": "WWF Labour Colony"
+    },
+    {
+      "value": "60",
+      "text": "AGOCHS Phase-I"
+    },
+    {
+      "value": "61",
+      "text": "AGOCHS Phase-II"
+    },
+    {
+      "value": "62",
+      "text": "Al-Hamra Hills Agro Farming Scheme"
+    },
+    {
+      "value": "63",
+      "text": "Federation of Employees"
+    },
+    {
+      "value": "64",
+      "text": "Gulshan-e-Rabia"
+    },
+    {
+      "value": "65",
+      "text": "Khayaban-e-Kashmir Phase-II"
+    },
+    {
+      "value": "66",
+      "text": "Morgah City"
+    },
+    {
+      "value": "67",
+      "text": "National Police Foundation"
+    },
+    {
+      "value": "68",
+      "text": "New Islamabad Garden"
+    },
+    {
+      "value": "69",
+      "text": "Pakistan Medical Cooperative Housing Scheme"
+    },
+    {
+      "value": "70",
+      "text": "Pakistan Navy Farms"
+    },
+    {
+      "value": "71",
+      "text": "Parliamentarians Enclave"
+    },
+    {
+      "value": "72",
+      "text": "Roshan Pakistan"
+    },
+    {
+      "value": "73",
+      "text": "Services Cooperative Housing Society"
+    },
+    {
+      "value": "74",
+      "text": "Soan Garden"
+    },
+    {
+      "value": "75",
+      "text": "Ghouri Town Phase - I"
+    },
+    {
+      "value": "76",
+      "text": "Ghouri Town Phase - II"
+    },
+    {
+      "value": "77",
+      "text": "Ghouri Town Phase - III"
+    },
+    {
+      "value": "78",
+      "text": "Ghouri Town Phase - IV"
+    },
+    {
+      "value": "79",
+      "text": "Ghouri Town Phase - V"
+    },
+    {
+      "value": "80",
+      "text": "Ghouri Town Phase - VI"
+    },
+    {
+      "value": "81",
+      "text": "Ghouri Town Phase - VII"
+    },
+    {
+      "value": "82",
+      "text": "Ghouri Town Phase - VIII"
+    },
+    {
+      "value": "83",
+      "text": "Ghouri Town Phase - VIP"
+    },
+    {
+      "value": "84",
+      "text": "Ghouri Gardens"
+    },
+    {
+      "value": "85",
+      "text": "Faisal Town"
+    },
+    {
+      "value": "86",
+      "text": "Burma Town"
+    },
+    {
+      "value": "87",
+      "text": "Green Avenue"
+    },
+    {
+      "value": "88",
+      "text": "Green Valley"
+    },
+    {
+      "value": "89",
+      "text": "Gulberg Town"
+    },
+    {
+      "value": "90",
+      "text": "Gulf Residencia"
+    },
+    {
+      "value": "91",
+      "text": "Madina Town Block A"
+    },
+    {
+      "value": "92",
+      "text": "Madina Town Block B"
+    },
+    {
+      "value": "93",
+      "text": "Madina Town Block C"
+    },
+    {
+      "value": "94",
+      "text": "Madina Town Block D"
+    },
+    {
+      "value": "95",
+      "text": "Marwa Town"
+    },
+    {
+      "value": "96",
+      "text": "Margalla Gardens"
+    },
+    {
+      "value": "97",
+      "text": "New University Town"
+    },
+    {
+      "value": "98",
+      "text": "Park Lane Valley"
+    },
+    {
+      "value": "99",
+      "text": "Royal City Housing Scheme"
+    },
+    {
+      "value": "100",
+      "text": "Saif Gardens"
+    },
+    {
+      "value": "101",
+      "text": "Shaheen Town Phase - I"
+    },
+    {
+      "value": "102",
+      "text": "Simly Valley"
+    },
+    {
+      "value": "103",
+      "text": "Spring Valley"
+    },
+    {
+      "value": "104",
+      "text": "The Enclave Housing Scheme"
+    },
+    {
+      "value": "105",
+      "text": "Shaheen Town Phase - II"
+    },
+    {
+      "value": "106",
+      "text": "Shaheen Town Phase - III"
+    },
+    {
+      "value": "107",
+      "text": "Shaheen Town Phase - IV"
+    },
+    {
+      "value": "108",
+      "text": "Yar Muhammad Society"
+    },
+    {
+      "value": "109",
+      "text": "Japan Valley Kirpa"
+    },
+    {
+      "value": "110",
+      "text": "Kiani Town"
+    },
+    {
+      "value": "111",
+      "text": "Karsaz Villas"
+    },
+    {
+      "value": "112",
+      "text": "Kohsar Enclave"
+    },
+    {
+      "value": "113",
+      "text": "Rawal Enclave"
+    },
+    {
+      "value": "114",
+      "text": "Doctors Enclave"
+    },
+    {
+      "value": "115",
+      "text": "Doctors Town, PWD"
+    },
+    {
+      "value": "116",
+      "text": "Al-Syed Avenue"
+    },
+    {
+      "value": "117",
+      "text": "Ali Town"
+    },
+    {
+      "value": "118",
+      "text": "Bani Gala Hill View"
+    },
+    {
+      "value": "119",
+      "text": "Bara Kahu Enclave"
+    },
+    {
+      "value": "120",
+      "text": "Capital Enclave"
+    },
+    {
+      "value": "121",
+      "text": "Margalla View Housing Scheme (Extension)"
+    },
+    {
+      "value": "122",
+      "text": "Kashmir Gardens Farming Scheme"
+    },
+    {
+      "value": "123",
+      "text": "Khayaban-e-Kashmir, Phase (Extension)"
+    },
+    {
+      "value": "124",
+      "text": "Tele Town"
+    },
+    {
+      "value": "125",
+      "text": "AGOCHS, Phase-I"
+    },
+    {
+      "value": "126",
+      "text": "AGOCHS, Phase-II"
+    },
+    {
+      "value": "127",
+      "text": "National Assembly Employees Cooperative Housing Society (NAECHS)"
+    },
+    {
+      "value": "128",
+      "text": "Roshan Pakistan (RP) Corporation Housing Scheme"
+    },
+    {
+      "value": "129",
+      "text": "Services Co-operative Housing Society"
+    },
+    {
+      "value": "130",
+      "text": "Abdullah Garden Kuri Road"
+    },
+    {
+      "value": "131",
+      "text": "Abdullah Gardens Kuri Road"
+    },
+    {
+      "value": "132",
+      "text": "Abu Bakar Town"
+    },
+    {
+      "value": "133",
+      "text": "Adil Farms"
+    },
+    {
+      "value": "134",
+      "text": "Adil Valley"
+    },
+    {
+      "value": "135",
+      "text": "Al-Huda Town"
+    },
+    {
+      "value": "136",
+      "text": "Al-Rayan Society"
+    },
+    {
+      "value": "137",
+      "text": "Al-Rehman City View"
+    },
+    {
+      "value": "138",
+      "text": "Al-Rehman Villas"
+    },
+    {
+      "value": "139",
+      "text": "Ali Model Town"
+    },
+    {
+      "value": "140",
+      "text": "Ameer Khan Enclave"
+    },
+    {
+      "value": "141",
+      "text": "Arcadia City"
+    },
+    {
+      "value": "142",
+      "text": "Arsalan Town"
+    },
+    {
+      "value": "143",
+      "text": "Asian Ranches Villas"
+    },
+    {
+      "value": "144",
+      "text": "Aryan Enclave"
+    },
+    {
+      "value": "145",
+      "text": "Babar Enclave"
+    },
+    {
+      "value": "146",
+      "text": "Badar Farms"
+    },
+    {
+      "value": "147",
+      "text": "Blue Enclave / Star Home"
+    },
+    {
+      "value": "148",
+      "text": "Bylee Town"
+    },
+    {
+      "value": "149",
+      "text": "Capital Gardens"
+    },
+    {
+      "value": "150",
+      "text": "Centerbury Enclave"
+    },
+    {
+      "value": "151",
+      "text": "City Town"
+    },
+    {
+      "value": "152",
+      "text": "City View"
+    },
+    {
+      "value": "153",
+      "text": "Ghakar Town"
+    },
+    {
+      "value": "155",
+      "text": "Ghouri Town"
+    },
+    {
+      "value": "156",
+      "text": "Government Officers Co-operative Housing Scheme"
+    },
+    {
+      "value": "157",
+      "text": "Green Avenue-II"
+    },
+    {
+      "value": "158",
+      "text": "Green Field"
+    },
+    {
+      "value": "159",
+      "text": "Green Hills"
+    },
+    {
+      "value": "160",
+      "text": "Green Meadows (North Ridge) Housing Scheme"
+    },
+    {
+      "value": "161",
+      "text": "Green Residencia"
+    },
+    {
+      "value": "162",
+      "text": "Green Valley (1 & 2)"
+    },
+    {
+      "value": "163",
+      "text": "Green Valley, Karor Road"
+    },
+    {
+      "value": "164",
+      "text": "Green View Villas"
+    },
+    {
+      "value": "165",
+      "text": "Gulberg Town (1 & 2)"
+    },
+    {
+      "value": "166",
+      "text": "J&K Farm Housing Scheme"
+    },
+    {
+      "value": "167",
+      "text": "Katrsaz Villas"
+    },
+    {
+      "value": "168",
+      "text": "Madina Enclave Phase-I"
+    },
+    {
+      "value": "169",
+      "text": "Madina Town"
+    },
+    {
+      "value": "170",
+      "text": "Major Makhdoom Society"
+    },
+    {
+      "value": "171",
+      "text": "Makkah Town"
+    },
+    {
+      "value": "172",
+      "text": "Media City-1"
+    },
+    {
+      "value": "173",
+      "text": "Mufti Mehmood Enclave"
+    },
+    {
+      "value": "174",
+      "text": "Muslim Town"
+    },
+    {
+      "value": "175",
+      "text": "Muzafarabad Town"
+    },
+    {
+      "value": "176",
+      "text": "OGDCOL Town"
+    },
+    {
+      "value": "177",
+      "text": "Olive Wood Farms"
+    },
+    {
+      "value": "178",
+      "text": "Paradise Point HS"
+    },
+    {
+      "value": "179",
+      "text": "PTV Colony"
+    },
+    {
+      "value": "180",
+      "text": "Qurtbal Town"
+    },
+    {
+      "value": "181",
+      "text": "Rawal Enclave Phase-III"
+    },
+    {
+      "value": "182",
+      "text": "Royal Homes / Residencia"
+    },
+    {
+      "value": "183",
+      "text": "Sama Town"
+    },
+    {
+      "value": "184",
+      "text": "Satti Town"
+    },
+    {
+      "value": "185",
+      "text": "Shaheen Farms"
+    },
+    {
+      "value": "186",
+      "text": "Shaheen Town 1, 2, 3 & 4"
+    },
+    {
+      "value": "187",
+      "text": "Simly Valley (1 & 2)"
+    },
+    {
+      "value": "188",
+      "text": "Star Villas Housing Scheme"
+    },
+    {
+      "value": "189",
+      "text": "Tricon Agro-Farms"
+    },
+    {
+      "value": "190",
+      "text": "Usama Town"
+    },
+    {
+      "value": "191",
+      "text": "Usama Town, Hurno Thanda Pani"
+    },
+    {
+      "value": "192",
+      "text": "Bahria Paradise Commercial Scheme-I"
+    },
+    {
+      "value": "193",
+      "text": "Bahria Paradise Commercial Scheme-II"
+    },
+    {
+      "value": "194",
+      "text": "Bahria Paradise Commercial Scheme-III"
+    },
+    {
+      "value": "195",
+      "text": "Bahria Paradise Commercial Scheme-IV"
+    },
+    {
+      "value": "196",
+      "text": "Iqbal Town"
+    },
+    {
+      "value": "197",
+      "text": "Korang Town"
+    },
+    {
+      "value": "198",
+      "text": "Pakistan Town"
+    }
+  ],
+  "genders": [
+    "Male",
+    "Female",
+    "Transgender"
+  ],
+  "nationalities": [
+    "Pakistani",
+    "Other"
+  ],
+  "other_nationalities": [
+    {
+      "value": "1",
+      "text": "Pakistani"
+    },
+    {
+      "value": "2",
+      "text": "Chinese"
+    },
+    {
+      "value": "3",
+      "text": "Afghani"
+    },
+    {
+      "value": "4",
+      "text": "Turkish"
+    },
+    {
+      "value": "5",
+      "text": "Bangladeshi"
+    },
+    {
+      "value": "6",
+      "text": "Iranian"
+    },
+    {
+      "value": "7",
+      "text": "Saudi"
+    },
+    {
+      "value": "8",
+      "text": "American"
+    },
+    {
+      "value": "9",
+      "text": "Australian"
+    },
+    {
+      "value": "10",
+      "text": "German"
+    }
+  ],
+  "address_types": [
+    "Sector",
+    "Village",
+    "Housing Society",
+    "Other"
+  ],
+  "religions": [
+    "Muslim",
+    "Non-Muslim"
+  ],
+  "other_religions": [
+    "Hinduism",
+    "Christianity",
+    "Sikhism",
+    "Parsi",
+    "Buddhism",
+    "Ahmadi"
+  ],
+  "languages": [
+    "Urdu",
+    "Punjabi",
+    "Saraiki",
+    "Pashto",
+    "Sindhi",
+    "Balochi",
+    "Brahui",
+    "Hindko",
+    "Kashmiri",
+    "Shina",
+    "Balti",
+    "Khowar",
+    "Wakhi",
+    "Burushaski",
+    "Pahari Pothwari",
+    "Dhatki",
+    "Gojri",
+    "Torwali",
+    "Kalasha",
+    "Kohistani"
+  ],
+  "blood_groups": [
+    "A+",
+    "A-",
+    "B+",
+    "B-",
+    "AB+",
+    "AB-",
+    "O+",
+    "O-"
+  ],
+  "father_qualifications": [
+    "Below Matric",
+    "Matric",
+    "Intermediate",
+    "Graduate",
+    "Post Graduate",
+    "PhD",
+    "Other"
+  ],
+  "father_professions": [
+    "Govt Employee",
+    "Private Employee",
+    "Businessman",
+    "Farmer",
+    "Overseas",
+    "Other"
+  ],
+  "father_income": [
+    "Lessthan 50,000",
+    "50,001 - 100,000",
+    "100,001 - 200,000",
+    "200,001 - 300,000",
+    "Above 300,000"
+  ],
+  "father_bps": [
+    "01",
+    "02",
+    "03",
+    "04",
+    "05",
+    "06",
+    "07",
+    "08",
+    "09",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15",
+    "16",
+    "17",
+    "18",
+    "19",
+    "20",
+    "21",
+    "22"
+  ],
+  "mother_qualifications": [
+    "Below Matric",
+    "Matric",
+    "Intermediate",
+    "Graduate",
+    "Post Graduate",
+    "PhD",
+    "Other"
+  ],
+  "mother_professions": [
+    "Govt Employee",
+    "Private Employee",
+    "Businesswoman",
+    "Farmer",
+    "Housewife",
+    "Other"
+  ],
+  "mother_income": [
+    "Lessthan 50,000",
+    "50,001 - 100,000",
+    "100,001 - 200,000",
+    "200,001 - 300,000",
+    "Above 300,000"
+  ],
+  "mother_bps": [
+    "01",
+    "02",
+    "03",
+    "04",
+    "05",
+    "06",
+    "07",
+    "08",
+    "09",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15",
+    "16",
+    "17",
+    "18",
+    "19",
+    "20",
+    "21",
+    "22"
+  ],
+  "orphan_types": [
+    "Single Orphan",
+    "Double Orphan"
+  ],
+  "guardian_relations": [
+    "Uncle",
+    "Aunt",
+    "Grandparent",
+    "Sibling",
+    "Other"
+  ],
+  "guardian_professions": [
+    "Govt Employee",
+    "Private Employee",
+    "Businessman",
+    "Farmer",
+    "Overseas",
+    "Other"
+  ],
+  "guardian_bps": [
+    "01",
+    "02",
+    "03",
+    "04",
+    "05",
+    "06",
+    "07",
+    "08",
+    "09",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15",
+    "16",
+    "17",
+    "18",
+    "19",
+    "20",
+    "21",
+    "22"
+  ],
+  "guardian_income": [
+    "Lessthan 50,000",
+    "50,001 - 100,000",
+    "100,001 - 200,000",
+    "200,001 - 300,000",
+    "Above 300,000"
+  ],
+  "classes": [
+    "Class 6",
+    "Class 7",
+    "Class 8",
+    "Class 9",
+    "Class 10"
+  ],
+  "medium": [
+    "Urdu",
+    "English"
+  ],
+  "mode_of_study": [
+    "Day Scholar",
+    "Boarders"
+  ],
+  "bus_routes": [
+    "URBAN-I",
+    "URBAN-II",
+    "TARNOL",
+    "BHARAKAHU",
+    "NILORE",
+    "SIHALA"
+  ],
+  "fde_institutions": [
+    "200 — Federal Directorate of Education",
+    "911 — IMCCG (COM), F-10/3",
+    "813 — Institute of Home Economics, Art and Design, F-11/1",
+    "913 — Islamabad College For Girls, F-6/2",
+    "926 — Islamabad Model Collage For Boys ,Maira Begwal",
+    "601 — Islamabad Model Collage For Boys (VI-XII), Tarnol",
+    "924 — Islamabad Model Collage For Boys, G-15",
+    "305 — Islamabad Model Collage For Boys, G-6/2",
+    "307 — Islamabad Model Collage For Boys, G-7/2",
+    "296 — Islamabad Model Collage For Boys, G-9/4",
+    "615 — Islamabad Model Collage For Girls (I-XII), Golra",
+    "612 — Islamabad Model Collage For Girls (I-XII), Shah Allah Ditta",
+    "614 — Islamabad Model Collage For Girls (I-XII), Tarnaul",
+    "921 — Islamabad Model Collage For Girls, G-13/1",
+    "922 — Islamabad Model Collage For Girls, G-14/4",
+    "238 — Islamabad Model Collage For Girls, G-8/4",
+    "811 — Islamabad Model Collage For Girls, I-14/3",
+    "812 — Islamabad Model Collage For Girls(PG), Bharakahu",
+    "923 — Islamabad Model Collage Of Boys, G-13/2",
+    "708 — Islamabad Model College for Boys (I-X), Jaba Tali",
+    "310 — Islamabad Model College For Boys (I-XII) Street No.17, I-10/1",
+    "544 — Islamabad Model College For Boys (I-XII), Bhimber Tarar",
+    "404 — Islamabad Model College For Boys (I-XII), Chattar",
+    "545 — Islamabad Model College For Boys (I-XII), Humak",
+    "547 — Islamabad Model College For Boys (I-XII), Mohri Nagial",
+    "541 — Islamabad Model College For Boys (I-XII), Mughal",
+    "701 — Islamabad Model College for Boys (I-XII), Nilore",
+    "546 — Islamabad Model College For Boys (I-XII), Pahg Panwal",
+    "925 — Islamabad Model College For Boys (I-XII), Pakistan Town",
+    "543 — Islamabad Model College For Boys (I-XII), Rawat",
+    "801 — Islamabad Model College For Boys (I-XII), Sihala",
+    "401 — Islamabad Model College For Boys (VI-XII),  BHARAKAHU",
+    "402 — Islamabad Model College For Boys (VI-XII), CHAKSHAHZAD",
+    "705 — Islamabad Model College for Boys (VI-XII), Jhang Syden",
+    "407 — Islamabad Model College For Boys (VI-XII), Pind Begwal",
+    "308 — Islamabad Model College For Boys,  G-7/4",
+    "901 — Islamabad Model College For Boys, F-10/3",
+    "803 — Islamabad Model College For Boys, F-10/4,",
+    "902 — Islamabad Model College For Boys, F-11/1",
+    "903 — Islamabad Model College For Boys, F-11/3",
+    "904 — Islamabad Model College For Boys, F-7/3",
+    "905 — Islamabad Model College For Boys, F-8/4",
+    "906 — Islamabad Model College For Boys, G-10/4",
+    "907 — Islamabad Model College For Boys, G-11/1",
+    "908 — Islamabad Model College For Boys, G-6/3",
+    "804 — Islamabad Model College For Boys, H-9",
+    "909 — Islamabad Model College For Boys, I-10/1",
+    "910 — Islamabad Model College For Boys, I-8/3",
+    "507 — Islamabad Model College For Girls (I-X),  Pind Malkan",
+    "710 — Islamabad Model College for Girls (I-X), Nilore",
+    "808 — Islamabad Model College For Girls (I-XII) , MT Humak",
+    "286 — Islamabad Model College For Girls (I-XII),  I-9/1",
+    "453 — Islamabad Model College For Girls (I-XII),  Maira Begwal",
+    "451 — Islamabad Model College For Girls (I-XII),  Rawal Town",
+    "711 — Islamabad Model College For Girls (I-XII), Chirah",
+    "503 — Islamabad Model College For Girls (I-XII), Humak",
+    "714 — Islamabad Model College For Girls (I-XII), Jagiot",
+    "766 — Islamabad Model College for Girls (I-XII), Kirpa",
+    "920 — Islamabad Model College For Girls (I-XII), Korang Town",
+    "508 — Islamabad Model College For Girls (I-XII), Lohi Bher",
+    "442 — Islamabad Model College For Girls (I-XII), Margalla Town",
+    "509 — Islamabad Model College For Girls (I-XII), Mohra Nagial",
+    "715 — Islamabad Model College For Girls (I-XII), Pehount",
+    "455 — Islamabad Model College For Girls (I-XII), Pind Begwal",
+    "502 — Islamabad Model College For Girls (I-XII), Rawat",
+    "713 — Islamabad Model College For Girls (I-XII), Tarlai",
+    "716 — Islamabad Model College For Girls (I-XII), Thanda Pani",
+    "444 — Islamabad Model College For Girls (I-XII), University Colony",
+    "712 — Islamabad Model College For Girls (I-XII),Punjgran",
+    "806 — Islamabad Model College for Girls (PG), F-7/2",
+    "810 — Islamabad Model College For Girls (PG), F-7/4",
+    "446 — Islamabad Model College For Girls (VI-XII) NHC, Chak Shahzad",
+    "501 — Islamabad Model College For Girls (VI-XII), Herdogher",
+    "443 — Islamabad Model College For Girls (VI-XII), Kot Hathial Bhara Kahu",
+    "449 — Islamabad Model College For Girls (VI-XII), Malpur",
+    "201 — ISLAMABAD MODEL COLLEGE FOR GIRLS G-6/1-4 ISLAMABAD",
+    "919 — Islamabad Model College For Girls, F-10/2",
+    "912 — Islamabad Model College For Girls, F-6/2",
+    "914 — Islamabad Model College For Girls, F-7/4",
+    "915 — Islamabad Model College For Girls, F-8/1",
+    "916 — Islamabad Model College For Girls, G-10/2",
+    "257 — Islamabad Model College For Girls, G-9/2",
+    "809 — Islamabad Model College For Girls, I-8/3",
+    "918 — Islamabad Model College For Girls, I-8/4",
+    "917 — Islamabad Model College For Girls, St # 23, I-10/4",
+    "802 — Islamabad Model Post Graduate College For Boys, H-8",
+    "805 — Islamabad Model Post Graduate College, H-8/4",
+    "228 — Islamabad Model School (I-V) F-6/1",
+    "229 — Islamabad Model School (I-V) F-6/3",
+    "226 — Islamabad Model School (I-V) F-6/4",
+    "203 — Islamabad Model School (I-V) G-6/1-1",
+    "212 — Islamabad Model School (I-V) G-6/1-2",
+    "204 — Islamabad Model School (I-V) G-6/1-3",
+    "205 — Islamabad Model School (I-V) G-6/1-4",
+    "210 — Islamabad Model School (I-V) G-6/2",
+    "208 — Islamabad Model School (I-V) G-6/2 Café Iram",
+    "206 — Islamabad Model School (I-V) G-6/4",
+    "216 — Islamabad Model School (I-V) G-7/1",
+    "219 — Islamabad Model School (I-V) G-7/3-1",
+    "220 — Islamabad Model School (I-V) G-7/3-3 Islamabad",
+    "217 — Islamabad Model School (I-V) G-7/4",
+    "222 — Islamabad Model School (I-V) No.1 G-7/2",
+    "252 — Islamabad Model School (I-V) No.2, G-9/4",
+    "574 — Islamabad Model School (I-V) Soan Garden, Lohi Bheer",
+    "285 — Islamabad Model School (I-V),  AIOU Colony",
+    "264 — Islamabad Model School (I-V),  F-10/1",
+    "265 — Islamabad Model School (I-V),  F-10/2",
+    "266 — Islamabad Model School (I-V),  F-10/4",
+    "249 — Islamabad Model School (I-V),  F-8/2",
+    "269 — Islamabad Model School (I-V),  G-10/3",
+    "274 — Islamabad Model School (I-V),  G-11/1",
+    "263 — Islamabad Model School (I-V),  G-9/1",
+    "280 — Islamabad Model School (I-V),  I-8/1",
+    "272 — Islamabad Model School (I-V),  No.1 G-10/2",
+    "259 — Islamabad Model School (I-V),  No.1 G-9/2",
+    "256 — Islamabad Model School (I-V),  No.1 G-9/3",
+    "253 — Islamabad Model School (I-V),  No.1 G-9/4",
+    "289 — Islamabad Model School (I-V),  No.1 I-10/1",
+    "282 — Islamabad Model School (I-V),  No.1 I-9/4",
+    "255 — Islamabad Model School (I-V),  No.2  G-9/3",
+    "273 — Islamabad Model School (I-V),  No.2 G-10/2",
+    "295 — Islamabad Model School (I-V),  No.2 G-7/2",
+    "260 — Islamabad Model School (I-V),  No.2 G-9/2",
+    "290 — Islamabad Model School (I-V),  No.2 I-10/1",
+    "283 — Islamabad Model School (I-V),  No.2 I-9/4",
+    "261 — Islamabad Model School (I-V),  No.3 G-9/2",
+    "254 — Islamabad Model School (I-V),  No.3 G-9/3",
+    "262 — Islamabad Model School (I-V),  No.4 G-9/2",
+    "271 — Islamabad Model School (I-V), G-10/1",
+    "270 — Islamabad Model School (I-V), G-10/4",
+    "277 — Islamabad Model School (I-V), G-11/2",
+    "575 — Islamabad Model School (I-V), Gobra Shahan",
+    "291 — Islamabad Model School (I-V), I-10/2",
+    "306 — Islamabad Model School (VI-X), F-6/2",
+    "406 — Islamabad Model School For Boys  (VI-X) Noor Pur Shahan",
+    "567 — Islamabad Model School For Boys (I-V ), Chak",
+    "559 — Islamabad Model School for Boys (I-V) , Darwala",
+    "736 — Islamabad Model School for Boys (I-V), Ara",
+    "420 — Islamabad Model School For Boys (I-V), Athal",
+    "566 — Islamabad Model School For Boys (I-V), Bhangril",
+    "553 — Islamabad Model School For Boys (I-V), Bhimber Tarar",
+    "421 — Islamabad Model School For Boys (I-V), Bhuddo",
+    "767 — Islamabad Model School for Boys (I-V), Biath",
+    "560 — Islamabad Model School For Boys (I-V), Bora Bangial",
+    "422 — Islamabad Model School For Boys (I-V), Chahann Mastal ,H-11",
+    "571 — Islamabad Model School For Boys (I-V), Chak Kmadar",
+    "729 — Islamabad Model School for Boys (I-V), Channual Bangial",
+    "730 — Islamabad Model School for Boys (I-V), Chirah",
+    "563 — Islamabad Model School For Boys (I-V), D/Mai Nawab",
+    "423 — Islamabad Model School For Boys (I-V), Dhoke Jerrani",
+    "639 — Islamabad Model School For Boys (I-V), Dhoke Lubana",
+    "424 — Islamabad Model School For Boys (I-V), Dhoke Syedan",
+    "643 — Islamabad Model School For Boys (I-V), Dhreak Mohri",
+    "425 — Islamabad Model School For Boys (I-V), Dohala Syedan",
+    "633 — Islamabad Model School For Boys (I-V), Dora",
+    "437 — Islamabad Model School For Boys (I-V), Gokina",
+    "647 — Islamabad Model School For Boys (I-V), Golra",
+    "555 — Islamabad Model School For Boys (I-V), Humak",
+    "733 — Islamabad Model School for Boys (I-V), Jhang Syden",
+    "646 — Islamabad Model School For Boys (I-V), Jhangi Syedan",
+    "640 — Islamabad Model School For Boys (I-V), Johd",
+    "426 — Islamabad Model School For Boys (I-V), Kalran",
+    "638 — Islamabad Model School For Boys (I-V), Karamabad",
+    "728 — Islamabad Model School for Boys (I-V), Khadrappar",
+    "737 — Islamabad Model School for Boys (I-V), Khanna Kak",
+    "565 — Islamabad Model School For Boys (I-V), Kortana",
+    "436 — Islamabad Model School For Boys (I-V), Kot Hathial",
+    "438 — Islamabad Model School For Boys (I-V), Kurri",
+    "552 — Islamabad Model School For Boys (I-V), Lohi Bher",
+    "429 — Islamabad Model School For Boys (I-V), Mal",
+    "427 — Islamabad Model School For Boys (I-V), Malot",
+    "428 — Islamabad Model School For Boys (I-V), Mangial",
+    "735 — Islamabad Model School for Boys (I-V), Mohara",
+    "562 — Islamabad Model School For Boys (I-V), Mohra Kalu",
+    "732 — Islamabad Model School for Boys (I-V), Mohra Solina",
+    "537 — Islamabad Model School For Boys (I-V), Mohri Mughal",
+    "568 — Islamabad Model School For Boys (I-V), Mohri Rawat",
+    "557 — Islamabad Model School For Boys (I-V), Mughal",
+    "762 — Islamabad Model School for Boys (I-V), Nilore",
+    "636 — Islamabad Model School For Boys (I-V), Noon",
+    "430 — Islamabad Model School For Boys (I-V), Noor Pur Shahan",
+    "431 — Islamabad Model School For Boys (I-V), Palali",
+    "432 — Islamabad Model School For Boys (I-V), Pind Begwal",
+    "635 — Islamabad Model School For Boys (I-V), Pind Hoon",
+    "561 — Islamabad Model School For Boys (I-V), Pind Malkan",
+    "738 — Islamabad Model School for Boys (I-V), Pind Mistrian",
+    "642 — Islamabad Model School For Boys (I-V), Pind Parian",
+    "564 — Islamabad Model School For Boys (I-V), Rajwal",
+    "440 — Islamabad Model School For Boys (I-V), Rawal Dam",
+    "433 — Islamabad Model School For Boys (I-V), Rumli",
+    "632 — Islamabad Model School For Boys (I-V), Sang Jani",
+    "641 — Islamabad Model School For Boys (I-V), Sarae Karboza",
+    "644 — Islamabad Model School For Boys (I-V), Seri Saral",
+    "637 — Islamabad Model School For Boys (I-V), Shah Allah Ditta",
+    "727 — Islamabad Model School for Boys (I-V), Sharifabad",
+    "634 — Islamabad Model School For Boys (I-V), Sheikhpur",
+    "572 — Islamabad Model School For Boys (I-V), Sigga",
+    "551 — Islamabad Model School For Boys (I-V), Sihala",
+    "434 — Islamabad Model School For Boys (I-V), Sihali",
+    "764 — Islamabad Model School for Boys (I-V), Sirri",
+    "435 — Islamabad Model School For Boys (I-V), Talhar",
+    "631 — Islamabad Model School For Boys (I-V), Tamman",
+    "734 — Islamabad Model School for Boys (I-V), Tarlai",
+    "630 — Islamabad Model School For Boys (I-V), Tarnaul",
+    "645 — Islamabad Model School For Boys (I-V),Bokra",
+    "718 — Islamabad Model School for Boys (I-VII), Alipur",
+    "719 — Islamabad Model School for Boys (I-VII), Della",
+    "558 — Islamabad Model School For Boys (I-VIII),  Herdogher",
+    "554 — Islamabad Model School For Boys (I-VIII), Ara Burji",
+    "412 — Islamabad Model School For Boys (I-VIII), Bobri",
+    "573 — Islamabad Model School For Boys (I-VIII), CBR Town",
+    "441 — Islamabad Model School For Boys (I-VIII), Chatta Bakhtawar",
+    "622 — Islamabad Model School For Boys (I-VIII), Chellow",
+    "619 — Islamabad Model School For Boys (I-VIII), Dhoke Jouri",
+    "620 — Islamabad Model School For Boys (I-VIII), Dhoke Paracha",
+    "413 — Islamabad Model School For Boys (I-VIII), Jandala",
+    "731 — Islamabad Model School for Boys (I-VIII), Kijnah",
+    "569 — Islamabad Model School For Boys (I-VIII), Koral",
+    "417 — Islamabad Model School For Boys (I-VIII), Kot Hathial",
+    "439 — Islamabad Model School For Boys (I-VIII), Malpur",
+    "418 — Islamabad Model School For Boys (I-VIII), Malwar",
+    "415 — Islamabad Model School For Boys (I-VIII), Mohra Noor NIH",
+    "570 — Islamabad Model School For Boys (I-VIII), Nara Syedan",
+    "721 — Islamabad Model School for Boys (I-VIII), Pehount",
+    "556 — Islamabad Model School For Boys (I-VIII), Sihala Mirzian",
+    "726 — Islamabad Model School for Boys (I-VIII), Sohan",
+    "550 — Islamabad Model School For Boys (I-X) Banni Saran",
+    "609 — Islamabad Model School For Boys (I-X), Badana Kalan",
+    "403 — Islamabad Model School For Boys (I-X), Bhara Kahu",
+    "549 — Islamabad Model School For Boys (I-X), Daliala",
+    "548 — Islamabad Model School For Boys (I-X), Gagri",
+    "720 — Islamabad Model School for Boys (I-X), Herno Thandapani",
+    "704 — Islamabad Model School for Boys (I-X), Jagiot",
+    "707 — Islamabad Model School for Boys (I-X), Khanna Dak",
+    "717 — Islamabad Model School for Boys (I-X), Khanna Nai Abadi",
+    "709 — Islamabad Model School for Boys (I-X), Kirpa",
+    "606 — Islamabad Model School For Boys (I-X), Maira Akku",
+    "414 — Islamabad Model School For Boys (I-X), Maira Begwal",
+    "621 — Islamabad Model School For Boys (I-X), Maira Beri",
+    "603 — Islamabad Model School For Boys (I-X), Naugazi",
+    "416 — Islamabad Model School For Boys (I-X), Phulgran",
+    "411 — Islamabad Model School For Boys (I-X), Said Pur",
+    "408 — Islamabad Model School For Boys (I-X), Shahdara",
+    "703 — Islamabad Model School for Boys (I-X), Tumair",
+    "702 — Islamabad Model School for Boys (VI-X) Chirah",
+    "301 — Islamabad Model School For Boys (VI-X),  F-8/3",
+    "405 — Islamabad Model School For Boys (VI-X),  Kurri",
+    "298 — Islamabad Model School For Boys (VI-X), G-10/3",
+    "297 — Islamabad Model School For Boys (VI-X), G-8/1",
+    "299 — Islamabad Model School For Boys (VI-X), G-9/1",
+    "608 — Islamabad Model School For Boys (VI-X), Golra",
+    "312 — Islamabad Model School For Boys (VI-X), I-10/2",
+    "313 — Islamabad Model School For Boys (VI-X), I-8/1",
+    "309 — Islamabad Model School For Boys (VI-X), No.1 I-9/4",
+    "311 — Islamabad Model School For Boys (VI-X), No.2 I-9/4",
+    "605 — Islamabad Model School For Boys (VI-X), Noon",
+    "409 — Islamabad Model School For Boys (VI-X), Rawal Dam",
+    "602 — Islamabad Model School For Boys (VI-X), Sang Jani",
+    "607 — Islamabad Model School For Boys (VI-X), Shah Allah Ditta",
+    "542 — Islamabad Model School For Boys (VI-X), Sihala",
+    "410 — Islamabad Model School For Boys (VI-X), Talhar",
+    "706 — Islamabad Model School for Boys (VI-X), Tarlai",
+    "302 — Islamabad Model School for Boys(VI-X), G-11/2",
+    "604 — Islamabad Model School For Boys(VI-X), I-14",
+    "225 — Islamabad Model School for Girls  (I-VIII) F-7/4",
+    "218 — Islamabad Model School for Girls  (I-VIII) G-7/3-4",
+    "516 — Islamabad Model School For Girls ((I-VIII) , Bhangril",
+    "522 — Islamabad Model School for Girls (I-V) , Pindory Syedan",
+    "476 — Islamabad Model School For Girls (I-V) , Shahzad Town",
+    "758 — Islamabad Model School for Girls (I-V),  Chakhtan",
+    "757 — Islamabad Model School for Girls (I-V),  Chappar Ghasota",
+    "532 — Islamabad Model School For Girls (I-V),  Gohra Mast",
+    "744 — Islamabad Model School for Girls (I-V), Alipur",
+    "745 — Islamabad Model School for Girls (I-V), Alipur Frash",
+    "763 — Islamabad Model School for Girls (I-V), Alipur South",
+    "468 — Islamabad Model School For Girls (I-V), Athal",
+    "477 — Islamabad Model School For Girls (I-V), Bhara kau, Nai Abadi",
+    "536 — Islamabad Model School For Girls (I-V), Boora Bangial",
+    "754 — Islamabad Model School for Girls (I-V), Chirah",
+    "747 — Islamabad Model School for Girls (I-V), Chounial Bangial",
+    "750 — Islamabad Model School for Girls (I-V), Dhok Fatehall",
+    "651 — Islamabad Model School For Girls (I-V), Dhoke Hashoo",
+    "470 — Islamabad Model School For Girls (I-V), Dhoke Jerrani",
+    "652 — Islamabad Model School For Girls (I-V), Dhoke Suleman",
+    "765 — Islamabad Model School for Girls (I-V), Frash Town",
+    "535 — Islamabad Model School For Girls (I-V), Gangota Syedan",
+    "527 — Islamabad Model School For Girls (I-V), Herdogher",
+    "748 — Islamabad Model School for Girls (I-V), Herno Thandapani",
+    "531 — Islamabad Model School For Girls (I-V), Hoon Dhamial",
+    "534 — Islamabad Model School For Girls (I-V), Humak",
+    "654 — Islamabad Model School For Girls (I-V), I-14/3",
+    "756 — Islamabad Model School for Girls (I-V), jhang Syedan",
+    "755 — Islamabad Model School for Girls (I-V), Kalia",
+    "740 — Islamabad Model School for Girls (I-V), Khanna Nai Abadi",
+    "471 — Islamabad Model School For Girls (I-V), Kot Hathial, Nai Abadi",
+    "533 — Islamabad Model School For Girls (I-V), Ladhiot",
+    "479 — Islamabad Model School For Girls (I-V), Maira Malpur",
+    "478 — Islamabad Model School For Girls (I-V), Malpur",
+    "520 — Islamabad Model School For Girls (I-V), MT Humak",
+    "528 — Islamabad Model School For Girls (I-V), Mughal",
+    "759 — Islamabad Model School for Girls (I-V), Nilore",
+    "292 — Islamabad Model School For Girls (I-V), No.2 I-9/1",
+    "742 — Islamabad Model School for Girls (I-V), No.2 Tarlai",
+    "473 — Islamabad Model School For Girls (I-V), Pind Begwal, Dana",
+    "649 — Islamabad Model School For Girls (I-V), Pind Parian",
+    "760 — Islamabad Model School for Girls (I-V), Punjgran",
+    "539 — Islamabad Model School For Girls (I-V), PWD Col",
+    "525 — Islamabad Model School For Girls (I-V), Rawat",
+    "653 — Islamabad Model School For Girls (I-V), Sarae Madhu",
+    "746 — Islamabad Model School for Girls (I-V), Severa",
+    "474 — Islamabad Model School For Girls (I-V), Shah Pur",
+    "739 — Islamabad Model School for Girls (I-V), Shakrial",
+    "526 — Islamabad Model School For Girls (I-V), Sheikhpur",
+    "650 — Islamabad Model School For Girls (I-V), Sheikhpur",
+    "529 — Islamabad Model School For Girls (I-V), Sihala",
+    "540 — Islamabad Model School For Girls (I-V), Sihala Khurd",
+    "530 — Islamabad Model School For Girls (I-V), Sihala Mirzian",
+    "753 — Islamabad Model School for Girls (I-V), Simli Dam",
+    "475 — Islamabad Model School For Girls (I-V), Subban",
+    "743 — Islamabad Model School for Girls (I-V), Tamma",
+    "751 — Islamabad Model School for Girls (I-V), Tumair",
+    "469 — Islamabad Model School For Girls (I-V),Chak Shehzad",
+    "514 — Islamabad Model School For Girls (I-VIII) , Mohri Rawat",
+    "221 — Islamabad Model School for Girls (I-VIII) F-7/1",
+    "209 — Islamabad Model School for Girls (I-VIII) G-6/2",
+    "215 — Islamabad Model School for Girls (I-VIII) G-7/3-2",
+    "523 — Islamabad Model School For Girls (I-VIII) Miana Thub",
+    "521 — Islamabad Model School For Girls (I-VIII) Peija",
+    "284 — Islamabad Model School For Girls (I-VIII),  I-8/1",
+    "281 — Islamabad Model School For Girls (I-VIII),  I-9/4",
+    "461 — Islamabad Model School For Girls (I-VIII), Bain Nala",
+    "464 — Islamabad Model School For Girls (I-VIII), Bhara Kau",
+    "513 — Islamabad Model School For Girls (I-VIII), Bhimber Trar",
+    "465 — Islamabad Model School For Girls (I-VIII), Bobri",
+    "623 — Islamabad Model School For Girls (I-VIII), Dhoke Jouri",
+    "628 — Islamabad Model School For Girls (I-VIII), Dhoke Paracha",
+    "626 — Islamabad Model School For Girls (I-VIII), Dhreak Mohri",
+    "240 — Islamabad Model School For Girls (I-VIII), G-8/4",
+    "288 — Islamabad Model School For Girls (I-VIII), I-10/4",
+    "524 — Islamabad Model School For Girls (I-VIII), Jandala",
+    "724 — Islamabad Model School for Girls (I-VIII), Kalia",
+    "722 — Islamabad Model School for Girls (I-VIII), Khanna Dak",
+    "752 — Islamabad Model School for Girls (I-VIII), Kijnah",
+    "466 — Islamabad Model School For Girls (I-VIII), Kot Hathial",
+    "462 — Islamabad Model School for Girls (I-VIII), Mandla",
+    "472 — Islamabad Model School For Girls (I-VIII), Mohrian",
+    "519 — Islamabad Model School For Girls (I-VIII), Niazian",
+    "741 — Islamabad Model School for Girls (I-VIII), No.1 Tarlai",
+    "625 — Islamabad Model School For Girls (I-VIII), Noon",
+    "624 — Islamabad Model School For Girls (I-VIII), Pind Paracha",
+    "538 — Islamabad Model School For Girls (I-VIII), PTC Sihala",
+    "517 — Islamabad Model School For Girls (I-VIII), Rajwal",
+    "467 — Islamabad Model School For Girls (I-VIII), Sanjalian",
+    "629 — Islamabad Model School For Girls (I-VIII), Sarae Kharboza",
+    "460 — Islamabad Model School For Girls (I-VIII), Shahdra Kalan",
+    "761 — Islamabad Model School for Girls (I-VIII), Sohan",
+    "211 — Islamabad Model School for Girls (I-X) P.E. CLY G-5",
+    "227 — Islamabad Model School for Girls (I-X) P.M. Colony G-5 Islamabad",
+    "268 — Islamabad Model School For Girls (I-X),  G-10/3",
+    "447 — Islamabad Model School For Girls (I-X),  Gokina",
+    "454 — Islamabad Model School For Girls (I-X),  Lakhwal",
+    "618 — Islamabad Model School For Girls (I-X), Badia Qadir Bakhash",
+    "749 — Islamabad Model School for Girls (I-X), Darkala",
+    "518 — Islamabad Model School For Girls (I-X), Dhaliala",
+    "506 — Islamabad Model School For Girls (I-X), Dhoke Gangal",
+    "275 — Islamabad Model School For Girls (I-X), G-11/2",
+    "258 — Islamabad Model School For Girls (I-X), G-9/1",
+    "510 — Islamabad Model School For Girls (I-X), Humak",
+    "725 — Islamabad Model School for Girls (I-X), Jaba Taili",
+    "611 — Islamabad Model School for Girls (I-X), Jhangi Syedan",
+    "448 — Islamabad Model School For Girls (I-X), Kurri",
+    "627 — Islamabad Model School For Girls (I-X), Maira Beri",
+    "459 — Islamabad Model School For Girls (I-X), Malot",
+    "463 — Islamabad Model School For Girls (I-X), Mohra Noor",
+    "505 — Islamabad Model School For Girls (I-X), Nara Syedan",
+    "617 — Islamabad Model School For Girls (I-X), Naugazi",
+    "723 — Islamabad Model School for Girls (I-X), New Shakrial",
+    "445 — Islamabad Model School For Girls (I-X), NHC",
+    "456 — Islamabad Model School For Girls (I-X), Noor Pur Shahan",
+    "450 — Islamabad Model School For Girls (I-X), Phulgran",
+    "515 — Islamabad Model School For Girls (I-X), R/Col. Rawat",
+    "458 — Islamabad Model School For Girls (I-X), Said Pur",
+    "610 — Islamabad Model School For Girls (I-X), Sangjani",
+    "457 — Islamabad Model School For Girls (I-X), Shahdra Khurd",
+    "452 — Islamabad Model School For Girls (I-X), Talhar",
+    "512 — Islamabad Model School For Girls (I-X), Upran Gohra",
+    "613 — Islamabad Model School For Girls (I-XII), Bhadana Kalan",
+    "504 — Islamabad Model School For Girls (VI-X) , Sihala",
+    "224 — Islamabad Model School for Girls (VI-X) F-6/1",
+    "223 — Islamabad Model School for Girls (VI-X) F-7/2",
+    "207 — Islamabad Model School for Girls (VI-X) G-6/2",
+    "267 — Islamabad Model School For Girls (VI-X),  G-10/1",
+    "276 — Islamabad Model School For Girls (VI-X), F-11/1",
+    "278 — Islamabad Model School For Girls (VI-X), G-11/1",
+    "213 — Islamabad Model School For Girls (VI-X), G-7/1",
+    "214 — Islamabad Model School For Girls (VI-X), G-7/2",
+    "250 — Islamabad Model School For Girls (VI-X), G-9/3",
+    "251 — Islamabad Model School For Girls (VI-X), G-9/4",
+    "287 — Islamabad Model School For Girls (VI-X), I-10/4",
+    "616 — Islamabad Model School For Girls (VI-X), I-14/3",
+    "279 — Islamabad Model School For Girls (VI-X), I-8/1",
+    "293 — Islamabad Model School For Girls (VI-X), I-9/4",
+    "511 — Islamabad Model School For Girls, (I-X), Gagri",
+    "236 — Islamabad Model School For Girls(I-X), E-9",
+    "202 — Islamabad Model School for Girls(VI-X) G-6/1-3",
+    "233 — Islamabad Model School For Girls(VI-X), E-8/3",
+    "239 — Islamabad Model School For Girls(VI-X), G-8/2",
+    "237 — Islamabad Model School(I-V), E-7/4",
+    "231 — Islamabad Model School(I-V), F-7/2",
+    "230 — Islamabad Model School(I-V), F-7/2-4",
+    "300 — Islamabad Model School(I-V), F-8/3",
+    "234 — Islamabad Model School(I-V), No.1, E-8",
+    "243 — Islamabad Model School(I-V), No.1, G-8/1",
+    "246 — Islamabad Model School(I-V), No.1, G-8/2",
+    "241 — Islamabad Model School(I-V), No.1, G-8/4",
+    "294 — Islamabad Model School(I-V), No.1, I-9/1",
+    "242 — Islamabad Model School(I-V), No.2 ,G-8/4",
+    "235 — Islamabad Model School(I-V), No.2, E-8",
+    "244 — Islamabad Model School(I-V), No.2, G-8/1",
+    "247 — Islamabad Model School(I-V), No.2, G-8/2",
+    "245 — Islamabad Model School(I-V), No.3, G-8/1",
+    "248 — Islamabad Model School(I-V), PIMS, G-8/3",
+    "655 — Islamabad Model School(I-VIII), D-17",
+    "232 — Islamabad Model School(I-X) P.M. Colony, G-5",
+    "316 — Islamabad Model School(VI-VIII ), Technical, G-7/4",
+    "317 — Islamabad Model School(VI-X), E-9",
+    "304 — Islamabad Model School(VI-X), G-6/4",
+    "303 — Islamabad Model School(VI-X), G-7/3-1",
+    "315 — Islamabad Model School(VI-X), G-8/4",
+    "314 — Islamabad Model School(VI-X), I-8/4",
+    "807 — Islamabad Post Graduate College For Girls(PG), G-10/4",
+    "419 — Mujahid Hussain Shaheed Model School For Boys (I-VIII), Satra Meel",
+    "648 — slamabad Model School For Girls (I-V), Bheka Syedan"
+  ],
+  "emergency_relations": [
+    "Father",
+    "Mother",
+    "Brother",
+    "Sister",
+    "Uncle",
+    "Others"
+  ],
+  "idp_status": [
+    "Registered",
+    "Un registered"
+  ],
+  "disability_types": [
+    "Physical",
+    "Visual",
+    "Hearing",
+    "Intellectual",
+    "Multiple",
+    "Other"
+  ],
+  "mental_disability_types": [
+    "Autism",
+    "ADHD",
+    "Other"
+  ],
+  "difficulty_levels": [
+    "No Difficulty",
+    "Some Difficulty",
+    "A lot of Difficulty",
+    "Cannot do at all"
+  ],
+  "device_types": [
+    "Mobile Phone",
+    "Laptop",
+    "Desktop Computer",
+    "Tablet",
+    "Chromebook"
+  ],
+  "cities": [
+    "Islamabad",
+    "Lahore",
+    "Karachi",
+    "Faisalabad",
+    "Rawalpindi",
+    "Gujranwala",
+    "Multan",
+    "Hyderabad",
+    "Peshawar",
+    "Quetta",
+    "Bahawalpur",
+    "Gujrat",
+    "Rahim Yar Khan",
+    "Kasur",
+    "Dera Ghazi Khan",
+    "Sargodha",
+    "Sialkot",
+    "Sheikhupura",
+    "Jhang",
+    "Chiniot",
+    "Sukkur",
+    "Larkana",
+    "Nawabshah",
+    "Mirpur Khas",
+    "Mardan",
+    "Mingora",
+    "Sahiwal",
+    "Okara",
+    "Chishtian",
+    "Attock",
+    "Muzaffargarh",
+    "Khanpur",
+    "Mandi Bahauddin",
+    "Pakpattan",
+    "Vihari",
+    "Jaranwala",
+    "Chakwal",
+    "Bahawalnagar",
+    "Bhakkar",
+    "Chichawatni",
+    "Farooqabad",
+    "Gujar Khan",
+    "Mianwali",
+    "Jhelum",
+    "Khanewal",
+    "Khushab",
+    "Layyah",
+    "Lodhran",
+    "Sadiqabad",
+    "Taxila",
+    "Toba Tek Singh",
+    "Wazirabad",
+    "Jacobabad",
+    "Dadu",
+    "Tando Allahyar",
+    "Ghotki",
+    "Badin",
+    "Bolhari",
+    "Shikarpur",
+    "Umerkot",
+    "Kohat",
+    "Abbottabad",
+    "Dera Ismail Khan",
+    "Swabi",
+    "Nowshera",
+    "Charsadda",
+    "Barikot",
+    "Haripur",
+    "Mansehra",
+    "Bannu",
+    "Khuzdar",
+    "Chaman",
+    "Dera Murad Jamali",
+    "Turbat",
+    "Gwadar",
+    "Hub",
+    "Sibi",
+    "Zhob",
+    "Mirpur",
+    "Muzaffarabad",
+    "Gilgit",
+    "Skardu",
+    "Buner",
+    "Murree",
+    "Kot Addu",
+    "Chalas",
+    "Narowal"
+  ]
+}

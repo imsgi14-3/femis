@@ -1,0 +1,12 @@
+config/settings.yaml
+config/*.json
+data/input/*
+data/logs/*
+data/output/*
+!data/input/.gitkeep
+!data/logs/.gitkeep
+!data/output/.gitkeep
+__pycache__/
+*.pyc
+.env
+*.credentials

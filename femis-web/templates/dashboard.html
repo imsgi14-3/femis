@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — FEMIS{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0">
+    <i class="bi bi-speedometer2 me-2"></i>
+    {{ "Student Dashboard" if role == "student" else "Teacher Dashboard" }}
+  </h4>
+  <div>
+    <span class="text-muted me-3">Welcome, <strong>{{ user_name }}</strong> ({{ role|capitalize }})</span>
+    <a href="/logout" class="btn btn-outline-secondary btn-sm">Logout</a>
+  </div>
+</div>
+
+{% if role == "student" %}
+  {% if students %}
+    {% set s = students[0] %}
+    <div class="card shadow-sm">
+      <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-person-fill me-2"></i>My Record</h5>
+        {% if s.locked %}
+          <span class="badge bg-danger"><i class="bi bi-lock-fill me-1"></i>Locked by Teacher</span>
+        {% elif not s.submitted %}
+          <a href="/form/{{ s.id }}" class="btn btn-light btn-sm"><i class="bi bi-pencil me-1"></i>Edit</a>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-4"><strong>Name:</strong> {{ s.name or '—' }}</div>
+          <div class="col-md-4"><strong>B-Form/CNIC:</strong> {{ s.b_form or '—' }}</div>
+          <div class="col-md-4"><strong>Gender:</strong> {{ s.gender or '—' }}</div>
+          <div class="col-md-4"><strong>Class:</strong> {{ s.class_id or '—' }}</div>
+          <div class="col-md-4"><strong>Section:</strong> {{ s.section_id or '—' }}</div>
+          <div class="col-md-4"><strong>Roll No:</strong> {{ s.roll_no or '—' }}</div>
+          <div class="col-md-4"><strong>Status:</strong>
+            {% if s.submitted %}
+              <span class="badge bg-success">Submitted</span>
+            {% else %}
+              <span class="badge bg-warning text-dark">Draft</span>
+            {% endif %}
+          </div>
+          <div class="col-md-4"><strong>Lock:</strong>
+            {% if s.locked %}
+              <span class="badge bg-danger">Locked</span>
+            {% else %}
+              <span class="badge bg-secondary">Unlocked</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% if not s.submitted and not s.locked %}
+    <div class="text-center mt-3">
+      <a href="/form/{{ s.id }}" class="btn btn-primary btn-lg">
+        <i class="bi bi-pencil-square me-2"></i>Continue Filling Form
+      </a>
+    </div>
+    {% elif s.locked %}
+    <div class="alert alert-warning mt-3 text-center">
+      <i class="bi bi-lock-fill me-2"></i>Your record has been locked by the teacher. Contact them for any changes.
+    </div>
+    {% endif %}
+  {% else %}
+    <div class="card shadow-sm">
+      <div class="card-body text-center py-5">
+        <i class="bi bi-person-plus display-1 text-muted"></i>
+        <h5 class="mt-3">No record found</h5>
+        <p class="text-muted">Start a new admission form</p>
+        <a href="/" class="btn btn-primary btn-lg"><i class="bi bi-plus-circle me-2"></i>New Admission</a>
+      </div>
+    </div>
+  {% endif %}
+
+{% elif role == "teacher" %}
+  <div class="mb-3">
+    <a href="/" class="btn btn-primary"><i class="bi bi-plus-circle me-2"></i>New Admission</a>
+  </div>
+  <div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+      <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i>All Students ({{ students|length }})</h5>
+    </div>
+    <div class="card-body">
+      {% if students %}
+      <div class="table-responsive">
+        <table class="table table-hover table-striped">
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th>Name</th>
+              <th>Class</th>
+              <th>Section</th>
+              <th>Roll</th>
+              <th>Status</th>
+              <th>Lock</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in students %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td>{{ s.name or '—' }}</td>
+              <td>{{ s.class_id or '—' }}</td>
+              <td>{{ s.section_id or '—' }}</td>
+              <td>{{ s.roll_no or '—' }}</td>
+              <td>
+                {% if s.submitted %}
+                  <span class="badge bg-success">Submitted</span>
+                {% else %}
+                  <span class="badge bg-warning text-dark">Draft</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if s.locked %}
+                  <button class="btn btn-sm btn-outline-danger" onclick="toggleLock({{ s.id }}, false)" title="Unlock">
+                    <i class="bi bi-lock-fill"></i>
+                  </button>
+                {% else %}
+                  <button class="btn btn-sm btn-outline-success" onclick="toggleLock({{ s.id }}, true)" title="Lock">
+                    <i class="bi bi-unlock"></i>
+                  </button>
+                {% endif %}
+              </td>
+              <td>
+                <a href="/form/{{ s.id }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></a>
+                <a href="/students/{{ s.id }}/json" class="btn btn-sm btn-outline-secondary" target="_blank"><i class="bi bi-eye"></i></a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-muted text-center py-3">No students registered yet.</p>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
+
+<script>
+function toggleLock(studentId, lock) {
+  var endpoint = lock ? "/api/lock/" + studentId : "/api/unlock/" + studentId;
+  fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" } })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (res.ok) { location.reload(); }
+      else { alert("Error: " + (res.error || "Unknown")); }
+    });
+}
+</script>
+{% endblock %}
