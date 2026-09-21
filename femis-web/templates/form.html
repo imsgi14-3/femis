@@ -290,7 +290,7 @@
     </div>
     <div class="col-md-6">
       <label class="form-label">Mother Language <span class="text-danger">*</span></label>
-      <select class="form-select" name="mother_language" id="mother_language" required>
+      <select class="form-select" name="language_id" id="mother_language" required>
         <option value="">— Select Language —</option>
         {% for l in opts.languages %}
         <option value="{{ l }}">{{ l }}</option>
@@ -314,6 +314,32 @@
     <div class="col-md-6">
       <label class="form-label">Email ID</label>
       <input type="email" class="form-control" name="email">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Girls Stipend</label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="girls_stipend" id="gs_yes" value="1">
+          <label class="form-check-label" for="gs_yes">Yes</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="girls_stipend" id="gs_no" value="0">
+          <label class="form-check-label" for="gs_no">No</label>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6" id="hafiz_group">
+      <label class="form-label">Is Hafiz-e-Quran?</label>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="is_hafiz" id="hafiz_yes" value="1">
+          <label class="form-check-label" for="hafiz_yes">Yes</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="is_hafiz" id="hafiz_no" value="0">
+          <label class="form-check-label" for="hafiz_no">No</label>
+        </div>
+      </div>
     </div>
   </div>
 </div>

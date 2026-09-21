@@ -129,14 +129,15 @@ document.addEventListener("DOMContentLoaded", function () {
         var cnicGroup = document.getElementById("cnic_number_group");
         var cnicInput = document.getElementById("cnic_number_input");
         function toggle() {
-            var selected = document.querySelector('input[name="cnic_available"]:checked');
+            var selected = document.querySelector('input[name="is_bform_available"]:checked');
             var val = selected ? selected.value : "";
-            if (val === "0") {
-                if (cnicGroup) cnicGroup.style.display = "none";
-                if (cnicInput) cnicInput.required = false;
-            } else {
+            if (val === "1") {
                 if (cnicGroup) cnicGroup.style.display = "block";
                 if (cnicInput) cnicInput.required = true;
+            } else {
+                if (cnicGroup) cnicGroup.style.display = "none";
+                if (cnicInput) cnicInput.required = false;
+                if (cnicInput) cnicInput.value = "";
             }
         }
         radios.forEach(function (r) { r.addEventListener("change", toggle); });
@@ -152,8 +153,8 @@ document.addEventListener("DOMContentLoaded", function () {
         var hsDiv = document.getElementById("housing_society_group");
         var otherDiv = document.getElementById("other_address_group");
         var houseStreet = document.getElementById("house_street_group");
-        var houseInput = document.querySelector('input[name="house_no_temp"]');
-        var streetInput = document.querySelector('input[name="street_no_temp"]');
+        var houseInput = document.querySelector('input[name="house"]');
+        var streetInput = document.querySelector('input[name="street"]');
 
         if (!sel) return;
         function toggle() {
@@ -200,20 +201,8 @@ document.addEventListener("DOMContentLoaded", function () {
     // === Conditional: Nationality (select) → show Other Nationality ===
     selectToggle("nationality", "nationality_other_group", ["Other"]);
 
-    // === Conditional: Religion (select) → show Other Religion + Hafiz ===
-    (function () {
-        var sel = document.getElementById("religion");
-        var otherDiv = document.getElementById("other_religion_group");
-        var hafizDiv = document.getElementById("hafiz_group");
-        if (!sel) return;
-        function toggle() {
-            var val = sel.value;
-            if (otherDiv) otherDiv.style.display = val === "Non-Muslim" ? "block" : "none";
-            if (hafizDiv) hafizDiv.style.display = val === "Muslim" ? "block" : "none";
-        }
-        sel.addEventListener("change", toggle);
-        toggle();
-    })();
+    // === Conditional: Religion (select) → show Other Religion ===
+    selectToggle("religion", "other_religion_group", ["Non-Muslim"]);
 
     // === Conditional: Same as Temp → show/hide permanent address fields ===
     checkboxToggle("same_as_temporary", "permanent_address_fields", true);
@@ -231,8 +220,8 @@ document.addEventListener("DOMContentLoaded", function () {
         var orphanDiv = document.getElementById("orphan_fields");
         if (!orphanDiv) return;
         function toggle() {
-            var fatherSel = document.querySelector('input[name="father_alive"]:checked');
-            var motherSel = document.querySelector('input[name="mother_alive"]:checked');
+            var fatherSel = document.querySelector('input[name="is_father_alive"]:checked');
+            var motherSel = document.querySelector('input[name="is_mother_alive"]:checked');
             var fatherDead = fatherSel && fatherSel.value === "0";
             var motherDead = motherSel && motherSel.value === "0";
             orphanDiv.style.display = (fatherDead && motherDead) ? "block" : "none";
@@ -255,7 +244,7 @@ document.addEventListener("DOMContentLoaded", function () {
     selectToggle("guardian_profession", "guardian_profession_other_group", ["Other"]);
 
     // === Mother Language (select) → show Other ===
-    selectToggle("mother_language", "mother_language_other_group", ["Other"]);
+    selectToggle("language_id", "mother_language_other_group", ["Other"]);
 
     // === Emergency Relation (select) → show Other ===
     selectToggle("emergency_relation", "emergency_relation_other_group", ["Other"]);
