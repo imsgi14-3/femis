@@ -213,18 +213,22 @@ def seed_options():
 
 @app.route("/")
 def index():
-    if not session.get("role"):
+    role = session.get("role")
+    if not role:
         return redirect(url_for("login"))
-    opts = seed_options()
-    student_id = session.get("student_id")
-    student = Student.query.get(student_id) if student_id else None
-    return render_template("form.html", opts=opts, edit_id=student_id, student=student, is_locked=False)
+    if role == "teacher":
+        return redirect(url_for("teacher_dashboard"))
+    return redirect(url_for("student_dashboard"))
 
 
 @app.route("/form/<int:student_id>")
 def edit_form(student_id):
+    if not session.get("role"):
+        return redirect(url_for("login"))
     opts = seed_options()
     student = Student.query.get_or_404(student_id)
+    if session.get("role") == "student" and session.get("student_id") != student_id:
+        return redirect(url_for("student_dashboard"))
     return render_template("form.html", opts=opts, edit_id=student_id, student=student,
                            is_locked=student.locked and session.get("role") != "teacher")
 
