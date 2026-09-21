@@ -213,22 +213,28 @@ document.addEventListener("DOMContentLoaded", function () {
     // === Mother Alive → show details only ===
     radioToggle("is_mother_alive", "mother_details_group", ["1"]);
 
-    // === Orphan → only when BOTH parents not alive ===
+    // === Orphan → show guardian details when is_orphan=yes ===
+    radioToggle("is_orphan", "orphan_fields", ["1"]);
+
+    // === Auto-set is_orphan=yes when both parents dead ===
     (function () {
         var fatherRadios = document.querySelectorAll('input[name="is_father_alive"]');
         var motherRadios = document.querySelectorAll('input[name="is_mother_alive"]');
-        var orphanDiv = document.getElementById("orphan_fields");
-        if (!orphanDiv) return;
-        function toggle() {
+        var orphanYes = document.getElementById("is_orphan_yes");
+        var orphanNo = document.getElementById("is_orphan_no");
+        if (!orphanYes) return;
+        function checkBothDead() {
             var fatherSel = document.querySelector('input[name="is_father_alive"]:checked');
             var motherSel = document.querySelector('input[name="is_mother_alive"]:checked');
             var fatherDead = fatherSel && fatherSel.value === "0";
             var motherDead = motherSel && motherSel.value === "0";
-            orphanDiv.style.display = (fatherDead && motherDead) ? "block" : "none";
+            if (fatherDead && motherDead) {
+                orphanYes.checked = true;
+                orphanYes.dispatchEvent(new Event("change"));
+            }
         }
-        fatherRadios.forEach(function (r) { r.addEventListener("change", toggle); });
-        motherRadios.forEach(function (r) { r.addEventListener("change", toggle); });
-        toggle();
+        fatherRadios.forEach(function (r) { r.addEventListener("change", checkBothDead); });
+        motherRadios.forEach(function (r) { r.addEventListener("change", checkBothDead); });
     })();
 
     // === Father Profession (select) → show Other ===
@@ -268,7 +274,7 @@ document.addEventListener("DOMContentLoaded", function () {
     radioToggle("digital_device_at_home", "device_type_group", ["1"]);
     radioToggle("transport_facility", "bus_route_group", ["Bus"]);
     radioToggle("scholarship", "scholarship_details_group", ["1"]);
-    radioToggle("co_curricular", "co_curricular_details_group", ["1"]);
+    radioToggle("cocurricular_activities", "co_curricular_details_group", ["1"]);
 
     // === FDE Institution → Other text ===
     var fdeSelect = document.getElementById("last_institution_fde");
@@ -521,6 +527,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     "mother_profession_other": "mother_profession_other",
                     "guardian_profession_other": "guardian_profession_other",
                     "guardian_relation_other": "guardian_relation_other",
+                    "guardian_email": "guardian_email",
                     "mother_language_other": "mother_language_other",
                     "emergency_relation_other": "emergency_relation_other",
                     "mental_disability_other": "mental_disability_other",

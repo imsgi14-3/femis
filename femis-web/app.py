@@ -102,6 +102,7 @@ class Student(db.Model):
     guardian_cnic = db.Column(db.String(20))
     guardian_relation = db.Column(db.String(50))
     guardian_contact = db.Column(db.String(20))
+    guardian_email = db.Column(db.String(100))
     guardian_qualification = db.Column(db.String(50))
     guardian_profession = db.Column(db.String(50))
     guardian_income = db.Column(db.String(50))

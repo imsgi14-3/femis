@@ -551,14 +551,12 @@
     <div class="row g-3 mb-4">
       <div class="col-md-6">
         <label class="form-label">Orphan Type</label>
-        <div>
+        <select class="form-select" name="orphan_type" id="orphan_type">
+          <option value="">— Select —</option>
           {% for ot in opts.orphan_types %}
-          <div class="form-check form-check-inline">
-            <input class="form-check-input" type="radio" name="orphan_type" id="ot_{{ loop.index }}" value="{{ ot }}">
-            <label class="form-check-label" for="ot_{{ loop.index }}">{{ ot }}</label>
-          </div>
+          <option value="{{ ot }}">{{ ot }}</option>
           {% endfor %}
-        </div>
+        </select>
       </div>
       <div class="col-md-6">
         <label class="form-label">Guardian Name</label>
@@ -584,6 +582,10 @@
       <div class="col-md-6">
         <label class="form-label">Guardian Contact</label>
         <input type="tel" class="form-control" name="guardian_contact">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Guardian Email</label>
+        <input type="email" class="form-control" name="guardian_email">
       </div>
       <div class="col-md-6">
         <label class="form-label">Guardian Qualification</label>
@@ -747,32 +749,6 @@
           <label class="form-check-label" for="mos_{{ loop.index }}">{{ ms }}</label>
         </div>
         {% endfor %}
-      </div>
-    </div>
-    <div class="col-md-6" id="hafiz_group" style="display:none;">
-      <label class="form-label">Hafiz-e-Quran</label>
-      <div>
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="hafiz_e_quran" id="hq_yes" value="1">
-          <label class="form-check-label" for="hq_yes">Yes</label>
-        </div>
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="hafiz_e_quran" id="hq_no" value="0">
-          <label class="form-check-label" for="hq_no">No</label>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-6">
-      <label class="form-label">Girls Stipend</label>
-      <div>
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="girls_stipend" id="gs_yes" value="1">
-          <label class="form-check-label" for="gs_yes">Yes</label>
-        </div>
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="girls_stipend" id="gs_no" value="0">
-          <label class="form-check-label" for="gs_no">No</label>
-        </div>
       </div>
     </div>
     <div class="col-md-6">
