@@ -4,10 +4,11 @@
 <div class="row justify-content-center">
   <div class="col-md-5">
     <div class="card shadow-sm">
-      <div class="card-header bg-primary text-white">
-        <h5 class="mb-0"><i class="bi bi-box-arrow-in-right me-2"></i>FEMIS Portal Login</h5>
+      <div class="card-header bg-primary text-white text-center">
+        <h4 class="mb-0"><i class="bi bi-mortarboard-fill me-2"></i>FDE FEMIS</h4>
+        <small>Student Data Collection Portal</small>
       </div>
-      <div class="card-body">
+      <div class="card-body p-4">
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
             {% for cat, msg in messages %}
@@ -21,26 +22,34 @@
 
         <form method="POST" action="/login">
           <div class="mb-3">
-            <label class="form-label">I am a</label>
-            <div>
-              <div class="form-check form-check-inline">
+            <label class="form-label fw-bold">I am a</label>
+            <div class="d-flex gap-3">
+              <div class="form-check">
                 <input class="form-check-input" type="radio" name="role" id="role_student" value="student" checked>
                 <label class="form-check-label" for="role_student">Student / Parent</label>
               </div>
-              <div class="form-check form-check-inline">
+              <div class="form-check">
                 <input class="form-check-input" type="radio" name="role" id="role_teacher" value="teacher">
                 <label class="form-check-label" for="role_teacher">Teacher</label>
               </div>
             </div>
           </div>
+
           <div class="mb-3">
-            <label class="form-label">Your Name <span class="text-danger">*</span></label>
-            <input type="text" class="form-control" name="name" required placeholder="Enter your name">
+            <label class="form-label fw-bold">Your Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="name" required placeholder="Enter full name">
+          </div>
+
+          <div id="teacher-fields" style="display:none;">
+            <div class="mb-3">
+              <label class="form-label fw-bold">Password <span class="text-danger">*</span></label>
+              <input type="password" class="form-control" name="password" placeholder="Enter password">
+            </div>
           </div>
 
           <div id="student-fields">
             <div class="mb-3">
-              <label class="form-label">Class <span class="text-danger">*</span></label>
+              <label class="form-label fw-bold">Class <span class="text-danger">*</span></label>
               <select class="form-select" name="class_id" id="login_class" required>
                 <option value="">Select Class</option>
                 <option value="Nursery">Nursery</option>
@@ -58,36 +67,125 @@
               </select>
             </div>
             <div class="mb-3">
-              <label class="form-label">Section <span class="text-danger">*</span></label>
+              <label class="form-label fw-bold">Section <span class="text-danger">*</span></label>
               <input type="text" class="form-control" name="section" required placeholder="e.g. A, B, C">
             </div>
             <div class="mb-3">
-              <label class="form-label">Roll No <span class="text-danger">*</span></label>
+              <label class="form-label fw-bold">Roll No <span class="text-danger">*</span></label>
               <input type="text" class="form-control" name="roll_no" required placeholder="e.g. 1, 2, 15">
             </div>
           </div>
 
-          <div class="text-end">
+          <div class="d-grid mt-4">
             <button type="submit" class="btn btn-primary btn-lg">
-              <i class="bi bi-arrow-right-circle me-2"></i>Continue
+              <i class="bi bi-arrow-right-circle me-2"></i>Login
             </button>
           </div>
         </form>
+
+        <div id="setup-section" class="mt-4" style="display:none;">
+          <hr>
+          <p class="text-muted text-center small">First time? Register as a teacher:</p>
+          <button class="btn btn-outline-primary btn-sm w-100" onclick="showSetup()">
+            <i class="bi bi-person-plus me-1"></i>Register First Teacher
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="setupModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">Register Teacher</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-bold">Full Name <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="setup-name" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold">Password <span class="text-danger">*</span></label>
+          <input type="password" class="form-control" id="setup-password" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold">Your Class <span class="text-danger">*</span></label>
+          <select class="form-select" id="setup-class" required>
+            <option value="">Select Class</option>
+            <option value="Nursery">Nursery</option>
+            <option value="KG">KG</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold">Your Section <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="setup-section-input" required placeholder="e.g. A, B, C">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="submitSetup()">Register</button>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-document.querySelectorAll('input[name="role"]').forEach(function(radio) {
+var roleRadios = document.querySelectorAll('input[name="role"]');
+roleRadios.forEach(function(radio) {
   radio.addEventListener("change", function() {
     var sf = document.getElementById("student-fields");
-    sf.style.display = this.value === "teacher" ? "none" : "block";
-    var inputs = sf.querySelectorAll("input, select");
-    inputs.forEach(function(inp) {
-      inp.required = (this.value === "student");
-    }.bind(this));
+    var tf = document.getElementById("teacher-fields");
+    var setup = document.getElementById("setup-section");
+    if (this.value === "teacher") {
+      sf.style.display = "none";
+      tf.style.display = "block";
+      setup.style.display = "block";
+      sf.querySelectorAll("input, select").forEach(function(i) { i.required = false; });
+      tf.querySelectorAll("input").forEach(function(i) { i.required = true; });
+    } else {
+      sf.style.display = "block";
+      tf.style.display = "none";
+      setup.style.display = "none";
+      sf.querySelectorAll("input, select").forEach(function(i) { i.required = true; });
+      tf.querySelectorAll("input").forEach(function(i) { i.required = false; });
+    }
   });
 });
+
+function showSetup() {
+  new bootstrap.Modal(document.getElementById("setupModal")).show();
+}
+
+function submitSetup() {
+  var payload = {
+    name: document.getElementById("setup-name").value,
+    password: document.getElementById("setup-password").value,
+    class_id: document.getElementById("setup-class").value,
+    section: document.getElementById("setup-section-input").value
+  };
+  fetch("/api/setup-teacher", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(payload)
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(res) {
+    if (res.ok) { window.location.href = "/teacher-dashboard"; }
+    else { alert("Error: " + (res.error || "Unknown")); }
+  });
+}
 </script>
 {% endblock %}

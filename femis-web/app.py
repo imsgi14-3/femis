@@ -7,6 +7,7 @@ from pathlib import Path
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "femis-web-dev-key-change-in-prod")
@@ -177,6 +178,22 @@ class Student(db.Model):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 
+class Teacher(db.Model):
+    __tablename__ = "teachers"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    password_hash = db.Column(db.String(300), nullable=False)
+    class_id = db.Column(db.String(50), nullable=False)
+    section_id = db.Column(db.String(20), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+
 # ---------------------------------------------------------------------------
 # Seed data
 # ---------------------------------------------------------------------------
@@ -317,11 +334,21 @@ def login():
         session["role"] = role
         session["user_name"] = name
         if role == "teacher":
+            password = request.form.get("password", "")
             class_id = request.form.get("class_id", "").strip()
             section = request.form.get("section", "").strip()
-            if not (name and class_id and section):
-                flash("Please fill all fields: Name, Class, Section.", "danger")
+            if not (name and password and class_id and section):
+                flash("Please fill all fields: Name, Password, Class, Section.", "danger")
                 return redirect(url_for("login"))
+            teacher = Teacher.query.filter(
+                Teacher.name.ilike(name),
+                Teacher.class_id.ilike(class_id),
+                Teacher.section_id.ilike(section),
+            ).first()
+            if not teacher or not teacher.check_password(password):
+                flash("Invalid credentials. Check name, password, class, section.", "danger")
+                return redirect(url_for("login"))
+            session["teacher_id"] = teacher.id
             session["teacher_class"] = class_id
             session["teacher_section"] = section
             return redirect(url_for("teacher_dashboard"))
@@ -394,6 +421,54 @@ def teacher_dashboard():
 def logout():
     session.clear()
     return redirect(url_for("login"))
+
+
+@app.route("/api/register-teacher", methods=["POST"])
+def api_register_teacher():
+    if session.get("role") != "teacher":
+        return jsonify({"ok": False, "error": "Teachers only"}), 403
+    data = request.get_json()
+    name = data.get("name", "").strip()
+    password = data.get("password", "")
+    class_id = data.get("class_id", "").strip()
+    section = data.get("section", "").strip()
+    if not (name and password and class_id and section):
+        return jsonify({"ok": False, "error": "All fields required"}), 400
+    existing = Teacher.query.filter(
+        Teacher.name.ilike(name),
+        Teacher.class_id.ilike(class_id),
+        Teacher.section_id.ilike(section),
+    ).first()
+    if existing:
+        return jsonify({"ok": False, "error": "Teacher already exists"}), 409
+    teacher = Teacher(name=name, class_id=class_id, section_id=section)
+    teacher.set_password(password)
+    db.session.add(teacher)
+    db.session.commit()
+    return jsonify({"ok": True, "teacher_id": teacher.id})
+
+
+@app.route("/api/setup-teacher", methods=["POST"])
+def api_setup_teacher():
+    if Teacher.query.count() > 0:
+        return jsonify({"ok": False, "error": "Teachers already exist. Use register-teacher instead."}), 400
+    data = request.get_json()
+    name = data.get("name", "").strip()
+    password = data.get("password", "")
+    class_id = data.get("class_id", "").strip()
+    section = data.get("section", "").strip()
+    if not (name and password and class_id and section):
+        return jsonify({"ok": False, "error": "All fields required"}), 400
+    teacher = Teacher(name=name, class_id=class_id, section_id=section)
+    teacher.set_password(password)
+    db.session.add(teacher)
+    db.session.commit()
+    session["role"] = "teacher"
+    session["user_name"] = name
+    session["teacher_id"] = teacher.id
+    session["teacher_class"] = class_id
+    session["teacher_section"] = section
+    return jsonify({"ok": True, "teacher_id": teacher.id})
 
 
 @app.route("/api/lock/<int:student_id>", methods=["POST"])
