@@ -47,7 +47,7 @@
             </div>
           </div>
 
-          <div id="student-fields">
+          <div id="common-fields">
             <div class="mb-3">
               <label class="form-label fw-bold">Class <span class="text-danger">*</span></label>
               <select class="form-select" name="class_id" id="login_class" required>
@@ -70,6 +70,9 @@
               <label class="form-label fw-bold">Section <span class="text-danger">*</span></label>
               <input type="text" class="form-control" name="section" required placeholder="e.g. A, B, C">
             </div>
+          </div>
+
+          <div id="student-fields">
             <div class="mb-3">
               <label class="form-label fw-bold">Roll No <span class="text-danger">*</span></label>
               <input type="text" class="form-control" name="roll_no" required placeholder="e.g. 1, 2, 15">
@@ -153,13 +156,13 @@ roleRadios.forEach(function(radio) {
       sf.style.display = "none";
       tf.style.display = "block";
       setup.style.display = "block";
-      sf.querySelectorAll("input, select").forEach(function(i) { i.required = false; });
+      sf.querySelectorAll("input").forEach(function(i) { i.required = false; });
       tf.querySelectorAll("input").forEach(function(i) { i.required = true; });
     } else {
       sf.style.display = "block";
       tf.style.display = "none";
       setup.style.display = "none";
-      sf.querySelectorAll("input, select").forEach(function(i) { i.required = true; });
+      sf.querySelectorAll("input").forEach(function(i) { i.required = true; });
       tf.querySelectorAll("input").forEach(function(i) { i.required = false; });
     }
   });
