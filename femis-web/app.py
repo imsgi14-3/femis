@@ -19,6 +19,9 @@ db = SQLAlchemy(app)
 
 OPTIONS_PATH = Path(__file__).parent / "portal_options.json"
 
+with app.app_context():
+    db.create_all()
+
 # ---------------------------------------------------------------------------
 # Models
 # ---------------------------------------------------------------------------
