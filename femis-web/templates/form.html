@@ -172,7 +172,7 @@
     </div>
     <div class="col-md-12" id="other_address_group" style="display:none;">
       <label class="form-label">Address <span class="text-danger">*</span></label>
-      <textarea class="form-control" name="address_other" rows="3" placeholder="Enter full address"></textarea>
+      <textarea class="form-control" name="address" rows="3" placeholder="Enter full address"></textarea>
     </div>
     <div id="house_street_group">
       <div class="col-md-6">
@@ -253,7 +253,7 @@
       </div>
       <div class="col-md-12" id="present_other_address_group" style="display:none;">
         <label class="form-label">Address</label>
-        <textarea class="form-control" name="present_address_other" rows="3" placeholder="Enter full address"></textarea>
+        <textarea class="form-control" name="present_address" rows="3" placeholder="Enter full address"></textarea>
       </div>
       <div id="present_house_street_group">
         <div class="col-md-6">
@@ -660,7 +660,7 @@
     </div>
     <div class="col-md-6">
       <label class="form-label">Result / Percentage</label>
-      <input type="text" class="form-control" name="last_class_result">
+      <input type="text" class="form-control" name="result_percentage">
     </div>
     <div class="col-md-6">
       <label class="form-label">Date of Admission <span class="text-danger">*</span></label>
@@ -836,7 +836,7 @@
     </div>
     <div class="col-md-6" id="co_curricular_details_group" style="display:none;">
       <label class="form-label">Achievement Details</label>
-      <input type="text" class="form-control" name="achievement_details">
+      <input type="text" class="form-control" name="cocurricular_details">
     </div>
   </div>
 </div>
@@ -1192,7 +1192,7 @@
       <div>
         {% for dt in opts.device_types %}
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="digital_device_type" id="dv_{{ loop.index }}" value="{{ dt }}">
+          <input class="form-check-input" type="radio" name="digital_device_type[]" id="dv_{{ loop.index }}" value="{{ dt }}">
           <label class="form-check-label" for="dv_{{ loop.index }}">{{ dt }}</label>
         </div>
         {% endfor %}

@@ -489,7 +489,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     "is_father_alive": "is_father_alive", "is_mother_alive": "is_mother_alive",
                     "is_orphan": "is_orphan", "father_monthly_income": "father_monthly_income",
                     "class_id": "class_id", "section_id": "section_id",
-                    "last_class_result": "last_class_result",
+                    "last_class_result": "result_percentage",
                     "last_fde_institution_id": "last_fde_institution_id",
                     "class_admitted_id": "class_admitted_id",
                     "school_meal_program_availing": "school_meal_program_availing",
@@ -506,7 +506,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     "uses_glasses": "uses_glasses",
                     "has_hearing_difficulties": "has_hearing_difficulties",
                     "digital_device_at_home": "digital_device_at_home",
-                    "digital_device_type": "digital_device_type",
+                    "digital_device_type": "digital_device_type[]",
                     "internet_at_home": "internet_at_home",
                     "roll_no": "roll_no",
                     "sector_id": "sector_id", "village_id": "village_id",
@@ -541,6 +541,9 @@ document.addEventListener("DOMContentLoaded", function () {
                     "present_house": "present_house",
                     "present_street": "present_street",
                     "present_address_type": "present_address_type",
+                    "achievement_details": "cocurricular_details",
+                    "address_other": "address",
+                    "present_address_other": "present_address",
                 };
 
                 Object.keys(s).forEach(function (dbCol) {

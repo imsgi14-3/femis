@@ -69,6 +69,7 @@ class Student(db.Model):
     blood_group = db.Column(db.String(10))
     email = db.Column(db.String(100))
     mother_language_other = db.Column(db.String(100))
+    address = db.Column(db.String(500))
     present_address_other = db.Column(db.String(500))
 
     # Tab 2 — Parents / Guardian
@@ -246,6 +247,10 @@ FORM_FIELD_MAP = {
     "last_other_institution": "last_institution_other",
     "siblings_same_institution": "siblings_same",
     "other_medical_condition": "other_conditions",
+    "cocurricular_details": "achievement_details",
+    "result_percentage": "last_class_result",
+    "digital_device_type[]": "digital_device_type",
+    "present_address": "present_address_other",
 }
 
 
