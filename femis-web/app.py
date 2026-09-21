@@ -2,15 +2,15 @@
 Flask app replicating the FEMIS portal's 7-tab student form.
 Parents/teachers fill this; the bot reads from the DB and fills the real portal.
 """
-import json
+import json, os
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = "femis-web-dev-key-change-in-prod"
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///femis.db"
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "femis-web-dev-key-change-in-prod")
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///femis.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 
@@ -528,4 +528,5 @@ def api_sub_sectors(sector):
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=False, host="0.0.0.0", port=port)

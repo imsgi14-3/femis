@@ -10,3 +10,6 @@ __pycache__/
 *.pyc
 .env
 *.credentials
+*.db
+instance/
+femis-web/instance/
