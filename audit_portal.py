@@ -1,8 +1,30 @@
-"""FEMIS Portal Form Auditor
+"""FEMIS Portal Form Auditor v2
 
-Logs into FEMIS, navigates every tab on the Add Student form,
-clicks every field to capture live dropdown options and conditional reveals,
-then cross-audits against our web form and field_mapping.yaml.
+INSTRUCTIONS FOR FUTURE AUDITS:
+=================================
+1. This script logs into FEMIS portal, navigates to Add Student form.
+2. It clicks each of the 7 tab NAMES at the top of the form (not Save & Next).
+3. For each tab, it:
+   a. Clicks every interactive field (radio, select, checkbox) to trigger conditionals
+   b. After each click, records which fields appeared/disappeared
+   c. Expands every dropdown to capture all options
+   d. Takes a full-page screenshot
+4. It cross-audits against our web form and field_mapping.yaml.
+5. If Gemini CAPTCHA fails, falls back to manual mode (write code to file).
+
+CAPTCHA HANDLING:
+- Auto: Gemini Vision reads the CAPTCHA image
+- Manual: Script saves CAPTCHA to data/logs/captcha_current.png
+  Write the 4-digit code to data/logs/captcha_code.txt
+
+OUTPUT FILES:
+- data/output/portal_audit_<timestamp>.json — full field inventory
+- data/output/audit_discrepancies_<timestamp>.json — diff with our form
+- data/logs/audit_tab_<N>_<name>_<timestamp>.png — screenshots
+
+TAB NAVIGATION:
+- Script clicks tab names at the top of the form directly.
+- Does NOT use Save & Next. This avoids creating partial records.
 """
 
 import asyncio
@@ -21,14 +43,16 @@ load_dotenv()
 LOGIN_URL = "https://femis.fde.gov.pk/login"
 CREATE_URL = "https://femis.fde.gov.pk/students/create"
 
+# Tab names as they appear in the portal's top navigation.
+# The script tries multiple strategies to click each tab.
 TABS = [
-    ("Personal Details", "tab-nav-personal", "tab-personal"),
-    ("Parents / Guardian", "tab-nav-parents", "tab-parents"),
-    ("Educational Details", "tab-nav-education", "tab-education"),
-    ("Emergency Contact", "tab-nav-emergency", "tab-emergency"),
-    ("IDPs Details", "tab-nav-idps", "tab-idps"),
-    ("Health Details", "tab-nav-health", "tab-health"),
-    ("Digital Access", "tab-nav-digital", "tab-digital"),
+    ("Personal Details", ["tab-nav-personal", "tab-personal"]),
+    ("Parents / Guardian", ["tab-nav-parents", "tab-parents"]),
+    ("Educational Details", ["tab-nav-education", "tab-education"]),
+    ("Emergency Contact", ["tab-nav-emergency", "tab-emergency"]),
+    ("IDPs Details", ["tab-nav-idps", "tab-idps"]),
+    ("Health Details", ["tab-nav-health", "tab-health"]),
+    ("Digital Access", ["tab-nav-digital", "tab-digital"]),
 ]
 
 
@@ -71,20 +95,49 @@ async def solve_captcha(page, max_retries=5):
             print("  Invalid CAPTCHA reading, refreshing...")
             await page.click("#btn-refresh")
             await asyncio.sleep(1)
-    # Fallback: manual CAPTCHA
-    print("\n  Auto CAPTCHA failed. Falling back to manual entry...")
-    try:
-        captcha_text = input("  Enter the 4-digit CAPTCHA you see in the browser: ").strip()
-        if captcha_text:
-            await page.fill("#captcha", captcha_text)
-            await page.click("button[type='submit']")
-            await page.wait_for_load_state("networkidle")
-            await asyncio.sleep(2)
-            if "login" not in page.url.lower():
-                print("  Login successful (manual)!")
-                return True
-    except Exception as e:
-        print(f"  Manual CAPTCHA error: {e}")
+    # Fallback: manual CAPTCHA via file
+    print("\n  Auto CAPTCHA failed. Switching to manual mode...")
+    captcha_path = Path("data/logs/captcha_current.png")
+    code_file = Path("data/logs/captcha_code.txt")
+    if code_file.exists():
+        code_file.unlink()
+
+    for attempt in range(1, 20):
+        try:
+            captcha_img = page.locator(".captcha-code img")
+            await captcha_img.screenshot(path=str(captcha_path))
+        except Exception:
+            pass
+        print(f"\n  === Manual CAPTCHA Attempt {attempt} ===")
+        print(f"  CAPTCHA image saved to: {captcha_path.absolute()}")
+        print(f"  Write the 4-digit code to: {code_file.absolute()}")
+        print(f"  (File should contain ONLY the digits, e.g. 4827)")
+
+        for _ in range(90):
+            if code_file.exists():
+                code = code_file.read_text(encoding="utf-8").strip()
+                if code and len(code) == 4 and code.isdigit():
+                    code_file.unlink(missing_ok=True)
+                    await page.fill("#captcha", code)
+                    await page.click("button[type='submit']")
+                    await page.wait_for_load_state("networkidle")
+                    await asyncio.sleep(2)
+                    if "login" not in page.url.lower():
+                        print("  Login successful (manual)!")
+                        return True
+                    print(f"  Wrong CAPTCHA '{code}'. Refreshing...")
+                    try:
+                        await page.click("#btn-refresh")
+                    except Exception:
+                        pass
+                    await asyncio.sleep(1)
+                    break
+                elif code:
+                    print(f"  Invalid code '{code}' (need exactly 4 digits). Waiting...")
+                    code_file.unlink(missing_ok=True)
+            await asyncio.sleep(1)
+        else:
+            print("  Timed out waiting for CAPTCHA code.")
     return False
 
 
@@ -212,6 +265,108 @@ JS_EXPAND_DROPDOWNS = """async (containerId) => {
 }"""
 
 
+JS_CLICK_EVERY_FIELD = """async (containerId) => {
+    const container = document.getElementById(containerId);
+    if (!container) return [];
+    const results = [];
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+    const getVisibleFieldNames = () => {
+        const names = new Set();
+        container.querySelectorAll('input, select, textarea').forEach(el => {
+            if (el.offsetParent !== null && el.name && el.type !== 'hidden') {
+                names.add(el.name);
+            }
+        });
+        return names;
+    };
+
+    const baseline = getVisibleFieldNames();
+
+    const radios = {};
+    container.querySelectorAll('input[type="radio"]').forEach(el => {
+        if (!radios[el.name]) radios[el.name] = [];
+        if (!radios[el.name].find(r => r.value === el.value)) {
+            radios[el.name].push({value: el.value, el: el});
+        }
+    });
+
+    for (const [name, options] of Object.entries(radios)) {
+        for (const opt of options) {
+            if (opt.el.offsetParent === null) continue;
+            const before = getVisibleFieldNames();
+            opt.el.click();
+            await sleep(400);
+            const after = getVisibleFieldNames();
+            const appeared = [...after].filter(x => !before.has(x));
+            const disappeared = [...before].filter(x => !after.has(x));
+            if (appeared.length > 0 || disappeared.length > 0) {
+                results.push({
+                    trigger: name,
+                    triggerType: 'radio',
+                    value: opt.value,
+                    appeared: appeared,
+                    disappeared: disappeared
+                });
+            }
+        }
+    }
+
+    const selects = container.querySelectorAll('select');
+    for (const sel of selects) {
+        if (sel.offsetParent === null) continue;
+        for (const opt of sel.options) {
+            if (!opt.value || opt.text.startsWith('Select')) continue;
+            const before = getVisibleFieldNames();
+            sel.value = opt.value;
+            sel.dispatchEvent(new Event('change', {bubbles: true}));
+            await sleep(400);
+            const after = getVisibleFieldNames();
+            const appeared = [...after].filter(x => !before.has(x));
+            const disappeared = [...before].filter(x => !after.has(x));
+            if (appeared.length > 0 || disappeared.length > 0) {
+                results.push({
+                    trigger: sel.name,
+                    triggerType: 'select',
+                    value: opt.value,
+                    valueText: opt.text.trim(),
+                    appeared: appeared,
+                    disappeared: disappeared
+                });
+            }
+        }
+        sel.value = '';
+        sel.dispatchEvent(new Event('change', {bubbles: true}));
+        await sleep(200);
+    }
+
+    const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+    for (const cb of checkboxes) {
+        if (cb.offsetParent === null) continue;
+        const wasChecked = cb.checked;
+        const before = getVisibleFieldNames();
+        cb.click();
+        await sleep(400);
+        const after = getVisibleFieldNames();
+        const appeared = [...after].filter(x => !before.has(x));
+        const disappeared = [...before].filter(x => !after.has(x));
+        if (appeared.length > 0 || disappeared.length > 0) {
+            results.push({
+                trigger: cb.name || cb.id,
+                triggerType: 'checkbox',
+                value: cb.checked ? 'checked' : 'unchecked',
+                appeared: appeared,
+                disappeared: disappeared
+            });
+        }
+        if (cb.checked !== wasChecked) cb.click();
+        await sleep(200);
+    }
+
+    return results;
+}"""
+
+
 def load_our_form_fields():
     form_path = Path("femis-web/templates/form.html")
     if not form_path.exists():
@@ -320,6 +475,21 @@ def cross_audit(portal_data):
                     "field_name": cond["name"],
                     "description": f"Radio '{cond['name']}' reveals/hides fields: {counts}",
                 })
+        for cond in tab_data.get("click_conditionals", []):
+            appeared = cond.get("appeared", [])
+            disappeared = cond.get("disappeared", [])
+            if appeared or disappeared:
+                desc_parts = []
+                if appeared:
+                    desc_parts.append(f"shows: {appeared}")
+                if disappeared:
+                    desc_parts.append(f"hides: {disappeared}")
+                discrepancies.append({
+                    "type": "CLICK_CONDITIONAL",
+                    "tab": tab_name,
+                    "field_name": cond["trigger"],
+                    "description": f"{cond['triggerType']} '{cond['trigger']}'={cond.get('valueText', cond.get('value', ''))}: {', '.join(desc_parts)}",
+                })
 
     return discrepancies
 
@@ -378,24 +548,48 @@ async def audit():
 
         all_tabs = {}
 
-        for tab_i, (tab_name, tab_nav_id, panel_id) in enumerate(TABS, 1):
+        for tab_i, (tab_name, tab_nav_ids) in enumerate(TABS, 1):
             print(f"\n{'─'*60}")
             print(f"Tab {tab_i}/7: {tab_name}")
             print(f"{'─'*60}")
 
-            try:
-                tab_el = page.locator(f"#{tab_nav_id}")
-                await tab_el.click(timeout=5000)
-                await asyncio.sleep(1.5)
-            except Exception:
+            # Click the tab by its name or ID at the top of the form
+            clicked = False
+            for nav_id in tab_nav_ids:
                 try:
-                    tab_el = page.get_by_role("tab", name=tab_name)
-                    await tab_el.click(timeout=5000)
-                    await asyncio.sleep(1.5)
-                except Exception as e:
-                    print(f"  ERROR clicking tab: {e}")
-                    continue
+                    el = page.locator(f"#{nav_id}")
+                    if await el.count() > 0:
+                        await el.click(timeout=5000)
+                        clicked = True
+                        break
+                except Exception:
+                    pass
 
+            if not clicked:
+                # Try clicking by visible text (the tab name)
+                try:
+                    el = page.get_by_role("tab", name=tab_name)
+                    await el.click(timeout=5000)
+                    clicked = True
+                except Exception:
+                    pass
+
+            if not clicked:
+                # Try clicking any element containing the tab name text
+                try:
+                    el = page.locator(f"text={tab_name}").first
+                    await el.click(timeout=5000)
+                    clicked = True
+                except Exception:
+                    pass
+
+            if not clicked:
+                print(f"  ERROR: Could not click tab '{tab_name}'. Skipping.")
+                continue
+
+            await asyncio.sleep(1.5)
+
+            # Handle Confirm dialog if it appears
             try:
                 confirm_btn = page.locator("button:has-text('CONFIRM'), button:has-text('Confirm')")
                 await confirm_btn.wait_for(state="visible", timeout=2000)
@@ -405,6 +599,7 @@ async def audit():
             except Exception:
                 pass
 
+            # Scroll down to load all content
             for _ in range(10):
                 await page.mouse.wheel(0, 500)
                 await asyncio.sleep(0.3)
@@ -413,6 +608,7 @@ async def audit():
             await page.screenshot(path=str(ss_path), full_page=True)
             print(f"  Screenshot: {ss_path}")
 
+            # Extract all fields
             fields = await page.evaluate(JS_EXTRACT_FIELDS, panel_id)
             print(f"  Found {len(fields)} fields:")
             for f in fields:
@@ -432,7 +628,24 @@ async def audit():
                 lbl = f.get("label", "N/A")[:50]
                 print(f"    [{f['type']:8s}] {lbl}{req}{opts_str}{vis}")
 
-            print("  Detecting conditional fields...")
+            # Detect conditional fields by clicking every field
+            print("  Clicking every field to detect conditionals...")
+            click_conditionals = await page.evaluate(JS_CLICK_EVERY_FIELD, panel_id)
+            if click_conditionals:
+                print(f"    Found {len(click_conditionals)} conditional triggers:")
+                for cond in click_conditionals:
+                    trigger = cond['trigger']
+                    ttype = cond['triggerType']
+                    val = cond.get('valueText', cond.get('value', ''))
+                    appeared = cond.get('appeared', [])
+                    disappeared = cond.get('disappeared', [])
+                    if appeared or disappeared:
+                        print(f"      {ttype} '{trigger}' = '{val}': +{appeared} -{disappeared}")
+            else:
+                print("    No conditional triggers found")
+
+            # Also run the original radio-based detection for comparison
+            print("  Running radio-group detection...")
             conditionals = await page.evaluate(JS_DETECT_CONDITIONALS, panel_id)
             if conditionals:
                 for cond in conditionals:
@@ -441,6 +654,7 @@ async def audit():
                     if len(unique_counts) > 1:
                         print(f"    CONDITIONAL: radio '{cond['name']}' -> field counts: {counts}")
 
+            # Expand dropdowns
             print("  Expanding dropdowns...")
             dropdowns = await page.evaluate(JS_EXPAND_DROPDOWNS, panel_id)
             for dd in dropdowns:
@@ -452,6 +666,7 @@ async def audit():
                 "tab_name": tab_name,
                 "fields": fields,
                 "conditionals": conditionals,
+                "click_conditionals": click_conditionals,
                 "dropdowns": dropdowns,
                 "screenshot": str(ss_path),
             }
