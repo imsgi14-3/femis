@@ -303,8 +303,8 @@
       <input type="text" class="form-control" name="mother_language_other" placeholder="Specify language">
     </div>
     <div class="col-md-6">
-      <label class="form-label">Blood Group</label>
-      <select class="form-select" name="blood_group" id="blood_group">
+      <label class="form-label">Blood Group <span class="text-danger">*</span></label>
+      <select class="form-select" name="blood_group" id="blood_group" required>
         <option value="">— Select Blood Group —</option>
         {% for b in opts.blood_groups %}
         <option value="{{ b }}">{{ b }}</option>
@@ -312,8 +312,8 @@
       </select>
     </div>
     <div class="col-md-6">
-      <label class="form-label">Email ID</label>
-      <input type="email" class="form-control" name="email">
+      <label class="form-label">Email ID <span class="text-danger">*</span></label>
+      <input type="email" class="form-control" name="email" required>
     </div>
     <div class="col-md-6">
       <label class="form-label">Girls Stipend</label>
@@ -675,8 +675,8 @@
       <input type="date" class="form-control" name="date_of_admission" required>
     </div>
     <div class="col-md-6">
-      <label class="form-label">Admission Number</label>
-      <input type="text" class="form-control" name="admission_number">
+      <label class="form-label">Admission Number <span class="text-danger">*</span></label>
+      <input type="text" class="form-control" name="admission_number" required>
     </div>
     <div class="col-md-6">
       <label class="form-label">Last Institution Attended Under FDE</label>
@@ -732,8 +732,8 @@
   <h6 class="text-primary mb-3 border-bottom pb-2">Additional Information</h6>
   <div class="row g-3 mb-4">
     <div class="col-md-6">
-      <label class="form-label">Primary Education Completion (Years)</label>
-      <input type="text" class="form-control" name="primary_education_completion_years">
+      <label class="form-label">Primary Education Completion (Years) <span class="text-danger">*</span></label>
+      <input type="text" class="form-control" name="primary_education_completion_years" required>
     </div>
     <div class="col-md-6">
       <label class="form-label">Meal Program</label>
@@ -760,8 +760,8 @@
       </div>
     </div>
     <div class="col-md-6">
-      <label class="form-label">Total Siblings</label>
-      <input type="text" class="form-control" name="total_siblings">
+      <label class="form-label">Total Siblings <span class="text-danger">*</span></label>
+      <input type="text" class="form-control" name="total_siblings" required>
     </div>
     <div class="col-md-6">
       <label class="form-label">Siblings in Other FDE</label>
@@ -793,7 +793,7 @@
       </div>
     </div>
     <div class="col-md-6" id="bus_route_group" style="display:none;">
-      <label class="form-label">Bus Route</label>
+      <label class="form-label">Bus Route <span class="text-danger">*</span></label>
       <div>
         {% for br in opts.bus_routes %}
         <div class="form-check form-check-inline">
@@ -1025,7 +1025,7 @@
       <input type="text" class="form-control" name="glass_prescription" placeholder="Specify prescription details">
     </div>
     <div class="col-md-6">
-      <label class="form-label">Difficulty Seeing Board</label>
+      <label class="form-label">Difficulty Seeing Board <span class="text-danger">*</span></label>
       <div>
         {% for dl in opts.difficulty_levels %}
         <div class="form-check form-check-inline">
@@ -1117,7 +1117,7 @@
   <h6 class="text-primary mb-3 border-bottom pb-2">Learning Difficulties</h6>
   <div class="row g-3 mb-4">
     <div class="col-md-4">
-      <label class="form-label">Difficulty Reading / Writing</label>
+      <label class="form-label">Difficulty Reading / Writing <span class="text-danger">*</span></label>
       <div>
         {% for dl in opts.difficulty_levels %}
         <div class="form-check form-check-inline">
@@ -1128,7 +1128,7 @@
       </div>
     </div>
     <div class="col-md-4">
-      <label class="form-label">Difficulty Remembering</label>
+      <label class="form-label">Difficulty Remembering <span class="text-danger">*</span></label>
       <div>
         {% for dl in opts.difficulty_levels %}
         <div class="form-check form-check-inline">
@@ -1139,7 +1139,7 @@
       </div>
     </div>
     <div class="col-md-4">
-      <label class="form-label">Difficulty Concentrating</label>
+      <label class="form-label">Difficulty Concentrating <span class="text-danger">*</span></label>
       <div>
         {% for dl in opts.difficulty_levels %}
         <div class="form-check form-check-inline">

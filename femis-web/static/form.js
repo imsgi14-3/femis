@@ -414,10 +414,11 @@ document.addEventListener("DOMContentLoaded", function () {
     // MANDATORY FIELD VALIDATION per tab
     // ==================================================================
     var mandatoryByTab = {
-        0: ["name", "is_bform_available", "gender", "date_of_birth", "birth_province_id", "birth_district_id", "nationality", "address_type", "contact_number", "city_id", "religion", "mother_language"],
-        1: ["father_name", "father_cnic", "is_father_alive", "mother_name", "is_mother_alive"],
-        2: ["class_id", "section_id", "date_of_admission", "class_admitted_id", "shift", "medium_of_instruction", "mode_of_study"],
+        0: ["name", "is_bform_available", "gender", "date_of_birth", "birth_province_id", "birth_district_id", "nationality", "address_type", "contact_number", "city_id", "religion", "mother_language", "email", "blood_group"],
+        1: ["father_name", "father_cnic", "is_father_alive", "mother_name", "is_mother_alive", "father_profession", "father_qualification", "father_monthly_income", "mother_profession", "mother_qualification", "mother_monthly_income"],
+        2: ["class_id", "section_id", "date_of_admission", "class_admitted_id", "medium_of_instruction", "mode_of_study", "admission_number", "primary_education_completion_years", "total_siblings", "bus_route"],
         3: ["emergency_name", "emergency_contact", "emergency_relation"],
+        5: ["difficulty_seeing_board", "difficulty_reading_writing", "difficulty_remembering", "difficulty_concentrating"],
     };
 
     function validateTab(tabIndex) {
@@ -449,6 +450,34 @@ document.addEventListener("DOMContentLoaded", function () {
                 missing.push(labelText);
             }
         });
+
+        // Conditional required fields — only validate if the parent field is visible
+        var conditionalRequired = [
+            {fields: ["guardian_name", "guardian_cnic", "guardian_relation", "guardian_contact", "guardian_profession", "guardian_income", "orphan_type"], trigger: "is_orphan", values: ["1"]},
+            {fields: ["scholarship_details"], trigger: "scholarship", values: ["1"]},
+            {fields: ["cocurricular_details"], trigger: "cocurricular_activities", values: ["1"]},
+            {fields: ["idp_status_id"], trigger: "is_refugee", values: ["1"]},
+            {fields: ["refugee_card_number"], trigger: "is_registered_refugee", values: ["1"]},
+            {fields: ["disability_types[]"], trigger: "has_major_disability", values: ["1"]},
+            {fields: ["mental_disability_type"], trigger: "has_mental_disability", values: ["1"]},
+            {fields: ["glass_prescription"], trigger: "uses_glasses", values: ["1"]},
+            {fields: ["hearing_aid_details"], trigger: "has_hearing_difficulties", values: ["1"]},
+        ];
+        conditionalRequired.forEach(function (cr) {
+            var triggerRadio = activeTab.querySelector('input[name="' + cr.trigger + '"]:checked');
+            if (!triggerRadio || cr.values.indexOf(triggerRadio.value) < 0) return;
+            cr.fields.forEach(function (fname) {
+                var input = activeTab.querySelector('[name="' + fname + '"]');
+                var sel = activeTab.querySelector('select[name="' + fname + '"]');
+                var val = sel ? sel.value : (input ? input.value.trim() : "");
+                if (!val) {
+                    var label = activeTab.querySelector('label[for="' + fname + '"]');
+                    var labelText = label ? label.textContent.replace("*", "").trim() : fname;
+                    if (missing.indexOf(labelText) < 0) missing.push(labelText);
+                }
+            });
+        });
+
         if (missing.length > 0) {
             alert("Please fill the following mandatory fields:\n\n• " + missing.join("\n• "));
             return false;

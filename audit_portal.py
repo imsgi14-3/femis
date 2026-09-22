@@ -46,13 +46,13 @@ CREATE_URL = "https://femis.fde.gov.pk/students/create"
 # Tab names as they appear in the portal's top navigation.
 # The script tries multiple strategies to click each tab.
 TABS = [
-    ("Personal Details", ["tab-nav-personal", "tab-personal"]),
-    ("Parents / Guardian", ["tab-nav-parents", "tab-parents"]),
-    ("Educational Details", ["tab-nav-education", "tab-education"]),
-    ("Emergency Contact", ["tab-nav-emergency", "tab-emergency"]),
-    ("IDPs Details", ["tab-nav-idps", "tab-idps"]),
-    ("Health Details", ["tab-nav-health", "tab-health"]),
-    ("Digital Access", ["tab-nav-digital", "tab-digital"]),
+    ("Personal Details", ["tab-nav-personal", "tab-personal"], "tab-1"),
+    ("Parents / Guardian", ["tab-nav-parents", "tab-parents"], "tab-2"),
+    ("Educational Details", ["tab-nav-education", "tab-education"], "tab-3"),
+    ("Emergency Contact", ["tab-nav-emergency", "tab-emergency"], "tab-4"),
+    ("IDPs Details", ["tab-nav-idps", "tab-idps"], "tab-5"),
+    ("Health Details", ["tab-nav-health", "tab-health"], "tab-6"),
+    ("Digital Access", ["tab-nav-digital", "tab-digital"], "tab-7"),
 ]
 
 
@@ -166,7 +166,7 @@ JS_EXTRACT_FIELDS = """(containerId) => {
         })).filter(o => o.text && o.text !== 'Select' && !o.text.startsWith('Select '));
         fields.push({
             type: 'select', name: el.name, id: el.id, label: label,
-            options: options,
+            options: options, multiple: el.multiple || false,
             required: el.required || (c && c.querySelector('.text-danger') !== null)
         });
     });
@@ -181,7 +181,7 @@ JS_EXTRACT_FIELDS = """(containerId) => {
             options: [], required: (c && c.querySelector('.text-danger') !== null),
             selectedValue: null
         };
-        const rl = el.closest('label')?.textContent?.trim() || el.value;
+        const rl = el.nextElementSibling ? el.nextElementSibling.textContent.trim() : el.value;
         if (rl && rl !== gl && !rg[gk].options.find(o => o.value === el.value)) {
             rg[gk].options.push({value: el.value, label: rl});
         }
@@ -261,6 +261,58 @@ JS_EXPAND_DROPDOWNS = """async (containerId) => {
             options: options
         });
     }
+    return results;
+}"""
+
+
+JS_TRIGGER_CASCADES = """async (containerId) => {
+    const container = document.getElementById(containerId);
+    if (!container) return [];
+    const results = [];
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+    const cascades = [
+        {parent: 'birth_province_id', child: 'birth_district_id', type: 'province'},
+        {parent: 'domicile_province_id', child: 'domicile_district_id', type: 'province'},
+        {parent: 'father_domicile_province_id', child: 'father_domicile_district_id', type: 'province'},
+        {parent: 'sector_id', child: 'sub_sector_id', type: 'sector'},
+        {parent: 'present_sector_id', child: 'present_sub_sector_id', type: 'sector'},
+        {parent: 'class_id', child: 'section_id', type: 'class'},
+    ];
+
+    for (const cascade of cascades) {
+        const parentSel = container.querySelector('select[name="' + cascade.parent + '"]');
+        const childSel = container.querySelector('select[name="' + cascade.child + '"]');
+        if (!parentSel || !childSel) continue;
+        if (parentSel.offsetParent === null) continue;
+
+        for (const opt of parentSel.options) {
+            if (!opt.value || opt.text.startsWith('Select')) continue;
+            parentSel.value = opt.value;
+            parentSel.dispatchEvent(new Event('change', {bubbles: true}));
+            await sleep(800);
+
+            const childOpts = Array.from(childSel.options).map(o => ({
+                value: o.value, text: o.textContent.trim()
+            })).filter(o => o.value && !o.text.startsWith('Select'));
+
+            if (childOpts.length > 0) {
+                results.push({
+                    cascade: cascade.type,
+                    parentName: cascade.parent,
+                    parentValue: opt.value,
+                    parentText: opt.text.trim(),
+                    childName: cascade.child,
+                    childOptions: childOpts
+                });
+                break;
+            }
+        }
+        parentSel.value = '';
+        parentSel.dispatchEvent(new Event('change', {bubbles: true}));
+        await sleep(300);
+    }
+
     return results;
 }"""
 
@@ -386,22 +438,81 @@ def load_our_form_fields():
         pattern = rf'id="{tab_id}"[^>]*>(.*?)(?=<div[^>]*id="tab-|\Z)'
         match = re.search(pattern, html, re.DOTALL)
         if not match:
-            tabs[tab_name] = {"inputs": [], "selects": [], "radios": [], "textareas": [], "all_names": []}
+            tabs[tab_name] = {"fields": [], "all_names": []}
             continue
         content = match.group(1)
-        inputs = re.findall(r'<input[^>]*name="([^"]*)"[^>]*>', content)
-        selects = re.findall(r'<select[^>]*name="([^"]*)"[^>]*>', content)
-        radios = re.findall(r'<input[^>]*type="radio"[^>]*name="([^"]*)"[^>]*>', content)
-        textareas = re.findall(r'<textarea[^>]*name="([^"]*)"[^>]*>', content)
-        all_names = list(set(inputs + selects + textareas))
-        tabs[tab_name] = {
-            "inputs": list(set(inputs)),
-            "selects": list(set(selects)),
-            "radios": list(set(radios)),
-            "textareas": list(set(textareas)),
-            "all_names": all_names,
-        }
+        fields = []
+
+        # Extract inputs with type and required
+        for m in re.finditer(r'<input[^>]*name="([^"]*)"[^>]*type="([^"]*)"[^>]*>', content):
+            name, ftype = m.group(1), m.group(2)
+            full = m.group(0)
+            required = 'required' in full or 'text-danger' in full
+            label = _extract_label(content, name)
+            fields.append({"name": name, "type": ftype, "required": required, "label": label})
+
+        for m in re.finditer(r'<input[^>]*type="([^"]*)"[^>]*name="([^"]*)"[^>]*>', content):
+            ftype, name = m.group(1), m.group(2)
+            if any(f["name"] == name and f["type"] == ftype for f in fields):
+                continue
+            full = m.group(0)
+            required = 'required' in full or 'text-danger' in full
+            label = _extract_label(content, name)
+            fields.append({"name": name, "type": ftype, "required": required, "label": label})
+
+        # Extract selects with options
+        for m in re.finditer(r'<select[^>]*name="([^"]*)"[^>]*>(.*?)</select>', content, re.DOTALL):
+            name = m.group(1)
+            body = m.group(2)
+            required = 'required' in m.group(0) or 'text-danger' in m.group(0)
+            opts = re.findall(r'<option[^>]*value="([^"]*)"[^>]*>([^<]*)</option>', body)
+            opts = [{"value": v, "text": t.strip()} for v, t in opts if v and t.strip() and not t.strip().startswith("Select")]
+            label = _extract_label(content, name)
+            fields.append({"name": name, "type": "select", "required": required, "label": label, "options": opts})
+
+        # Extract radios grouped by name
+        radio_groups = {}
+        for m in re.finditer(r'<input[^>]*type="radio"[^>]*name="([^"]*)"[^>]*value="([^"]*)"[^>]*>', content):
+            name, value = m.group(1), m.group(2)
+            if name not in radio_groups:
+                radio_groups[name] = {"name": name, "type": "radio", "options": [], "required": False}
+            # Find the label for this radio
+            label_match = re.search(rf'for="[^"]*{re.escape(value)}[^"]*"[^>]*>([^<]*)<', content)
+            opt_label = label_match.group(1).strip() if label_match else value
+            radio_groups[name]["options"].append({"value": value, "label": opt_label})
+            if 'required' in m.group(0) or 'text-danger' in m.group(0):
+                radio_groups[name]["required"] = True
+        for rg in radio_groups.values():
+            rg["label"] = _extract_label(content, rg["name"])
+            fields.append(rg)
+
+        # Extract textareas
+        for m in re.finditer(r'<textarea[^>]*name="([^"]*)"[^>]*>', content):
+            name = m.group(1)
+            required = 'required' in m.group(0) or 'text-danger' in m.group(0)
+            label = _extract_label(content, name)
+            fields.append({"name": name, "type": "textarea", "required": required, "label": label})
+
+        all_names = list(set(f["name"] for f in fields))
+        tabs[tab_name] = {"fields": fields, "all_names": all_names}
     return tabs
+
+
+def _extract_label(content, field_name):
+    """Find the label text for a field by name."""
+    patterns = [
+        rf'<label[^>]*for="[^"]*"[^>]*>[^<]*<[^>]*name="{re.escape(field_name)}"',
+        rf'name="{re.escape(field_name)}"[^>]*',
+    ]
+    # Simple approach: find label before the field
+    idx = content.find(f'name="{field_name}"')
+    if idx < 0:
+        return field_name
+    before = content[:idx]
+    label_match = re.findall(r'<label[^>]*>([^<]+)</label>', before)
+    if label_match:
+        return label_match[-1].strip().replace("*", "").strip()
+    return field_name
 
 
 def load_field_mapping():
@@ -415,19 +526,8 @@ def load_field_mapping():
 
 def cross_audit(portal_data):
     our_form = load_our_form_fields()
-    portal_names_per_tab = {}
-    for tab_key, tab_data in portal_data.items():
-        tab_name = tab_data["tab_name"]
-        names = set()
-        for field in tab_data["fields"]:
-            if field.get("name"):
-                names.add(field["name"])
-            for opt in field.get("options", []):
-                if isinstance(opt, dict):
-                    pass
-        portal_names_per_tab[tab_name] = names
-
     discrepancies = []
+
     tab_pairs = [
         ("Personal Details", "Personal Details"),
         ("Parents / Guardian", "Parents / Guardian"),
@@ -439,32 +539,174 @@ def cross_audit(portal_data):
     ]
 
     for portal_tab, our_tab in tab_pairs:
-        portal_names = portal_names_per_tab.get(portal_tab, set())
+        tab_data = portal_data.get(f"tab_{tab_pairs.index((portal_tab, our_tab)) + 1}", {})
+        portal_fields = tab_data.get("fields", [])
         our_data = our_form.get(our_tab, {})
-        our_names = set(our_data.get("all_names", []))
+        our_fields = our_data.get("fields", [])
 
-        missing_in_ours = portal_names - our_names
-        extra_in_ours = our_names - portal_names
+        portal_by_name = {}
+        for f in portal_fields:
+            if f.get("name"):
+                portal_by_name[f["name"]] = f
+        our_by_name = {}
+        for f in our_fields:
+            if f.get("name"):
+                our_by_name[f["name"]] = f
 
-        for name in missing_in_ours:
+        portal_names = set(portal_by_name.keys())
+        our_names = set(our_by_name.keys())
+
+        # RULE 1: Missing/extra fields (name comparison)
+        for name in portal_names - our_names:
             discrepancies.append({
                 "type": "MISSING_IN_OURS",
                 "tab": portal_tab,
                 "field_name": name,
+                "severity": "HIGH",
                 "description": f"Field '{name}' exists in FEMIS but not in our form",
             })
-        for name in extra_in_ours:
-            if name in ("student_id", "is_locked", "sub_sector"):
+        for name in our_names - portal_names:
+            if name in ("student_id", "is_locked"):
                 continue
             discrepancies.append({
                 "type": "EXTRA_IN_OURS",
                 "tab": our_tab,
                 "field_name": name,
+                "severity": "MEDIUM",
                 "description": f"Field '{name}' exists in our form but not in FEMIS",
             })
 
+        # RULE 2: Field type mismatch
+        for name in portal_names & our_names:
+            pf = portal_by_name[name]
+            of = our_by_name[name]
+            pt = pf.get("type", "")
+            ot = of.get("type", "")
+            # Normalize types
+            type_map = {"text": "text", "number": "number", "email": "text", "tel": "text",
+                        "date": "date", "textarea": "textarea", "select": "select",
+                        "radio": "radio", "checkbox": "checkbox"}
+            pt_norm = type_map.get(pt, pt)
+            ot_norm = type_map.get(ot, ot)
+            if pt_norm != ot_norm:
+                discrepancies.append({
+                    "type": "TYPE_MISMATCH",
+                    "tab": portal_tab,
+                    "field_name": name,
+                    "severity": "HIGH",
+                    "description": f"Field '{name}': portal is '{pt}' but ours is '{ot}'",
+                })
+
+        # RULE 3: Mandatory/required mismatch
+        for name in portal_names & our_names:
+            pf = portal_by_name[name]
+            of = our_by_name[name]
+            portal_req = pf.get("required", False)
+            our_req = of.get("required", False)
+            if portal_req and not our_req:
+                discrepancies.append({
+                    "type": "MISSING_REQUIRED",
+                    "tab": portal_tab,
+                    "field_name": name,
+                    "severity": "HIGH",
+                    "description": f"Field '{name}' is REQUIRED in portal but optional in our form",
+                })
+
+        # RULE 4: Select option comparison
+        for name in portal_names & our_names:
+            pf = portal_by_name[name]
+            of = our_by_name[name]
+            if pf.get("type") != "select" or of.get("type") != "select":
+                continue
+            portal_opts = {o.get("value", o.get("text", "")) for o in pf.get("options", []) if o.get("value")}
+            our_opts = {o.get("value", o.get("text", "")) for o in of.get("options", []) if o.get("value")}
+            if not portal_opts and not our_opts:
+                continue
+            if not portal_opts:
+                discrepancies.append({
+                    "type": "EMPTY_PORTAL_OPTIONS",
+                    "tab": portal_tab,
+                    "field_name": name,
+                    "severity": "LOW",
+                    "description": f"Select '{name}' has empty options in portal (cascade not triggered)",
+                })
+                continue
+            if not our_opts:
+                discrepancies.append({
+                    "type": "EMPTY_OUR_OPTIONS",
+                    "tab": our_tab,
+                    "field_name": name,
+                    "severity": "HIGH",
+                    "description": f"Select '{name}' has no options in our form",
+                })
+                continue
+            missing_opts = portal_opts - our_opts
+            extra_opts = our_opts - portal_opts
+            if missing_opts:
+                discrepancies.append({
+                    "type": "MISSING_OPTIONS",
+                    "tab": our_tab,
+                    "field_name": name,
+                    "severity": "HIGH",
+                    "description": f"Select '{name}' missing options: {sorted(missing_opts)[:5]}",
+                })
+            if extra_opts:
+                discrepancies.append({
+                    "type": "EXTRA_OPTIONS",
+                    "tab": our_tab,
+                    "field_name": name,
+                    "severity": "MEDIUM",
+                    "description": f"Select '{name}' has extra options not in portal: {sorted(extra_opts)[:5]}",
+                })
+
+        # RULE 5: Radio option comparison
+        for name in portal_names & our_names:
+            pf = portal_by_name[name]
+            of = our_by_name[name]
+            if pf.get("type") != "radio" or of.get("type") != "radio":
+                continue
+            portal_vals = {o.get("value", "") for o in pf.get("options", [])}
+            our_vals = {o.get("value", "") for o in of.get("options", [])}
+            if portal_vals != our_vals:
+                discrepancies.append({
+                    "type": "RADIO_OPTIONS_MISMATCH",
+                    "tab": portal_tab,
+                    "field_name": name,
+                    "severity": "HIGH",
+                    "description": f"Radio '{name}': portal has {sorted(portal_vals)}, ours has {sorted(our_vals)}",
+                })
+
+        # RULE 6: Multi-select detection
+        for name in portal_names & our_names:
+            pf = portal_by_name[name]
+            of = our_by_name[name]
+            if pf.get("type") == "select" and pf.get("multiple") and not of.get("multiple"):
+                discrepancies.append({
+                    "type": "MULTI_SELECT_MISSING",
+                    "tab": our_tab,
+                    "field_name": name,
+                    "severity": "HIGH",
+                    "description": f"Select '{name}' is multi-select in portal but single-select in ours",
+                })
+
+        # RULE 7: Label text mismatch
+        for name in portal_names & our_names:
+            pf = portal_by_name[name]
+            of = our_by_name[name]
+            pl = pf.get("label", "").lower().strip()
+            ol = of.get("label", "").lower().strip()
+            if pl and ol and pl != ol and pl != name and ol != name:
+                discrepancies.append({
+                    "type": "LABEL_MISMATCH",
+                    "tab": portal_tab,
+                    "field_name": name,
+                    "severity": "LOW",
+                    "description": f"Label mismatch for '{name}': portal='{pf.get('label')}', ours='{of.get('label')}'",
+                })
+
+    # RULE 8: Conditional logic validation
     for tab_key, tab_data in portal_data.items():
-        tab_name = tab_data["tab_name"]
+        tab_name = tab_data.get("tab_name", "")
         for cond in tab_data.get("conditionals", []):
             counts = cond.get("fieldCounts", {})
             unique = set(counts.values())
@@ -473,6 +715,7 @@ def cross_audit(portal_data):
                     "type": "CONDITIONAL_FIELD",
                     "tab": tab_name,
                     "field_name": cond["name"],
+                    "severity": "MEDIUM",
                     "description": f"Radio '{cond['name']}' reveals/hides fields: {counts}",
                 })
         for cond in tab_data.get("click_conditionals", []):
@@ -488,6 +731,7 @@ def cross_audit(portal_data):
                     "type": "CLICK_CONDITIONAL",
                     "tab": tab_name,
                     "field_name": cond["trigger"],
+                    "severity": "MEDIUM",
                     "description": f"{cond['triggerType']} '{cond['trigger']}'={cond.get('valueText', cond.get('value', ''))}: {', '.join(desc_parts)}",
                 })
 
@@ -498,20 +742,27 @@ def print_disc_summary(discrepancies):
     if not discrepancies:
         print("\n  No discrepancies found! Forms match.")
         return
-    by_type = {}
+    by_severity = {"HIGH": [], "MEDIUM": [], "LOW": []}
     for d in discrepancies:
-        t = d["type"]
-        if t not in by_type:
-            by_type[t] = []
-        by_type[t].append(d)
+        sev = d.get("severity", "MEDIUM")
+        by_severity.setdefault(sev, []).append(d)
     print(f"\n  Total discrepancies: {len(discrepancies)}")
-    for dtype, items in by_type.items():
-        print(f"\n  [{dtype}] ({len(items)} items)")
-        for item in items[:20]:
-            print(f"    Tab: {item['tab']} | Field: {item['field_name']}")
-            print(f"      {item['description']}")
-        if len(items) > 20:
-            print(f"    ... and {len(items) - 20} more")
+    for sev in ["HIGH", "MEDIUM", "LOW"]:
+        items = by_severity.get(sev, [])
+        if not items:
+            continue
+        print(f"\n  [{sev}] ({len(items)} items)")
+        by_type = {}
+        for item in items:
+            t = item["type"]
+            by_type.setdefault(t, []).append(item)
+        for dtype, type_items in by_type.items():
+            print(f"    [{dtype}] ({len(type_items)} items)")
+            for item in type_items[:15]:
+                print(f"      Tab: {item['tab']} | Field: {item['field_name']}")
+                print(f"        {item['description']}")
+            if len(type_items) > 15:
+                print(f"      ... and {len(type_items) - 15} more")
 
 
 async def audit():
@@ -548,7 +799,7 @@ async def audit():
 
         all_tabs = {}
 
-        for tab_i, (tab_name, tab_nav_ids) in enumerate(TABS, 1):
+        for tab_i, (tab_name, tab_nav_ids, panel_id) in enumerate(TABS, 1):
             print(f"\n{'─'*60}")
             print(f"Tab {tab_i}/7: {tab_name}")
             print(f"{'─'*60}")
@@ -661,6 +912,14 @@ async def audit():
                 opt_count = dd["optionCount"]
                 print(f"    Select '{dd['label']}' ({dd['name']}): {opt_count} options")
 
+            # Trigger cascades to capture populated child dropdowns
+            print("  Triggering cascades...")
+            cascades = await page.evaluate(JS_TRIGGER_CASCADES, panel_id)
+            if cascades:
+                print(f"    Found {len(cascades)} cascade results:")
+                for c in cascades:
+                    print(f"      {c['cascade']}: {c['parentText']} -> {c['childName']} ({len(c['childOptions'])} options)")
+
             tab_key = f"tab_{tab_i}"
             all_tabs[tab_key] = {
                 "tab_name": tab_name,
@@ -668,6 +927,7 @@ async def audit():
                 "conditionals": conditionals,
                 "click_conditionals": click_conditionals,
                 "dropdowns": dropdowns,
+                "cascades": cascades,
                 "screenshot": str(ss_path),
             }
 
