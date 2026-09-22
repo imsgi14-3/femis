@@ -389,6 +389,40 @@ tab_2_parents_guardian:
       required: false
       source_field: guardian_bps
 
+    guardian_name:
+      label: "Guardian Name"
+      type: text
+      required: false
+      source_field: guardian_name
+
+    guardian_cnic:
+      label: "Guardian CNIC"
+      type: text
+      required: false
+      source_field: guardian_cnic
+
+    guardian_relation:
+      label: "Guardian Relation"
+      type: dropdown
+      required: false
+      source_field: guardian_relation
+      options:
+        - "Father"
+        - "Mother"
+        - "Brother"
+        - "Sister"
+        - "Uncle"
+        - "Aunt"
+        - "Grandfather"
+        - "Grandmother"
+        - "Other"
+
+    guardian_email:
+      label: "Guardian Email"
+      type: text
+      required: false
+      source_field: guardian_email
+
 # ============================================================
 # TAB 3: Educational Details
 # ============================================================
@@ -598,7 +632,7 @@ tab_5_idps_details:
     label: "Refugee Card Number"
     type: text
     required: false
-    source_field: refugee_card_number
+    source_field: refugee_card
 
 # ============================================================
 # TAB 6: Health Details
@@ -619,10 +653,9 @@ tab_6_health_details:
 
   disability_certificate:
     label: "Disability Certificate"
-    type: radio
+    type: text
     required: false
-    source_field: disability_cert
-    options: ["Attachment"]
+    source_field: disability_certificate
 
   disability_type:
     label: "Disability Type"
@@ -665,7 +698,7 @@ tab_6_health_details:
     label: "Visually FIT / 6/6"
     type: radio
     required: false
-    source_field: vision
+    source_field: visually_fit
     options: ["Yes", "No"]
 
   wear_glasses:
@@ -698,7 +731,7 @@ tab_6_health_details:
     label: "Using hearing aid?"
     type: radio
     required: false
-    source_field: hearing_aid
+    source_field: uses_hearing_aid
     options: ["Yes", "No"]
 
   difficulty_listening:
@@ -720,7 +753,7 @@ tab_6_health_details:
     label: "Use Crutches / Walker"
     type: radio
     required: false
-    source_field: use_crutches
+    source_field: uses_crutches_walker
     options: ["Yes", "No"]
 
   # Learning
@@ -728,7 +761,7 @@ tab_6_health_details:
     label: "Difficulty Reading / Writing"
     type: radio
     required: false
-    source_field: reading_writing_difficulty
+    source_field: difficulty_reading_writing
     options:
       - "No Difficulty"
       - "Some Difficulty"
@@ -739,7 +772,7 @@ tab_6_health_details:
     label: "Difficulty Remembering"
     type: radio
     required: false
-    source_field: remembering_difficulty
+    source_field: difficulty_remembering
     options:
       - "No Difficulty"
       - "Some Difficulty"
@@ -750,7 +783,7 @@ tab_6_health_details:
     label: "Difficulty Concentrating"
     type: radio
     required: false
-    source_field: concentrating_difficulty
+    source_field: difficulty_concentrating
     options:
       - "No Difficulty"
       - "Some Difficulty"
@@ -762,7 +795,7 @@ tab_6_health_details:
     label: "Basic Vaccination Completed?"
     type: radio
     required: false
-    source_field: vaccination_completed
+    source_field: basic_vaccination_completed
     options: ["Yes", "No"]
 
 # ============================================================
@@ -773,18 +806,18 @@ tab_7_digital_access:
     label: "Access to Digital Device at Home?"
     type: radio
     required: false
-    source_field: digital_device
+    source_field: digital_device_at_home
     options: ["Yes", "No"]
 
   device_type:
     label: "Device Type"
     type: text
     required: false
-    source_field: device_type
+    source_field: digital_device_type
 
   internet_access:
     label: "Internet Access at Home?"
     type: radio
     required: false
-    source_field: internet_access
+    source_field: internet_at_home
     options: ["Yes", "No"]

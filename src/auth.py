@@ -79,13 +79,41 @@ class FEMISAuth:
         return False
 
     async def _solve_captcha_manual(self, page: Page) -> bool:
-        """Pause and ask user to enter CAPTCHA manually."""
+        """Pause and ask user to enter CAPTCHA manually.
+        First checks data/logs/captcha_code.txt, then falls back to stdin.
+        """
+        captcha_path = Path("data/logs") / "captcha_code.txt"
+        captcha_path.parent.mkdir(parents=True, exist_ok=True)
+
         print("\n" + "=" * 50)
         print("MANUAL CAPTCHA REQUIRED")
-        print("Please look at the CAPTCHA in the browser and type it below.")
+        print("Please look at the CAPTCHA in the browser.")
         print("=" * 50)
 
-        captcha_text = input("Enter 4-digit CAPTCHA: ").strip()
+        if captcha_path.exists():
+            existing = captcha_path.read_text(encoding="utf-8").strip()
+            if existing:
+                print(f"Found existing CAPTCHA in {captcha_path}: {existing}")
+                print("Delete this file or press Enter to use it, or type a new code.")
+                new_code = input("New code (or Enter to reuse): ").strip()
+                if new_code:
+                    captcha_text = new_code
+                else:
+                    captcha_text = existing
+            else:
+                print(f"Type CAPTCHA in {captcha_path} or enter below:")
+                captcha_text = input("Enter 4-digit CAPTCHA: ").strip()
+        else:
+            print(f"Type CAPTCHA in {captcha_path} or enter below:")
+            captcha_text = input("Enter 4-digit CAPTCHA: ").strip()
+
+        if not captcha_text:
+            logger.error("No CAPTCHA entered")
+            return False
+
+        # Save to file for next time
+        captcha_path.write_text(captcha_text, encoding="utf-8")
+
         await page.fill("#captcha", captcha_text)
         await page.click("button[type='submit']")
         await page.wait_for_load_state("networkidle")
