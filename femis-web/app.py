@@ -12,9 +12,11 @@ from werkzeug.security import generate_password_hash, check_password_hash
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "femis-web-dev-key-change-in-prod")
 _basedir = os.path.abspath(os.path.dirname(__file__))
+_instance_dir = os.path.join(_basedir, "instance")
+os.makedirs(_instance_dir, exist_ok=True)
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
     "DATABASE_URL",
-    "sqlite:///" + os.path.join(_basedir, "instance", "femis.db"),
+    "sqlite:///" + os.path.join(_instance_dir, "femis.db"),
 )
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["TEMPLATES_AUTO_RELOAD"] = True
