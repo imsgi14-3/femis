@@ -21,6 +21,13 @@ tab_1_personal_details:
       source_field: is_bform_available
       options: ["Yes", "No"]
 
+    cnic_form_b_number:
+      label: "CNIC/Form-B No."
+      type: text
+      required: true
+      source_field: b_form
+      validation: cnic
+
     gender:
       label: "Gender"
       type: dropdown
@@ -66,6 +73,18 @@ tab_1_personal_details:
         - "Pakistani"
         - "Others (specify)"
 
+    domicile_province:
+      label: "Student Domicile - Province"
+      type: dropdown
+      required: false
+      source_field: domicile_province_id
+
+    domicile_district:
+      label: "Student Domicile - District"
+      type: dropdown
+      required: false
+      source_field: domicile_district_id
+
   address_temporary:
     address_type:
       label: "Address Type"
@@ -77,6 +96,24 @@ tab_1_personal_details:
         - "Housing Society"
         - "Village"
         - "Others"
+
+    sector:
+      label: "Sector"
+      type: dropdown
+      required: false
+      source_field: sector_id
+
+    sub_sector:
+      label: "Sub Sector"
+      type: dropdown
+      required: false
+      source_field: village_id
+
+    housing_society:
+      label: "Housing Society"
+      type: dropdown
+      required: false
+      source_field: housing_society_id
 
     house_number:
       label: "House #"
@@ -173,6 +210,13 @@ tab_1_personal_details:
       required: false
       source_field: email
       validation: email
+
+    girls_stipend:
+      label: "Is Receiving Girls Stipend?"
+      type: radio
+      required: false
+      source_field: girls_stipend
+      options: ["Yes", "No"]
 
 # ============================================================
 # TAB 2: Parents / Guardian

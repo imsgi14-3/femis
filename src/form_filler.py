@@ -153,50 +153,83 @@ class FormFiller:
 
         try:
             await sel.scroll_into_view_if_needed(timeout=3000)
-            await sel.select_option(label=value, timeout=5000)
         except Exception:
+            pass
+
+        # 1. Try exact label match
+        try:
+            await sel.select_option(label=value, timeout=5000)
+            return
+        except Exception:
+            pass
+
+        # 2. Try value attribute match (DB may store portal IDs like "1" for Punjab)
+        try:
+            await sel.select_option(value=value, timeout=3000)
+            return
+        except Exception:
+            pass
+
+        # 3. Try truncated label
+        try:
+            await sel.select_option(label=value[:50], timeout=3000)
+            return
+        except Exception:
+            pass
+
+        # 4. Fuzzy match against options list
+        matched = self._fuzzy_match(value, options)
+        if matched:
             try:
-                await sel.select_option(label=value[:50], timeout=3000)
+                await sel.select_option(label=matched, timeout=3000)
+                return
             except Exception:
-                matched = self._fuzzy_match(value, options)
-                if matched:
-                    try:
-                        await sel.select_option(label=matched, timeout=3000)
-                    except Exception:
-                        # JS fallback - try by name first, then by label text
-                        name = await sel.get_attribute("name") if await sel.count() > 0 else None
-                        if not name:
-                            # Try to find select by label text in parent
-                            name = await page.evaluate("""(labelText) => {
-                                const labels = document.querySelectorAll('label');
-                                for (const lbl of labels) {
-                                    if (lbl.textContent.includes(labelText)) {
-                                        const parent = lbl.closest('.col-md-6, .form-group, div');
-                                        if (parent) {
-                                            const sel = parent.querySelector('select');
-                                            if (sel) return sel.name;
-                                        }
-                                    }
-                                }
-                                return null;
-                            }""", label[:30])
-                        if name:
-                            await page.evaluate("""(args) => {
-                                const [name, val] = args;
-                                const sel = document.querySelector(`[name="${name}"]`);
-                                if (sel) {
-                                    for (let opt of sel.options) {
-                                        if (opt.text.includes(val) || val.includes(opt.text)) {
-                                            sel.value = opt.value;
-                                            sel.dispatchEvent(new Event('change', {bubbles: true}));
-                                            if (window.jQuery) { jQuery(sel).trigger('change'); }
-                                            break;
-                                        }
-                                    }
-                                }
-                            }""", [name, matched])
-                else:
-                    logger.warning(f"    No match for '{value}' in '{label}'")
+                pass
+
+        # 5. JS fallback — iterate all <option> elements
+        name = None
+        try:
+            name = await sel.get_attribute("name") if await sel.count() > 0 else None
+        except Exception:
+            pass
+        if not name:
+            try:
+                name = await page.evaluate("""(labelText) => {
+                    const labels = document.querySelectorAll('label');
+                    for (const lbl of labels) {
+                        if (lbl.textContent.includes(labelText)) {
+                            const parent = lbl.closest('.col-md-6, .form-group, div');
+                            if (parent) {
+                                const sel = parent.querySelector('select');
+                                if (sel) return sel.name;
+                            }
+                        }
+                    }
+                    return null;
+                }""", label[:30])
+            except Exception:
+                pass
+        if name:
+            try:
+                await page.evaluate("""(args) => {
+                    const [name, val] = args;
+                    const sel = document.querySelector(`[name="${name}"]`);
+                    if (sel) {
+                        for (let opt of sel.options) {
+                            if (opt.value === val || opt.text.includes(val) || val.includes(opt.text)) {
+                                sel.value = opt.value;
+                                sel.dispatchEvent(new Event('change', {bubbles: true}));
+                                if (window.jQuery) { jQuery(sel).trigger('change'); }
+                                break;
+                            }
+                        }
+                    }
+                }""", [name, matched or value])
+                return
+            except Exception:
+                pass
+
+        logger.warning(f"    No match for '{value}' in '{label}'")
 
     async def _fill_radio(self, page: Page, label: str, value: str):
         value_lower = value.lower()

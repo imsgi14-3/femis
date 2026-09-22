@@ -36,6 +36,22 @@ class WebFormHandler:
             f"SQLite database not found. Looked in: {DB_PATH}, {DB_PATH_LOCAL}, {search}"
         )
 
+    def read_by_id(self, student_id: int) -> dict | None:
+        """Read a single student record by ID."""
+        conn = sqlite3.connect(str(self.db_path))
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM students WHERE id = ?", (student_id,))
+        row = cursor.fetchone()
+        conn.close()
+        if not row:
+            logger.warning(f"No student found with id={student_id}")
+            return None
+        student = dict(row)
+        student.pop("id", None)
+        student.pop("created_at", None)
+        return student
+
     def read_all(self, limit: int = None) -> list[dict]:
         """Read all student records from the database.
         Returns list of dicts matching the field names expected by FormFiller.

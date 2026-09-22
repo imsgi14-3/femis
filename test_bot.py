@@ -17,17 +17,29 @@ load_dotenv()
 
 
 async def main():
-    handler = WebFormHandler()
-    students = handler.read_all(limit=1)
-    if not students:
-        logger.error("No students in DB")
-        return
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--student-id", type=int, default=None, help="Specific student ID to fill")
+    parser.add_argument("--slow", type=int, default=300, help="Slow-mo delay in ms")
+    args = parser.parse_args()
 
-    student = students[0]
+    handler = WebFormHandler()
+
+    if args.student_id:
+        student = handler.read_by_id(args.student_id)
+        if not student:
+            logger.error(f"Student id={args.student_id} not found")
+            return
+    else:
+        students = handler.read_all(limit=1)
+        if not students:
+            logger.error("No students in DB")
+            return
+        student = students[0]
     logger.info(f"Test student: {student.get('name')} | Class: {student.get('class_id')} | Section: {student.get('section_id')}")
 
     async with async_playwright() as p:
-        browser = await p.chromium.launch(channel="msedge", headless=False, slow_mo=300)
+        browser = await p.chromium.launch(channel="msedge", headless=False, slow_mo=args.slow)
         context = await browser.new_context(viewport={"width": 1280, "height": 900})
         page = await context.new_page()
 
