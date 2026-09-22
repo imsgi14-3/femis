@@ -445,7 +445,7 @@ document.addEventListener("DOMContentLoaded", function () {
     var mandatoryByTab = {
         0: ["name", "is_bform_available", "gender", "date_of_birth", "birth_province_id", "birth_district_id", "nationality", "address_type", "contact_number", "city_id", "religion", "language_id", "email"],
         1: ["father_name", "father_cnic", "is_father_alive", "mother_name", "is_mother_alive", "father_profession", "father_qualification", "father_monthly_income", "mother_profession", "mother_qualification", "mother_monthly_income"],
-        2: ["class_id", "section_id", "date_of_admission", "class_admitted_id", "medium_of_instruction", "mode_of_study", "admission_number", "primary_education_completion_years", "total_siblings", "bus_route"],
+        2: ["class_id", "section_id", "date_of_admission", "class_admitted_id", "medium_of_instruction", "mode_of_study", "admission_number", "primary_education_completion_years", "total_siblings"],
         3: ["emergency_name", "emergency_contact", "emergency_relation"],
         5: ["difficulty_seeing_board", "difficulty_reading_writing", "difficulty_remembering", "difficulty_concentrating"],
     };
@@ -491,6 +491,7 @@ document.addEventListener("DOMContentLoaded", function () {
             {fields: ["mental_disability_type"], trigger: "has_mental_disability", values: ["1"]},
             {fields: ["glass_prescription"], trigger: "uses_glasses", values: ["1"]},
             {fields: ["hearing_aid_details"], trigger: "has_hearing_difficulties", values: ["1"]},
+            {fields: ["bus_route"], trigger: "transport_facility", values: ["Bus"]},
         ];
         conditionalRequired.forEach(function (cr) {
             var triggerRadio = activeTab.querySelector('input[name="' + cr.trigger + '"]:checked');
