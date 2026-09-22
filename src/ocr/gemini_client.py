@@ -161,7 +161,7 @@ Rules:
         mime_map = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}
         mime_type = mime_map.get(ext, "image/jpeg")
 
-        prompt = "Read the CAPTCHA text from this image. Return ONLY the characters, nothing else."
+        prompt = "This image contains distorted text characters on a noisy background. Read and return ONLY the characters you see, nothing else. The characters are alphanumeric."
 
         response = self.client.models.generate_content(
             model=self.model,

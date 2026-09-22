@@ -66,53 +66,80 @@ class FEMISAuth:
 
                     logger.warning(f"CAPTCHA attempt {attempt} failed, refreshing...")
                     await page.click("#btn-refresh")
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(2)
                 else:
                     logger.warning(f"Gemini returned invalid CAPTCHA: {captcha_text}")
                     await page.click("#btn-refresh")
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(2)
             except Exception as e:
                 logger.error(f"CAPTCHA solve error: {e}")
-                await page.click("#btn-refresh")
+                # Wait longer on rate limit errors
+                wait_time = 10 if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e) else 2
+                logger.info(f"Waiting {wait_time}s before retry...")
+                await asyncio.sleep(wait_time)
+                try:
+                    await page.click("#btn-refresh")
+                except Exception:
+                    pass
                 await asyncio.sleep(1)
 
         return False
 
     async def _solve_captcha_manual(self, page: Page) -> bool:
         """Pause and ask user to enter CAPTCHA manually.
-        First checks data/logs/captcha_code.txt, then falls back to stdin.
+        Checks data/logs/captcha_code.txt for content.
         """
         captcha_path = Path("data/logs") / "captcha_code.txt"
         captcha_path.parent.mkdir(parents=True, exist_ok=True)
 
+        # Take screenshot of CAPTCHA for user reference
+        captcha_img = page.locator(".captcha-code img")
+        if await captcha_img.count() > 0:
+            screenshot_path = captcha_path.parent / "captcha_current.png"
+            await captcha_img.screenshot(path=str(screenshot_path))
+            logger.info(f"CAPTCHA screenshot saved to {screenshot_path}")
+
         print("\n" + "=" * 50)
         print("MANUAL CAPTCHA REQUIRED")
         print("Please look at the CAPTCHA in the browser.")
+        print(f"Write the CAPTCHA code to: {captcha_path}")
         print("=" * 50)
 
+        # Check if file already has content
         if captcha_path.exists():
             existing = captcha_path.read_text(encoding="utf-8").strip()
-            if existing:
-                print(f"Found existing CAPTCHA in {captcha_path}: {existing}")
-                print("Delete this file or press Enter to use it, or type a new code.")
-                new_code = input("New code (or Enter to reuse): ").strip()
-                if new_code:
-                    captcha_text = new_code
-                else:
-                    captcha_text = existing
+            if existing and len(existing) >= 4:
+                captcha_text = existing
+                logger.info(f"Read CAPTCHA from file: {captcha_text}")
             else:
-                print(f"Type CAPTCHA in {captcha_path} or enter below:")
-                captcha_text = input("Enter 4-digit CAPTCHA: ").strip()
+                # Poll for file content
+                logger.info(f"Waiting for CAPTCHA in {captcha_path}...")
+                captcha_text = ""
+                for _ in range(120):  # Wait up to 2 minutes
+                    await asyncio.sleep(1)
+                    if captcha_path.exists():
+                        content = captcha_path.read_text(encoding="utf-8").strip()
+                        if content and len(content) >= 4:
+                            captcha_text = content
+                            logger.info(f"Read CAPTCHA from file: {captcha_text}")
+                            break
+                if not captcha_text:
+                    logger.error("Timeout waiting for CAPTCHA file")
+                    return False
         else:
-            print(f"Type CAPTCHA in {captcha_path} or enter below:")
-            captcha_text = input("Enter 4-digit CAPTCHA: ").strip()
-
-        if not captcha_text:
-            logger.error("No CAPTCHA entered")
-            return False
-
-        # Save to file for next time
-        captcha_path.write_text(captcha_text, encoding="utf-8")
+            logger.info(f"Waiting for CAPTCHA in {captcha_path}...")
+            captcha_text = ""
+            for _ in range(120):
+                await asyncio.sleep(1)
+                if captcha_path.exists():
+                    content = captcha_path.read_text(encoding="utf-8").strip()
+                    if content and len(content) >= 4:
+                        captcha_text = content
+                        logger.info(f"Read CAPTCHA from file: {captcha_text}")
+                        break
+            if not captcha_text:
+                logger.error("Timeout waiting for CAPTCHA file")
+                return False
 
         await page.fill("#captcha", captcha_text)
         await page.click("button[type='submit']")
@@ -120,6 +147,8 @@ class FEMISAuth:
 
         if "login" not in page.url.lower():
             logger.info("Login successful (manual CAPTCHA)")
+            # Clear the file for next time
+            captcha_path.write_text("", encoding="utf-8")
             return True
 
         logger.error("Login failed after manual CAPTCHA entry")

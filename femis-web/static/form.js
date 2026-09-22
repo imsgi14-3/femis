@@ -9,6 +9,35 @@ document.addEventListener("DOMContentLoaded", function () {
     var tabIds = ["tab-1", "tab-2", "tab-3", "tab-4", "tab-5", "tab-6", "tab-7"];
     var tabPills = document.querySelectorAll(".nav-pills .nav-link");
 
+    // === Auto-format CNIC: XXXXX-XXXXXXX-X ===
+    function formatCNIC(input) {
+        var val = input.value.replace(/[^0-9]/g, "");
+        var formatted = "";
+        if (val.length > 0) formatted += val.substring(0, 5);
+        if (val.length > 5) formatted += "-" + val.substring(5, 12);
+        if (val.length > 12) formatted += "-" + val.substring(12, 13);
+        input.value = formatted;
+    }
+
+    // === Auto-format Mobile: 0XXX-XXXXXXX ===
+    function formatMobile(input) {
+        var val = input.value.replace(/[^0-9]/g, "");
+        var formatted = "";
+        if (val.length > 0) formatted += val.substring(0, 4);
+        if (val.length > 4) formatted += "-" + val.substring(4, 11);
+        input.value = formatted;
+    }
+
+    // Attach CNIC formatting
+    document.querySelectorAll('input[name="b_form"], input[name="father_cnic"], input[name="mother_cnic"], input[name="guardian_cnic"]').forEach(function (el) {
+        el.addEventListener("input", function () { formatCNIC(this); });
+    });
+
+    // Attach Mobile formatting
+    document.querySelectorAll('input[name="contact_number"], input[name="father_contact"], input[name="mother_contact"], input[name="guardian_contact"], input[name="emergency_contact"]').forEach(function (el) {
+        el.addEventListener("input", function () { formatMobile(this); });
+    });
+
     function selectToggle(selectName, containerId, showValues) {
         var sel = document.querySelector('select[name="' + selectName + '"]');
         var container = document.getElementById(containerId);
@@ -414,7 +443,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // MANDATORY FIELD VALIDATION per tab
     // ==================================================================
     var mandatoryByTab = {
-        0: ["name", "is_bform_available", "gender", "date_of_birth", "birth_province_id", "birth_district_id", "nationality", "address_type", "contact_number", "city_id", "religion", "mother_language", "email", "blood_group"],
+        0: ["name", "is_bform_available", "gender", "date_of_birth", "birth_province_id", "birth_district_id", "nationality", "address_type", "contact_number", "city_id", "religion", "language_id", "email"],
         1: ["father_name", "father_cnic", "is_father_alive", "mother_name", "is_mother_alive", "father_profession", "father_qualification", "father_monthly_income", "mother_profession", "mother_qualification", "mother_monthly_income"],
         2: ["class_id", "section_id", "date_of_admission", "class_admitted_id", "medium_of_instruction", "mode_of_study", "admission_number", "primary_education_completion_years", "total_siblings", "bus_route"],
         3: ["emergency_name", "emergency_contact", "emergency_relation"],
@@ -428,9 +457,9 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!activeTab) return true;
         var missing = [];
         fields.forEach(function (fname) {
-            var radios = activeTab.querySelectorAll('input[name="' + fname + '"]');
+            var radios = activeTab.querySelectorAll('input[type="radio"][name="' + fname + '"]');
             var sel = activeTab.querySelector('select[name="' + fname + '"]');
-            var input = activeTab.querySelector('[name="' + fname + '"]');
+            var input = activeTab.querySelector('input:not([type="radio"]):not([type="checkbox"])[name="' + fname + '"]');
             var val = "";
             if (radios.length > 0) {
                 var checked = activeTab.querySelector('input[name="' + fname + '"]:checked');

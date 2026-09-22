@@ -221,13 +221,21 @@ tab_2_parents_guardian:
       validation: email
 
     qualification:
-      label: "Qualification"
-      type: text
+      label: "Father's Qualification"
+      type: dropdown
       required: false
       source_field: father_qualification
+      options:
+        - "Below Matric"
+        - "Matric"
+        - "Intermediate"
+        - "Graduate"
+        - "Post Graduate"
+        - "PhD"
+        - "Other"
 
     profession:
-      label: "Profession"
+      label: "Father's Profession"
       type: dropdown
       required: true
       source_field: father_profession
@@ -240,10 +248,16 @@ tab_2_parents_guardian:
         - "Other"
 
     income_per_month:
-      label: "Income (per month)"
-      type: text
+      label: "Father's Income (per month)"
+      type: dropdown
       required: false
       source_field: father_monthly_income
+      options:
+        - "Lessthan 50,000"
+        - "50,001 - 100,000"
+        - "100,001 - 200,000"
+        - "200,001 - 300,000"
+        - "Above 300,000"
 
     bps:
       label: "BPS (Only for Govt. Employees)"
@@ -306,29 +320,43 @@ tab_2_parents_guardian:
       validation: email
 
     qualification:
-      label: "Qualification"
-      type: text
+      label: "Mother's Qualification"
+      type: dropdown
       required: false
       source_field: mother_qualification
+      options:
+        - "Below Matric"
+        - "Matric"
+        - "Intermediate"
+        - "Graduate"
+        - "Post Graduate"
+        - "PhD"
+        - "Other"
 
     profession:
-      label: "Profession"
+      label: "Mother's Profession"
       type: dropdown
       required: true
       source_field: mother_profession
       options:
         - "Govt Employee"
         - "Private Employee"
-        - "Businessman"
+        - "Businesswoman"
         - "Farmer"
-        - "Overseas"
+        - "Housewife"
         - "Other"
 
     income_per_month:
-      label: "Income (per month)"
-      type: text
+      label: "Mother's Income (per month)"
+      type: dropdown
       required: false
       source_field: mother_monthly_income
+      options:
+        - "Lessthan 50,000"
+        - "50,001 - 100,000"
+        - "100,001 - 200,000"
+        - "200,001 - 300,000"
+        - "Above 300,000"
 
     bps:
       label: "BPS (Only for Govt. Employees)"
@@ -437,9 +465,10 @@ tab_3_educational_details:
 
     section:
       label: "Section"
-      type: text
+      type: radio
       required: true
       source_field: section_id
+      options: ["A", "B", "C"]
 
     result_percentage:
       label: "Result / Percentage of Last Class passed"
@@ -510,7 +539,7 @@ tab_3_educational_details:
       type: radio
       required: true
       source_field: mode_of_study
-      options: ["Day Scholars", "Boarders"]
+      options: ["Day Scholar", "Boarders"]
 
   sibling_details:
     total_siblings:

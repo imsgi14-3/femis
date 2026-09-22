@@ -36,7 +36,7 @@ async def main():
             password=os.getenv("FEMIS_PASSWORD", ""),
             gemini_api_key=os.getenv("GEMINI_API_KEY"),
             auto_solve_captcha=True,
-            captcha_max_retries=2,
+            captcha_max_retries=1,
         )
 
         logger.info("Logging in...")
@@ -54,8 +54,8 @@ async def main():
         filler = FormFiller()
         await filler.fill_student_form(page, student)
 
-        logger.info("Done! Press Enter to close browser...")
-        input()
+        logger.info("Done! Waiting 10s then closing browser...")
+        await asyncio.sleep(10)
         await browser.close()
 
 

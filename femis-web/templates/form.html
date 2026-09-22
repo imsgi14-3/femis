@@ -303,8 +303,8 @@
       <input type="text" class="form-control" name="mother_language_other" placeholder="Specify language">
     </div>
     <div class="col-md-6">
-      <label class="form-label">Blood Group <span class="text-danger">*</span></label>
-      <select class="form-select" name="blood_group" id="blood_group" required>
+      <label class="form-label">Blood Group</label>
+      <select class="form-select" name="blood_group" id="blood_group">
         <option value="">— Select Blood Group —</option>
         {% for b in opts.blood_groups %}
         <option value="{{ b }}">{{ b }}</option>

@@ -8,7 +8,7 @@ conn = sqlite3.connect(str(DB_PATH))
 c = conn.cursor()
 
 # Delete incomplete test records
-c.execute('DELETE FROM students WHERE name = "Test Student"')
+c.execute('DELETE FROM students WHERE name IN ("Test Student", "Ahmed Khan")')
 
 # Insert a complete test record with all required fields
 c.execute("""INSERT INTO students (
@@ -35,11 +35,11 @@ c.execute("""INSERT INTO students (
     "ahmed@test.com", "B+",
     "Sector", "123", "456 Street", 1,
     "Muhammad Khan", "35202-7654321-1", "Yes", "0321-1234567",
-    "Businessman", "Masters", "50000",
+    "Businessman", "Post Graduate", "50,001 - 100,000",
     "Fatima Khan", "Yes", "0333-1234567",
-    "Housewife", "Intermediate", "0",
+    "Housewife", "Intermediate", "Lessthan 50,000",
     0, "5", "A", "2024-01-15", "5",
-    "English", "Day Scholars", "ADM-001",
+    "English", "Day Scholar", "ADM-001",
     "5", 2, "No",
     "Ali Khan", "0345-1234567", "Uncle",
     0, 0,
