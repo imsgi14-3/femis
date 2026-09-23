@@ -30,6 +30,17 @@ OPTIONS_PATH = Path(__file__).parent / "portal_options.json"
 
 with app.app_context():
     db.create_all()
+    # Lightweight migration: add columns missing from older SQLite DBs
+    try:
+        from sqlalchemy import text
+        with db.engine.connect() as conn:
+            cols = {r[1] for r in conn.execute(text("PRAGMA table_info(students)"))}
+            for col in ("sub_sector_id", "present_sub_sector_id"):
+                if col not in cols:
+                    conn.execute(text(f"ALTER TABLE students ADD COLUMN {col} VARCHAR(50)"))
+            conn.commit()
+    except Exception:
+        pass
 
 # ---------------------------------------------------------------------------
 # Models
@@ -59,6 +70,7 @@ class Student(db.Model):
     domicile_district_id = db.Column(db.String(100))
     address_type = db.Column(db.String(50))
     sector_id = db.Column(db.String(50))
+    sub_sector_id = db.Column(db.String(50))
     village_id = db.Column(db.String(100))
     housing_society_id = db.Column(db.String(100))
     house = db.Column(db.String(50))
@@ -70,6 +82,7 @@ class Student(db.Model):
     present_street = db.Column(db.String(50))
     present_address_type = db.Column(db.String(50))
     present_sector_id = db.Column(db.String(50))
+    present_sub_sector_id = db.Column(db.String(50))
     present_village_id = db.Column(db.String(100))
     present_housing_society_id = db.Column(db.String(100))
     religion = db.Column(db.String(50))
@@ -251,8 +264,6 @@ def edit_form(student_id):
 
 FORM_FIELD_MAP = {
     "temp_id": None,
-    "sub_sector_id": None,
-    "present_sub_sector_id": None,
     "same_as_permanent_address": "same_address",
     "last_other_institution": "last_institution_other",
     "siblings_same_institution": "siblings_same",

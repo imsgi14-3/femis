@@ -131,6 +131,7 @@ document.addEventListener("DOMContentLoaded", function () {
             fetch("/api/sub-sectors/" + encodeURIComponent(sectorText))
                 .then(function (r) { return r.json(); })
                 .then(function (subSectors) {
+                    var pending = subSectorSelect.getAttribute("data-pending-value");
                     subSectorSelect.innerHTML = '<option value="">- Select -</option>';
                     if (subSectors.length === 0) {
                         if (subSectorDiv) subSectorDiv.style.display = "none";
@@ -141,6 +142,10 @@ document.addEventListener("DOMContentLoaded", function () {
                         opt.value = ss; opt.textContent = ss;
                         subSectorSelect.appendChild(opt);
                     });
+                    if (pending) {
+                        subSectorSelect.value = pending;
+                        subSectorSelect.removeAttribute("data-pending-value");
+                    }
                     if (subSectorDiv) subSectorDiv.style.display = "block";
                 })
                 .catch(function () {
@@ -235,6 +240,54 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // === Conditional: Same as Temp → show/hide permanent address fields ===
     checkboxToggle("same_as_temporary", "permanent_address_fields", true);
+
+    // === Same as Temporary Address → auto-fill permanent fields ===
+    (function () {
+        var cb = document.getElementById("same_as_temporary");
+        if (!cb) return;
+        var pairs = [
+            ["address_type", "present_address_type"],
+            ["sector_id", "present_sector_id"],
+            ["sub_sector_id", "present_sub_sector_id"],
+            ["village_id", "present_village_id"],
+            ["housing_society_id", "present_housing_society_id"],
+            ["house", "present_house"],
+            ["street", "present_street"],
+        ];
+        function copyVal(src, dst) {
+            if (!src || !dst) return;
+            if (dst.tagName === "SELECT") {
+                if (src.value && Array.from(dst.options).every(function (o) { return o.value !== src.value; })) {
+                    dst.setAttribute("data-pending-value", src.value);
+                } else {
+                    dst.removeAttribute("data-pending-value");
+                }
+                dst.value = src.value;
+                dst.dispatchEvent(new Event("change", { bubbles: true }));
+            } else {
+                dst.value = src.value;
+                dst.dispatchEvent(new Event("input", { bubbles: true }));
+                dst.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+        }
+        function copyAddresses() {
+            if (!cb.checked) return;
+            pairs.forEach(function (p) {
+                copyVal(
+                    document.querySelector('[name="' + p[0] + '"]'),
+                    document.querySelector('[name="' + p[1] + '"]')
+                );
+            });
+        }
+        cb.addEventListener("change", copyAddresses);
+        pairs.forEach(function (p) {
+            var src = document.querySelector('[name="' + p[0] + '"]');
+            if (src) {
+                src.addEventListener("change", function () { if (cb.checked) copyAddresses(); });
+                src.addEventListener("input", function () { if (cb.checked) copyAddresses(); });
+            }
+        });
+    })();
 
     // === Father Alive → show details only ===
     radioToggle("is_father_alive", "father_details_group", ["1"]);
@@ -444,7 +497,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // ==================================================================
     var mandatoryByTab = {
         0: ["name", "is_bform_available", "gender", "date_of_birth", "birth_province_id", "birth_district_id", "nationality", "address_type", "contact_number", "city_id", "religion", "language_id", "email"],
-        1: ["father_name", "father_cnic", "is_father_alive", "mother_name", "is_mother_alive", "father_profession", "father_qualification", "father_monthly_income", "mother_profession", "mother_qualification", "mother_monthly_income"],
+        1: ["father_name", "father_cnic", "is_father_alive", "father_profession", "mother_name", "is_mother_alive", "mother_profession"],
         2: ["class_id", "section_id", "date_of_admission", "class_admitted_id", "medium_of_instruction", "mode_of_study", "admission_number", "primary_education_completion_years", "total_siblings"],
         3: ["emergency_name", "emergency_contact", "emergency_relation"],
         5: ["difficulty_seeing_board", "difficulty_reading_writing", "difficulty_remembering", "difficulty_concentrating"],
@@ -526,11 +579,13 @@ document.addEventListener("DOMContentLoaded", function () {
             var activeTab = document.querySelector(".tab-pane.active");
             if (!activeTab) return;
 
-            // Collect all visible form fields from active tab
+            // Collect all form fields from active tab (include present_* even when
+            // the permanent block is hidden by "Same as Temporary Address")
             var fields = activeTab.querySelectorAll("input, select, textarea");
             var deviceChecked = [];
             fields.forEach(function (f) {
-                if (f.offsetParent === null && f.type !== "hidden") return;
+                var isPresentAddr = f.name && f.name.indexOf("present_") === 0;
+                if (f.offsetParent === null && f.type !== "hidden" && !isPresentAddr) return;
                 if (f.type === "radio") {
                     if (f.checked) data[f.name] = f.value;
                 } else if (f.type === "checkbox") {
@@ -659,6 +714,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     "internet_at_home": "internet_at_home",
                     "roll_no": "roll_no",
                     "sector_id": "sector_id", "village_id": "village_id",
+                    "sub_sector_id": "sub_sector_id",
                     "housing_society_id": "housing_society_id",
                     "nationality_id": "nationality_id",
                     "religion_id": "religion_id",
@@ -683,6 +739,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     "glass_prescription": "glass_prescription",
                     "hearing_aid_details": "hearing_aid_details",
                     "present_sector_id": "present_sector_id",
+                    "present_sub_sector_id": "present_sub_sector_id",
                     "present_village_id": "present_village_id",
                     "present_housing_society_id": "present_housing_society_id",
                     "primary_education_completion_years": "primary_education_completion_years",

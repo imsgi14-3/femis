@@ -1,5 +1,7 @@
 import asyncio
+import re
 import yaml
+from datetime import datetime
 from pathlib import Path
 from playwright.async_api import Page
 from src.utils.logger import setup_logger
@@ -291,10 +293,37 @@ class FormFiller:
                         }
                     }""", [name, portal_value, rid or ""])
 
+    @staticmethod
+    def _normalize_date(value: str) -> str:
+        """Normalize any common date format to YYYY-MM-DD for HTML date inputs."""
+        value = value.strip()
+        if re.match(r"^\d{4}-\d{2}-\d{2}$", value):
+            return value
+        for fmt in ("%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y", "%m/%d/%Y", "%d %b %Y", "%d %B %Y"):
+            try:
+                return datetime.strptime(value, fmt).strftime("%Y-%m-%d")
+            except ValueError:
+                continue
+        m = re.match(r"^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})$", value)
+        if m:
+            d, mo, y = m.groups()
+            if len(y) == 2:
+                y = "20" + y
+            return f"{y}-{int(mo):02d}-{int(d):02d}"
+        return value
+
     async def _fill_date(self, page: Page, label: str, value: str):
-        container = await self._find_label(page, label)
-        inp = container.locator("..").locator("input").first
-        # Use JavaScript to set date value (handles readonly datepickers)
+        value = self._normalize_date(value)
+        name_attr = ""
+        try:
+            container = await self._find_label(page, label)
+            inp = container.locator("..").locator("input").first
+            if await inp.count() > 0:
+                name_attr = await inp.get_attribute("name") or ""
+        except Exception:
+            pass
+        if not name_attr:
+            name_attr = "date_of_birth" if "birth" in label.lower() else "date_of_admission"
         await page.evaluate("""(args) => {
             const [val, name] = args;
             const input = document.querySelector(`input[name="${name}"]`) || document.querySelector('input[type="date"]');
@@ -303,10 +332,9 @@ class FormFiller:
                 nativeInputValueSetter.call(input, val);
                 input.dispatchEvent(new Event('input', { bubbles: true }));
                 input.dispatchEvent(new Event('change', { bubbles: true }));
-                // For jQuery datepicker
                 if (window.jQuery) { jQuery(input).val(val).trigger('change'); }
             }
-        }""", [value, label.split(' ')[0].lower() if label else 'date'])
+        }""", [value, name_attr])
 
     async def _fill_checkbox(self, page: Page, label: str, value: str):
         container = await self._find_label(page, label)
