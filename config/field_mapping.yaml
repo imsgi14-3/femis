@@ -1,888 +1,2363 @@
-# FEMIS Portal Field Mapping
-# Maps: portal field label -> source_field -> type/validation
-# Labels MUST match the real FEMIS portal exactly.
-
-# ============================================================
-# TAB 1: Personal Details
-# ============================================================
 tab_1_personal_details:
   personal_information:
     name_of_student:
-      label: "Name of Student"
+      label: Name of Student
       type: text
       required: true
       source_field: name
-
     is_cnic_form_b_available:
-      label: "Is CNIC / Form-B Available?"
+      label: Is CNIC / Form-B Available?
       type: radio
       required: true
       source_field: is_bform_available
-      options: ["Yes", "No"]
-
+      options:
+      - 'Yes'
+      - 'No'
     cnic_form_b_number:
-      label: "CNIC / Form-B No."
+      label: CNIC / Form-B No.
       type: text
       required: true
       source_field: b_form
       validation: cnic
-
     gender:
-      label: "Gender"
+      label: Gender
       type: dropdown
       required: true
       source_field: gender
-      options: ["Male", "Female", "Transgender"]
-
+      options:
+      - Male
+      - Female
+      - Transgender
     date_of_birth:
-      label: "Date of Birth"
+      label: Date of Birth
       type: date
       required: true
       source_field: date_of_birth
-      format: "YYYY-MM-DD"
-
+      format: YYYY-MM-DD
     province_of_birth:
-      label: "Province of Birth"
+      label: Province of Birth
       type: dropdown
       required: true
       source_field: birth_province_id
-
+      options:
+      - Azad Jammu and Kashmir
+      - Balochistan
+      - Gilgit-Baltistan
+      - Islamabad Capital Territory
+      - Khyber Pakhtonkhawa
+      - Other than Pakistan
+      - Punjab
+      - Sindh
     district_of_birth:
-      label: "District of Birth"
+      label: District of Birth
       type: dropdown
       required: true
       source_field: birth_district_id
-      note: "Options depend on Province of Birth selection"
-
+      note: Options depend on Province of Birth selection
+      options:
+      - Lahore
+      - Attock
+      - Bahawalnagar
+      - Bahawalpur
+      - Bhakkar
+      - Chakwal
+      - Chiniot
+      - Dera Ghazi Khan
+      - Faisalabad
+      - Gujranwala
+      - Gujrat
+      - Hafizabad
+      - Jhang
+      - Jhelum
+      - Kasur
+      - Khanewal
+      - Khushab
+      - Layyah
+      - Lodhran
+      - Mandi Bahauddin
+      - Mianwali
+      - Multan
+      - Muzaffargarh
+      - Narowal
+      - Nankana Sahib
+      - Okara
+      - Pakpattan
+      - Rahim Yar Khan
+      - Rajanpur
+      - Rawalpindi
+      - Sahiwal
+      - Sargodha
+      - Sheikhupura
+      - Sialkot
+      - Toba Tek Singh
+      - Vehari
+      - Wazirabad
+      - Murree
+    cnic_form_b_no:
+      label: CNIC/Form-B No.
+      type: text
+      required: true
+      source_field: b_form
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      placeholder: XXXXX-XXXXXXX-X
+    house:
+      label: 'House #'
+      type: text
+      required: false
+      source_field: present_house
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    street:
+      label: 'Street #'
+      type: text
+      required: false
+      source_field: present_street
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    is_hafiz:
+      label: Is Hafiz?
+      type: radio
+      required: false
+      source_field: is_hafiz
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
+    is_bform_available:
+      label: is_bform_available
+      type: radio
+      required: false
+      source_field: is_bform_available
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
+    same_as_permanent_address:
+      label: same_as_permanent_address
+      type: checkbox
+      required: false
+      source_field: same_as_permanent_address
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
   domicile_information:
     nationality:
-      label: "Nationality"
+      label: Nationality
       type: dropdown
       required: true
       source_field: nationality
       options:
-        - "Pakistani"
-        - "Other"
-
+      - Pakistani
+      - Other
     other_nationality:
-      label: "Other Nationality"
+      label: Other Nationality
       type: dropdown
       required: false
       source_field: nationality_id
-
     domicile_province:
-      label: "Student Domicile — Province"
+      label: Student Domicile — Province
       type: dropdown
-      required: false
+      required: true
       source_field: domicile_province_id
-
+      options:
+      - Azad Jammu and Kashmir
+      - Balochistan
+      - Gilgit-Baltistan
+      - Islamabad Capital Territory
+      - Khyber Pakhtonkhawa
+      - Other than Pakistan
+      - Punjab
+      - Sindh
     domicile_district:
-      label: "Student Domicile — District"
+      label: Student Domicile — District
       type: dropdown
-      required: false
+      required: true
       source_field: domicile_district_id
-
+      note: Options depend on Student Domicile — Province
+      options:
+      - Lahore
+      - Attock
+      - Bahawalnagar
+      - Bahawalpur
+      - Bhakkar
+      - Chakwal
+      - Chiniot
+      - Dera Ghazi Khan
+      - Faisalabad
+      - Gujranwala
+      - Gujrat
+      - Hafizabad
+      - Jhang
+      - Jhelum
+      - Kasur
+      - Khanewal
+      - Khushab
+      - Layyah
+      - Lodhran
+      - Mandi Bahauddin
+      - Mianwali
+      - Multan
+      - Muzaffargarh
+      - Narowal
+      - Nankana Sahib
+      - Okara
+      - Pakpattan
+      - Rahim Yar Khan
+      - Rajanpur
+      - Rawalpindi
+      - Sahiwal
+      - Sargodha
+      - Sheikhupura
+      - Sialkot
+      - Toba Tek Singh
+      - Vehari
+      - Wazirabad
+      - Murree
+    is_hafiz:
+      label: is_hafiz
+      type: radio
+      required: false
+      source_field: is_hafiz
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
   address_temporary:
     address_type:
-      label: "Address Type"
+      label: Address Type
       type: dropdown
       required: true
       source_field: address_type
       options:
-        - "Sector"
-        - "Housing Society"
-        - "Village"
-        - "Other"
-
+      - Sector
+      - Housing Society
+      - Village
+      - Other
     sector:
-      label: "Sector"
+      label: Sector
       type: dropdown
-      required: false
+      required: true
       source_field: sector_id
-
+      options:
+      - G-10
+      - G-9
+      - G-8
+      - G-7
+      - F-5
+      - F-6
+      - F-7
+      - F-8
+      - F-9
+      - F-10
+      - F-11
+      - F-12
+      - F-13
+      - G-5
+      - G-6
+      - G-11
+      - G-12
+      - G-13
+      - G-14
+      - G-15
+      - G-16
+      - G-17
+      - H-8
+      - H-9
+      - H-10
+      - H-11
+      - H-12
+      - I-8
+      - I-9
+      - I-10
+      - I-11
+      - I-12
+      - I-13
+      - I-14
+      - I-15
+      - I-16
+      - I-17
+      - E-7
+      - E-9
+      - E-8
+      - E-11
+      - E-12
+      - B-12
+      - H-13
+      - D-12
+      - D-13
+      - D-14
     sub_sector:
-      label: "Sub-Sector"
+      label: Sub Sector
       type: dropdown
-      required: false
+      required: true
       source_field: sub_sector_id
-
+      note: Options load after Sector is selected
+      options:
+      - I-14/1
+      - I-14/2
+      - I-14/3
+      - I-14/4
     village:
-      label: "Village"
+      label: Village
       type: dropdown
       required: false
       source_field: village_id
-
     housing_society:
-      label: "Housing Society"
+      label: Housing Society
       type: dropdown
       required: false
       source_field: housing_society_id
-
     house_number:
-      label: "House # (Temporary)"
+      label: 'House # (Temporary)'
       type: text
       required: false
       source_field: house
-
     street_number:
-      label: "Street # (Temporary)"
+      label: 'Street # (Temporary)'
       type: text
       required: false
       source_field: street
-
     contact_number:
-      label: "Contact Number / WhatsApp"
+      label: Contact Number / WhatsApp
       type: text
       required: true
       source_field: contact_number
       validation: mobile_pakistani
-
   address_permanent:
     city:
-      label: "City"
+      label: City
       type: dropdown
       required: true
       source_field: city_id
-
+      options:
+      - Islamabad
+      - Lahore
+      - Karachi
+      - Faisalabad
+      - Rawalpindi
+      - Gujranwala
+      - Multan
+      - Hyderabad
+      - Peshawar
+      - Quetta
+      - Bahawalpur
+      - Gujrat
+      - Rahim Yar Khan
+      - Kasur
+      - Dera Ghazi Khan
+      - Sargodha
+      - Sialkot
+      - Sheikhupura
+      - Jhang
+      - Chiniot
+      - Sukkur
+      - Larkana
+      - Nawabshah
+      - Mirpur Khas
+      - Mardan
+      - Mingora
+      - Sahiwal
+      - Okara
+      - Chishtian
+      - Attock
+      - Muzaffargarh
+      - Khanpur
+      - Mandi Bahauddin
+      - Pakpattan
+      - Vihari
+      - Jaranwala
+      - Chakwal
+      - Bahawalnagar
+      - Bhakkar
+      - Chichawatni
+      - Farooqabad
+      - Gujar Khan
+      - Mianwali
+      - Jhelum
+      - Khanewal
+      - Khushab
+      - Layyah
+      - Lodhran
+      - Sadiqabad
+      - Taxila
+      - Toba Tek Singh
+      - Wazirabad
+      - Jacobabad
+      - Dadu
+      - Tando Allahyar
+      - Ghotki
+      - Badin
+      - Bolhari
+      - Shikarpur
+      - Umerkot
+      - Kohat
+      - Abbottabad
+      - Dera Ismail Khan
+      - Swabi
+      - Nowshera
+      - Charsadda
+      - Barikot
+      - Haripur
+      - Mansehra
+      - Bannu
+      - Khuzdar
+      - Chaman
+      - Dera Murad Jamali
+      - Turbat
+      - Gwadar
+      - Hub
+      - Sibi
+      - Zhob
+      - Mirpur
+      - Muzaffarabad
+      - Gilgit
+      - Skardu
+      - Buner
+      - Murree
+      - Kot Addu
+      - Chalas
+      - Narowal
+      - Bagh
+      - Bajaur
+      - Bhimber
+      - Lakki Marwat
     same_as_temporary:
-      label: "Same as Temporary Address"
+      label: Same as Temporary Address
       type: checkbox
       source_field: same_address
       autofill: true
-
     address_type:
-      label: "Address Type"
+      label: Address Type
       type: dropdown
       required: true
       source_field: present_address_type
-
+      options:
+      - Sector
+      - Village
+      - Housing Society
+      - Other
     sector:
-      label: "Sector"
+      label: Sector
       type: dropdown
-      required: false
+      required: true
       source_field: present_sector_id
-
+      options:
+      - G-10
+      - G-9
+      - G-8
+      - G-7
+      - F-5
+      - F-6
+      - F-7
+      - F-8
+      - F-9
+      - F-10
+      - F-11
+      - F-12
+      - F-13
+      - G-5
+      - G-6
+      - G-11
+      - G-12
+      - G-13
+      - G-14
+      - G-15
+      - G-16
+      - G-17
+      - H-8
+      - H-9
+      - H-10
+      - H-11
+      - H-12
+      - I-8
+      - I-9
+      - I-10
+      - I-11
+      - I-12
+      - I-13
+      - I-14
+      - I-15
+      - I-16
+      - I-17
+      - E-7
+      - E-9
+      - E-8
+      - E-11
+      - E-12
+      - B-12
+      - H-13
+      - D-12
+      - D-13
+      - D-14
     sub_sector:
-      label: "Sub-Sector"
+      label: Sub Sector
       type: dropdown
-      required: false
+      required: true
       source_field: present_sub_sector_id
-
+      note: Options load after Sector is selected
+      options:
+      - I-14/1
+      - I-14/2
+      - I-14/3
+      - I-14/4
     village:
-      label: "Village"
+      label: Village
       type: dropdown
       required: false
       source_field: present_village_id
-
     housing_society:
-      label: "Housing Society"
+      label: Housing Society
       type: dropdown
       required: false
       source_field: present_housing_society_id
-
     house_number:
-      label: "House # (Permanent)"
+      label: 'House # (Permanent)'
       type: text
       source_field: present_house
-
     street_number:
-      label: "Street # (Permanent)"
+      label: 'Street # (Permanent)'
       type: text
       source_field: present_street
-
   religion_language_other:
     religion:
-      label: "Religion"
+      label: Religion
       type: dropdown
       required: true
       source_field: religion
       options:
-        - "Muslim"
-        - "Non-Muslim"
-
+      - Muslim
+      - Non-Muslim
     other_religion:
-      label: "Other Religion"
+      label: Other Religion
       type: dropdown
       required: false
       source_field: religion_id
-
     mother_language:
-      label: "Mother Language"
+      label: Mother Language
       type: dropdown
       required: true
       source_field: language_id
-
+      options:
+      - Urdu
+      - Punjabi
+      - Saraiki
+      - Pashto
+      - Sindhi
+      - Balochi
+      - Brahui
+      - Hindko
+      - Kashmiri
+      - Shina
+      - Balti
+      - Khowar
+      - Wakhi
+      - Burushaski
+      - Pahari Pothwari
+      - Dhatki
+      - Gojri
+      - Torwali
+      - Kalasha
+      - Kohistani
+      - Persian
     other_language:
-      label: "Other Language"
+      label: Other Language
       type: text
       required: false
       source_field: mother_language_other
-
     blood_group:
-      label: "Blood Group"
+      label: Blood Group
       type: dropdown
       required: false
       source_field: blood_group
       options:
-        - "A+"
-        - "A-"
-        - "AB+"
-        - "AB-"
-        - "B+"
-        - "B-"
-        - "O+"
-        - "O-"
-
+      - A+
+      - A-
+      - AB+
+      - AB-
+      - B+
+      - B-
+      - O+
+      - O-
     email:
-      label: "Email ID"
+      label: Email ID
       type: text
       required: true
       source_field: email
       validation: email
-
     girls_stipend:
-      label: "Girls Stipend"
+      label: Girls Stipend
       type: radio
       required: false
       source_field: girls_stipend
-      options: ["Yes", "No"]
-
+      options:
+      - 'Yes'
+      - 'No'
     is_hafiz:
-      label: "Is Hafiz-e-Quran?"
+      label: Is Hafiz-e-Quran?
       type: radio
       required: false
       source_field: is_hafiz
-      options: ["Yes", "No"]
-
-# ============================================================
-# TAB 2: Parents / Guardian
-# ============================================================
+      options:
+      - 'Yes'
+      - 'No'
 tab_2_parents_guardian:
   fathers_information:
     fathers_name:
-      label: "Father's Name"
+      label: Father's Name
       type: text
       required: true
       source_field: father_name
-
     fathers_cnic:
-      label: "Father's CNIC"
+      label: Father's CNIC
       type: text
       required: true
       source_field: father_cnic
       validation: cnic
-
     is_father_alive:
-      label: "Is Father Alive"
+      label: Is Father Alive
       type: radio
       required: true
       source_field: is_father_alive
-      options: ["Yes", "No"]
-
+      options:
+      - 'Yes'
+      - 'No'
     contact_number:
-      label: "Father's Contact Number / WhatsApp"
+      label: Father's Contact Number / WhatsApp
       type: text
       required: true
       source_field: father_contact
       validation: mobile_pakistani
-
     landline_number:
-      label: "Father's Landline Number"
+      label: Father's Landline Number
       type: text
       required: false
       source_field: father_landline
       validation: landline
-
     email:
-      label: "Father's Email"
+      label: Father's Email
       type: text
       required: false
       source_field: father_email
       validation: email
-
     qualification:
-      label: "Father's Qualification"
+      label: Father's Qualification
       type: dropdown
-      required: false
+      required: true
       source_field: father_qualification
-
+      options:
+      - Below Matric
+      - Matric
+      - Intermediate
+      - Graduate
+      - Post Graduate
+      - PhD
+      - Other
     profession:
-      label: "Father's Profession"
+      label: Father's Profession
       type: dropdown
       required: true
       source_field: father_profession
-
+      options:
+      - Govt Employee
+      - Private Employee
+      - Businessman
+      - Farmer
+      - Overseas
+      - Other
     other_profession:
-      label: "Other Profession"
+      label: Other Profession
       type: text
       required: false
       source_field: father_profession_other
-
     income_per_month:
-      label: "Father's Income (per month)"
+      label: Father's Income (per month)
       type: dropdown
-      required: false
+      required: true
       source_field: father_monthly_income
-
+      options:
+      - Lessthan 50,000
+      - 50,001 - 100,000
+      - 100,001 - 200,000
+      - 200,001 - 300,000
+      - Above 300,000
     bps:
-      label: "Father's BPS"
+      label: Father's BPS
       type: dropdown
       required: false
       source_field: father_bps
-
     domicile_province:
-      label: "Father Domicile — Province"
+      label: Father Domicile — Province
       type: dropdown
       required: false
       source_field: father_domicile_province_id
-
+      options:
+      - Azad Jammu and Kashmir
+      - Balochistan
+      - Gilgit-Baltistan
+      - Islamabad Capital Territory
+      - Khyber Pakhtonkhawa
+      - Other than Pakistan
+      - Punjab
+      - Sindh
     domicile_district:
-      label: "Father Domicile — District"
+      label: Father Domicile — District
       type: dropdown
       required: false
       source_field: father_domicile_district_id
-
+      note: Options depend on Father Domicile — Province
+      options:
+      - Lahore
+      - Attock
+      - Bahawalnagar
+      - Bahawalpur
+      - Bhakkar
+      - Chwal
+      - Chiniot
+      - Dera Ghazi Khan
+      - Faisalabad
+      - Gujranwala
+      - Gujrat
+      - Hafizabad
+      - Jhang
+      - Jhelum
+      - Kasur
+      - Khanewal
+      - Khushab
+      - Layyah
+      - Lodhran
+      - Mandi Bahauddin
+      - Mianwali
+      - Multan
+      - Muzaffargarh
+      - Nankana Sahib
+      - Narowal
+      - Okara
+      - Pakpattan
+      - Rahim Yar Khan
+      - Rajanpur
+      - Rawalpindi
+      - Sahiwal
+      - Sargodha
+      - Sheikhupura
+      - Sialkot
+      - Toba Tek Singh
+      - Vehari
+      - Wazirabad
+      - Murree
+      - Chakwal
+    is_orphan:
+      label: is_orphan
+      type: radio
+      required: true
+      source_field: is_orphan
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
+    relation:
+      label: Relation
+      type: text
+      required: true
+      source_field: guardian_relation
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    contact_number_whatsapp_number:
+      label: Contact Number / Whatsapp Number
+      type: text
+      required: true
+      source_field: guardian_contact
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    income:
+      label: Income
+      type: text
+      required: true
+      source_field: guardian_income
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    class:
+      label: Class
+      type: text
+      required: true
+      source_field: class_id
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    section:
+      label: Section
+      type: text
+      required: true
+      source_field: section_id
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    group:
+      label: Group
+      type: text
+      required: false
+      source_field: class_group_id
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    result_percentage_of_last_class_passed:
+      label: Result / Percentage of Last Class passed
+      type: text
+      required: false
+      source_field: result_percentage
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      placeholder: e.g. 75%
+    date_of_admission:
+      label: Date of Admission
+      type: text
+      required: true
+      source_field: date_of_admission
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      placeholder: mm/dd/yyyy
+    admission_number:
+      label: Admission Number
+      type: text
+      required: true
+      source_field: admission_number
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      placeholder: '125'
+    class_admitted_in:
+      label: Class Admitted In
+      type: text
+      required: true
+      source_field: class_admitted_id
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    shift:
+      label: shift
+      type: radio
+      required: true
+      source_field: shift
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - Morning
+      - Evening
+    medium_of_instruction:
+      label: Medium of Instruction
+      type: text
+      required: true
+      source_field: medium_of_instruction
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    mode_of_study:
+      label: Mode of Study
+      type: text
+      required: false
+      source_field: mode_of_study
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    last_institution_attended_under_fde:
+      label: Last Institution Attended under FDE
+      type: text
+      required: false
+      source_field: last_fde_institution_id
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    last_institution_attended_other_than_fde:
+      label: Last Institution Attended (other than FDE)
+      type: text
+      required: false
+      source_field: last_other_institution
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    school_meal_program_availing:
+      label: school_meal_program_availing
+      type: radio
+      required: true
+      source_field: school_meal_program_availing
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
+    number_of_years_spent_completing_primary_education_i_v:
+      label: Number of years spent completing Primary Education (I-V)
+      type: text
+      required: false
+      source_field: primary_education_completion_years
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    total_number_of_siblings:
+      label: Total Number of Siblings
+      type: text
+      required: true
+      source_field: total_siblings
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    in_same_institution:
+      label: In Same Institution
+      type: text
+      required: false
+      source_field: siblings_same_institution
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    in_other_fde_institutions:
+      label: In Other FDE Institutions
+      type: text
+      required: false
+      source_field: siblings_other_fde
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    in_private_institutions:
+      label: In Private Institutions
+      type: text
+      required: false
+      source_field: siblings_private
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    transport_facility:
+      label: transport_facility
+      type: radio
+      required: true
+      source_field: transport_facility
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - Institution Bus
+      - Private
+    bus_route:
+      label: Bus Route
+      type: text
+      required: true
+      source_field: bus_route
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    scholarship:
+      label: scholarship
+      type: radio
+      required: true
+      source_field: scholarship
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
+    cocurricular_activities:
+      label: cocurricular_activities
+      type: radio
+      required: true
+      source_field: cocurricular_activities
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
+    is_refugee:
+      label: is_refugee
+      type: radio
+      required: true
+      source_field: is_refugee
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
   mothers_information:
     mothers_name:
-      label: "Mother's Name"
+      label: Mother's Name
       type: text
       required: true
       source_field: mother_name
-
     is_mother_alive:
-      label: "Is Mother Alive"
+      label: Is Mother Alive
       type: radio
       required: true
       source_field: is_mother_alive
-      options: ["Yes", "No"]
-
+      options:
+      - 'Yes'
+      - 'No'
     mother_cnic:
-      label: "Mother's CNIC"
+      label: Mother's CNIC
       type: text
       required: false
       source_field: mother_cnic
       validation: cnic
-
     contact_number:
-      label: "Mother's Contact Number / WhatsApp"
+      label: Mother's Contact Number / WhatsApp
       type: text
       required: true
       source_field: mother_contact
       validation: mobile_pakistani
-
     landline_number:
-      label: "Mother's Landline Number"
+      label: Mother's Landline Number
       type: text
       required: false
       source_field: mother_landline
       validation: landline
-
     email:
-      label: "Mother's Email"
+      label: Mother's Email
       type: text
       required: false
       source_field: mother_email
       validation: email
-
     qualification:
-      label: "Mother's Qualification"
+      label: Mother's Qualification
       type: dropdown
-      required: false
+      required: true
       source_field: mother_qualification
-
+      options:
+      - Below Matric
+      - Matric
+      - Intermediate
+      - Graduate
+      - Post Graduate
+      - PhD
+      - Other
     profession:
-      label: "Mother's Profession"
+      label: Mother's Profession
       type: dropdown
       required: true
       source_field: mother_profession
-
+      options:
+      - Govt Employee
+      - Private Employee
+      - Businesswoman
+      - Farmer
+      - Housewife
+      - Other
     other_profession:
-      label: "Other Profession"
+      label: Other Profession
       type: text
       required: false
       source_field: mother_profession_other
-
     income_per_month:
-      label: "Mother's Income (per month)"
+      label: Mother's Income (per month)
       type: dropdown
       required: false
       source_field: mother_monthly_income
-
     bps:
-      label: "Mother's BPS"
+      label: Mother's BPS
       type: dropdown
       required: false
       source_field: mother_bps
-
   orphan_guardian_information:
     is_orphan_child:
-      label: "Is Orphan Child"
+      label: Is Orphan Child
       type: radio
       required: false
       source_field: is_orphan
-      options: ["Yes", "No"]
-
+      options:
+      - 'Yes'
+      - 'No'
     orphan_type:
-      label: "Orphan Type"
+      label: Orphan Type
       type: dropdown
-      required: false
+      required: true
       source_field: orphan_type
-
+      options:
+      - Single Orphan
+      - Double Orphan
     guardian_name:
-      label: "Guardian Name"
+      label: Guardian Name
       type: text
-      required: false
+      required: true
       source_field: guardian_name
-
     guardian_cnic:
-      label: "Guardian CNIC"
+      label: Guardian CNIC
       type: text
-      required: false
+      required: true
       source_field: guardian_cnic
-
     guardian_relation:
-      label: "Guardian Relation"
+      label: Guardian Relation
       type: dropdown
       required: false
       source_field: guardian_relation
-
+      options:
+      - Uncle
+      - Aunt
+      - Grandparent
+      - Sibling
+      - Other
     other_relation:
-      label: "Other Relation"
+      label: Other Relation
       type: text
       required: false
       source_field: guardian_relation_other
-
     guardian_contact:
-      label: "Guardian Contact"
+      label: Guardian Contact
       type: text
       required: false
       source_field: guardian_contact
       validation: mobile_pakistani
-
     guardian_email:
-      label: "Guardian Email"
+      label: Guardian Email
       type: text
       required: false
       source_field: guardian_email
-
     guardian_qualification:
-      label: "Guardian Qualification"
+      label: Guardian Qualification
       type: text
       required: false
       source_field: guardian_qualification
-
     guardian_profession:
-      label: "Guardian Profession"
+      label: Guardian Profession
       type: dropdown
-      required: false
+      required: true
       source_field: guardian_profession
-
+      options:
+      - Govt Employee
+      - Private Employee
+      - Businessman
+      - Farmer
+      - Overseas
+      - Other
     guardian_income:
-      label: "Guardian Income"
+      label: Guardian Income
       type: dropdown
       required: false
       source_field: guardian_income
-
+      options:
+      - Lessthan 50,000
+      - 50,001 - 100,000
+      - 100,001 - 200,000
+      - 200,001 - 300,000
+      - Above 300,000
     guardian_bps:
-      label: "Guardian BPS"
+      label: Guardian BPS
       type: dropdown
       required: false
       source_field: guardian_bps
-
-# ============================================================
-# TAB 3: Educational Details
-# ============================================================
+    email:
+      label: Email
+      type: text
+      required: false
+      source_field: guardian_email
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      placeholder: ahmad@gmail.com
+    profession:
+      label: Profession
+      type: text
+      required: true
+      source_field: guardian_profession
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    landline_number:
+      label: Landline Number
+      type: text
+      required: false
+      source_field: father_landline
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    qualification:
+      label: Qualification
+      type: text
+      required: true
+      source_field: father_qualification
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    income_per_month:
+      label: Income (per month)
+      type: text
+      required: true
+      source_field: father_monthly_income
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
 tab_3_educational_details:
   class_section:
     class:
-      label: "Class"
+      label: Class
       type: dropdown
       required: true
       source_field: class_id
-
+      options:
+      - Class 10
+      - Class 6
+      - Class 7
+      - Class 8
+      - Class 9
     section:
-      label: "Section"
-      type: radio
+      label: Section
+      type: dropdown
       required: true
       source_field: section_id
-      options: ["A", "B", "C"]
-
+      options:
+      - A
+      - B
+      - C
     class_group:
-      label: "Class Group"
+      label: Class Group
       type: dropdown
       required: false
       source_field: class_group_id
-
+      options:
+      - Science Group
+      - Computer Science Group
+      - Technical Stream
+      - Arts Group
     result_percentage:
-      label: "Result / Percentage of Last Class passed completely"
+      label: Result / Percentage of Last Class passed completely
       type: text
       required: false
       source_field: last_class_result
-
     date_of_admission:
-      label: "Date of Admission"
+      label: Date of Admission
       type: date
       required: true
       source_field: date_of_admission
-      format: "YYYY-MM-DD"
-
+      format: YYYY-MM-DD
     admission_number:
-      label: "Admission Number"
+      label: Admission Number
       type: text
       required: true
       source_field: admission_number
-
     last_institution_under_fde:
-      label: "Last Institution Attended Under FDE"
+      label: Last Institution Attended Under FDE
       type: dropdown
       required: false
       source_field: last_fde_institution_id
-
+      options:
+      - 200 — Federal Directorate of Education
+      - 911 — IMCCG (COM), F-10/3
+      - 813 — Institute of Home Economics, Art and Design, F-11/1
+      - 913 — Islamabad College For Girls, F-6/2
+      - 926 — Islamabad Model Collage For Boys ,Maira Begwal
+      - 601 — Islamabad Model Collage For Boys (VI-XII), Tarnol
+      - 924 — Islamabad Model Collage For Boys, G-15
+      - 305 — Islamabad Model Collage For Boys, G-6/2
+      - 307 — Islamabad Model Collage For Boys, G-7/2
+      - 296 — Islamabad Model Collage For Boys, G-9/4
+      - 615 — Islamabad Model Collage For Girls (I-XII), Golra
+      - 612 — Islamabad Model Collage For Girls (I-XII), Shah Allah Ditta
+      - 614 — Islamabad Model Collage For Girls (I-XII), Tarnaul
+      - 921 — Islamabad Model Collage For Girls, G-13/1
+      - 922 — Islamabad Model Collage For Girls, G-14/4
+      - 238 — Islamabad Model Collage For Girls, G-8/4
+      - 811 — Islamabad Model Collage For Girls, I-14/3
+      - 812 — Islamabad Model Collage For Girls(PG), Bharakahu
+      - 923 — Islamabad Model Collage Of Boys, G-13/2
+      - 708 — Islamabad Model College for Boys (I-X), Jaba Tali
+      - 310 — Islamabad Model College For Boys (I-XII) Street No.17, I-10/1
+      - 544 — Islamabad Model College For Boys (I-XII), Bhimber Tarar
+      - 404 — Islamabad Model College For Boys (I-XII), Chattar
+      - 545 — Islamabad Model College For Boys (I-XII), Humak
+      - 547 — Islamabad Model College For Boys (I-XII), Mohri Nagial
+      - 541 — Islamabad Model College For Boys (I-XII), Mughal
+      - 701 — Islamabad Model College for Boys (I-XII), Nilore
+      - 546 — Islamabad Model College For Boys (I-XII), Pahg Panwal
+      - 925 — Islamabad Model College For Boys (I-XII), Pakistan Town
+      - 543 — Islamabad Model College For Boys (I-XII), Rawat
+      - 801 — Islamabad Model College For Boys (I-XII), Sihala
+      - 401 — Islamabad Model College For Boys (VI-XII), BHARAKAHU
+      - 402 — Islamabad Model College For Boys (VI-XII), CHAKSHAHZAD
+      - 705 — Islamabad Model College for Boys (VI-XII), Jhang Syden
+      - 407 — Islamabad Model College For Boys (VI-XII), Pind Begwal
+      - 308 — Islamabad Model College For Boys, G-7/4
+      - 901 — Islamabad Model College For Boys, F-10/3
+      - 803 — Islamabad Model College For Boys, F-10/4,
+      - 902 — Islamabad Model College For Boys, F-11/1
+      - 903 — Islamabad Model College For Boys, F-11/3
+      - 904 — Islamabad Model College For Boys, F-7/3
+      - 905 — Islamabad Model College For Boys, F-8/4
+      - 906 — Islamabad Model College For Boys, G-10/4
+      - 907 — Islamabad Model College For Boys, G-11/1
+      - 908 — Islamabad Model College For Boys, G-6/3
+      - 804 — Islamabad Model College For Boys, H-9
+      - 909 — Islamabad Model College For Boys, I-10/1
+      - 910 — Islamabad Model College For Boys, I-8/3
+      - 507 — Islamabad Model College For Girls (I-X), Pind Malkan
+      - 710 — Islamabad Model College for Girls (I-X), Nilore
+      - 808 — Islamabad Model College For Girls (I-XII) , MT Humak
+      - 286 — Islamabad Model College For Girls (I-XII), I-9/1
+      - 453 — Islamabad Model College For Girls (I-XII), Maira Begwal
+      - 451 — Islamabad Model College For Girls (I-XII), Rawal Town
+      - 711 — Islamabad Model College For Girls (I-XII), Chirah
+      - 503 — Islamabad Model College For Girls (I-XII), Humak
+      - 714 — Islamabad Model College For Girls (I-XII), Jagiot
+      - 766 — Islamabad Model College for Girls (I-XII), Kirpa
+      - 920 — Islamabad Model College For Girls (I-XII), Korang Town
+      - 508 — Islamabad Model College For Girls (I-XII), Lohi Bher
+      - 442 — Islamabad Model College For Girls (I-XII), Margalla Town
+      - 509 — Islamabad Model College For Girls (I-XII), Mohra Nagial
+      - 715 — Islamabad Model College For Girls (I-XII), Pehount
+      - 455 — Islamabad Model College For Girls (I-XII), Pind Begwal
+      - 502 — Islamabad Model College For Girls (I-XII), Rawat
+      - 713 — Islamabad Model College For Girls (I-XII), Tarlai
+      - 716 — Islamabad Model College For Girls (I-XII), Thanda Pani
+      - 444 — Islamabad Model College For Girls (I-XII), University Colony
+      - 712 — Islamabad Model College For Girls (I-XII),Punjgran
+      - 806 — Islamabad Model College for Girls (PG), F-7/2
+      - 810 — Islamabad Model College For Girls (PG), F-7/4
+      - 446 — Islamabad Model College For Girls (VI-XII) NHC, Chak Shahzad
+      - 501 — Islamabad Model College For Girls (VI-XII), Herdogher
+      - 443 — Islamabad Model College For Girls (VI-XII), Kot Hathial Bhara Kahu
+      - 449 — Islamabad Model College For Girls (VI-XII), Malpur
+      - 201 — ISLAMABAD MODEL COLLEGE FOR GIRLS G-6/1-4 ISLAMABAD
+      - 919 — Islamabad Model College For Girls, F-10/2
+      - 912 — Islamabad Model College For Girls, F-6/2
+      - 914 — Islamabad Model College For Girls, F-7/4
+      - 915 — Islamabad Model College For Girls, F-8/1
+      - 916 — Islamabad Model College For Girls, G-10/2
+      - 257 — Islamabad Model College For Girls, G-9/2
+      - 809 — Islamabad Model College For Girls, I-8/3
+      - 918 — Islamabad Model College For Girls, I-8/4
+      - '917 — Islamabad Model College For Girls, St # 23, I-10/4'
+      - 802 — Islamabad Model Post Graduate College For Boys, H-8
+      - 805 — Islamabad Model Post Graduate College, H-8/4
+      - 228 — Islamabad Model School (I-V) F-6/1
+      - 229 — Islamabad Model School (I-V) F-6/3
+      - 226 — Islamabad Model School (I-V) F-6/4
+      - 203 — Islamabad Model School (I-V) G-6/1-1
+      - 212 — Islamabad Model School (I-V) G-6/1-2
+      - 204 — Islamabad Model School (I-V) G-6/1-3
+      - 205 — Islamabad Model School (I-V) G-6/1-4
+      - 210 — Islamabad Model School (I-V) G-6/2
+      - 208 — Islamabad Model School (I-V) G-6/2 Café Iram
+      - 206 — Islamabad Model School (I-V) G-6/4
+      - 216 — Islamabad Model School (I-V) G-7/1
+      - 219 — Islamabad Model School (I-V) G-7/3-1
+      - 220 — Islamabad Model School (I-V) G-7/3-3 Islamabad
+      - 217 — Islamabad Model School (I-V) G-7/4
+      - 222 — Islamabad Model School (I-V) No.1 G-7/2
+      - 252 — Islamabad Model School (I-V) No.2, G-9/4
+      - 574 — Islamabad Model School (I-V) Soan Garden, Lohi Bheer
+      - 285 — Islamabad Model School (I-V), AIOU Colony
+      - 264 — Islamabad Model School (I-V), F-10/1
+      - 265 — Islamabad Model School (I-V), F-10/2
+      - 266 — Islamabad Model School (I-V), F-10/4
+      - 249 — Islamabad Model School (I-V), F-8/2
+      - 269 — Islamabad Model School (I-V), G-10/3
+      - 274 — Islamabad Model School (I-V), G-11/1
+      - 263 — Islamabad Model School (I-V), G-9/1
+      - 280 — Islamabad Model School (I-V), I-8/1
+      - 272 — Islamabad Model School (I-V), No.1 G-10/2
+      - 259 — Islamabad Model School (I-V), No.1 G-9/2
+      - 256 — Islamabad Model School (I-V), No.1 G-9/3
+      - 253 — Islamabad Model School (I-V), No.1 G-9/4
+      - 289 — Islamabad Model School (I-V), No.1 I-10/1
+      - 282 — Islamabad Model School (I-V), No.1 I-9/4
+      - 255 — Islamabad Model School (I-V), No.2 G-9/3
+      - 273 — Islamabad Model School (I-V), No.2 G-10/2
+      - 295 — Islamabad Model School (I-V), No.2 G-7/2
+      - 260 — Islamabad Model School (I-V), No.2 G-9/2
+      - 290 — Islamabad Model School (I-V), No.2 I-10/1
+      - 283 — Islamabad Model School (I-V), No.2 I-9/4
+      - 261 — Islamabad Model School (I-V), No.3 G-9/2
+      - 254 — Islamabad Model School (I-V), No.3 G-9/3
+      - 262 — Islamabad Model School (I-V), No.4 G-9/2
+      - 271 — Islamabad Model School (I-V), G-10/1
+      - 270 — Islamabad Model School (I-V), G-10/4
+      - 277 — Islamabad Model School (I-V), G-11/2
+      - 575 — Islamabad Model School (I-V), Gobra Shahan
+      - 291 — Islamabad Model School (I-V), I-10/2
+      - 306 — Islamabad Model School (VI-X), F-6/2
+      - 406 — Islamabad Model School For Boys (VI-X) Noor Pur Shahan
+      - 567 — Islamabad Model School For Boys (I-V ), Chak
+      - 559 — Islamabad Model School for Boys (I-V) , Darwala
+      - 736 — Islamabad Model School for Boys (I-V), Ara
+      - 420 — Islamabad Model School For Boys (I-V), Athal
+      - 566 — Islamabad Model School For Boys (I-V), Bhangril
+      - 553 — Islamabad Model School For Boys (I-V), Bhimber Tarar
+      - 421 — Islamabad Model School For Boys (I-V), Bhuddo
+      - 767 — Islamabad Model School for Boys (I-V), Biath
+      - 560 — Islamabad Model School For Boys (I-V), Bora Bangial
+      - 422 — Islamabad Model School For Boys (I-V), Chahann Mastal ,H-11
+      - 571 — Islamabad Model School For Boys (I-V), Chak Kmadar
+      - 729 — Islamabad Model School for Boys (I-V), Channual Bangial
+      - 730 — Islamabad Model School for Boys (I-V), Chirah
+      - 563 — Islamabad Model School For Boys (I-V), D/Mai Nawab
+      - 423 — Islamabad Model School For Boys (I-V), Dhoke Jerrani
+      - 639 — Islamabad Model School For Boys (I-V), Dhoke Lubana
+      - 424 — Islamabad Model School For Boys (I-V), Dhoke Syedan
+      - 643 — Islamabad Model School For Boys (I-V), Dhreak Mohri
+      - 425 — Islamabad Model School For Boys (I-V), Dohala Syedan
+      - 633 — Islamabad Model School For Boys (I-V), Dora
+      - 437 — Islamabad Model School For Boys (I-V), Gokina
+      - 647 — Islamabad Model School For Boys (I-V), Golra
+      - 555 — Islamabad Model School For Boys (I-V), Humak
+      - 733 — Islamabad Model School for Boys (I-V), Jhang Syden
+      - 646 — Islamabad Model School For Boys (I-V), Jhangi Syedan
+      - 640 — Islamabad Model School For Boys (I-V), Johd
+      - 426 — Islamabad Model School For Boys (I-V), Kalran
+      - 638 — Islamabad Model School For Boys (I-V), Karamabad
+      - 728 — Islamabad Model School for Boys (I-V), Khadrappar
+      - 737 — Islamabad Model School for Boys (I-V), Khanna Kak
+      - 565 — Islamabad Model School For Boys (I-V), Kortana
+      - 436 — Islamabad Model School For Boys (I-V), Kot Hathial
+      - 438 — Islamabad Model School For Boys (I-V), Kurri
+      - 552 — Islamabad Model School For Boys (I-V), Lohi Bher
+      - 429 — Islamabad Model School For Boys (I-V), Mal
+      - 427 — Islamabad Model School For Boys (I-V), Malot
+      - 428 — Islamabad Model School For Boys (I-V), Mangial
+      - 735 — Islamabad Model School for Boys (I-V), Mohara
+      - 562 — Islamabad Model School For Boys (I-V), Mohra Kalu
+      - 732 — Islamabad Model School for Boys (I-V), Mohra Solina
+      - 537 — Islamabad Model School For Boys (I-V), Mohri Mughal
+      - 568 — Islamabad Model School For Boys (I-V), Mohri Rawat
+      - 557 — Islamabad Model School For Boys (I-V), Mughal
+      - 762 — Islamabad Model School for Boys (I-V), Nilore
+      - 636 — Islamabad Model School For Boys (I-V), Noon
+      - 430 — Islamabad Model School For Boys (I-V), Noor Pur Shahan
+      - 431 — Islamabad Model School For Boys (I-V), Palali
+      - 432 — Islamabad Model School For Boys (I-V), Pind Begwal
+      - 635 — Islamabad Model School For Boys (I-V), Pind Hoon
+      - 561 — Islamabad Model School For Boys (I-V), Pind Malkan
+      - 738 — Islamabad Model School for Boys (I-V), Pind Mistrian
+      - 642 — Islamabad Model School For Boys (I-V), Pind Parian
+      - 564 — Islamabad Model School For Boys (I-V), Rajwal
+      - 440 — Islamabad Model School For Boys (I-V), Rawal Dam
+      - 433 — Islamabad Model School For Boys (I-V), Rumli
+      - 632 — Islamabad Model School For Boys (I-V), Sang Jani
+      - 641 — Islamabad Model School For Boys (I-V), Sarae Karboza
+      - 644 — Islamabad Model School For Boys (I-V), Seri Saral
+      - 637 — Islamabad Model School For Boys (I-V), Shah Allah Ditta
+      - 727 — Islamabad Model School for Boys (I-V), Sharifabad
+      - 634 — Islamabad Model School For Boys (I-V), Sheikhpur
+      - 572 — Islamabad Model School For Boys (I-V), Sigga
+      - 551 — Islamabad Model School For Boys (I-V), Sihala
+      - 434 — Islamabad Model School For Boys (I-V), Sihali
+      - 764 — Islamabad Model School for Boys (I-V), Sirri
+      - 435 — Islamabad Model School For Boys (I-V), Talhar
+      - 631 — Islamabad Model School For Boys (I-V), Tamman
+      - 734 — Islamabad Model School for Boys (I-V), Tarlai
+      - 630 — Islamabad Model School For Boys (I-V), Tarnaul
+      - 645 — Islamabad Model School For Boys (I-V),Bokra
+      - 718 — Islamabad Model School for Boys (I-VII), Alipur
+      - 558 — Islamabad Model School For Boys (I-VIII), Herdogher
+      - 554 — Islamabad Model School For Boys (I-VIII), Ara Burji
+      - 412 — Islamabad Model School For Boys (I-VIII), Bobri
+      - 573 — Islamabad Model School For Boys (I-VIII), CBR Town
+      - 441 — Islamabad Model School For Boys (I-VIII), Chatta Bakhtawar
+      - 622 — Islamabad Model School For Boys (I-VIII), Chellow
+      - 719 — Islamabad Model School for Boys (I-VIII), Della
+      - 619 — Islamabad Model School For Boys (I-VIII), Dhoke Jouri
+      - 620 — Islamabad Model School For Boys (I-VIII), Dhoke Paracha
+      - 413 — Islamabad Model School For Boys (I-VIII), Jandala
+      - 731 — Islamabad Model School for Boys (I-VIII), Kijnah
+      - 569 — Islamabad Model School For Boys (I-VIII), Koral
+      - 417 — Islamabad Model School For Boys (I-VIII), Kot Hathial
+      - 439 — Islamabad Model School For Boys (I-VIII), Malpur
+      - 418 — Islamabad Model School For Boys (I-VIII), Malwar
+      - 415 — Islamabad Model School For Boys (I-VIII), Mohra Noor NIH
+      - 570 — Islamabad Model School For Boys (I-VIII), Nara Syedan
+      - 721 — Islamabad Model School for Boys (I-VIII), Pehount
+      - 556 — Islamabad Model School For Boys (I-VIII), Sihala Mirzian
+      - 726 — Islamabad Model School for Boys (I-VIII), Sohan
+      - 550 — Islamabad Model School For Boys (I-X) Banni Saran
+      - 609 — Islamabad Model School For Boys (I-X), Badana Kalan
+      - 403 — Islamabad Model School For Boys (I-X), Bhara Kahu
+      - 549 — Islamabad Model School For Boys (I-X), Daliala
+      - 548 — Islamabad Model School For Boys (I-X), Gagri
+      - 720 — Islamabad Model School for Boys (I-X), Herno Thandapani
+      - 704 — Islamabad Model School for Boys (I-X), Jagiot
+      - 707 — Islamabad Model School for Boys (I-X), Khanna Dak
+      - 717 — Islamabad Model School for Boys (I-X), Khanna Nai Abadi
+      - 709 — Islamabad Model School for Boys (I-X), Kirpa
+      - 606 — Islamabad Model School For Boys (I-X), Maira Akku
+      - 414 — Islamabad Model School For Boys (I-X), Maira Begwal
+      - 621 — Islamabad Model School For Boys (I-X), Maira Beri
+      - 603 — Islamabad Model School For Boys (I-X), Naugazi
+      - 416 — Islamabad Model School For Boys (I-X), Phulgran
+      - 411 — Islamabad Model School For Boys (I-X), Said Pur
+      - 408 — Islamabad Model School For Boys (I-X), Shahdara
+      - 703 — Islamabad Model School for Boys (I-X), Tumair
+      - 702 — Islamabad Model School for Boys (VI-X) Chirah
+      - 301 — Islamabad Model School For Boys (VI-X), F-8/3
+      - 405 — Islamabad Model School For Boys (VI-X), Kurri
+      - 298 — Islamabad Model School For Boys (VI-X), G-10/3
+      - 297 — Islamabad Model School For Boys (VI-X), G-8/1
+      - 299 — Islamabad Model School For Boys (VI-X), G-9/1
+      - 608 — Islamabad Model School For Boys (VI-X), Golra
+      - 312 — Islamabad Model School For Boys (VI-X), I-10/2
+      - 313 — Islamabad Model School For Boys (VI-X), I-8/1
+      - 309 — Islamabad Model School For Boys (VI-X), No.1 I-9/4
+      - 311 — Islamabad Model School For Boys (VI-X), No.2 I-9/4
+      - 605 — Islamabad Model School For Boys (VI-X), Noon
+      - 409 — Islamabad Model School For Boys (VI-X), Rawal Dam
+      - 602 — Islamabad Model School For Boys (VI-X), Sang Jani
+      - 607 — Islamabad Model School For Boys (VI-X), Shah Allah Ditta
+      - 542 — Islamabad Model School For Boys (VI-X), Sihala
+      - 410 — Islamabad Model School For Boys (VI-X), Talhar
+      - 706 — Islamabad Model School for Boys (VI-X), Tarlai
+      - 302 — Islamabad Model School for Boys(VI-X), G-11/2
+      - 604 — Islamabad Model School For Boys(VI-X), I-14
+      - 225 — Islamabad Model School for Girls (I-VIII) F-7/4
+      - 218 — Islamabad Model School for Girls (I-VIII) G-7/3-4
+      - 516 — Islamabad Model School For Girls ((I-VIII) , Bhangril
+      - 522 — Islamabad Model School for Girls (I-V) , Pindory Syedan
+      - 476 — Islamabad Model School For Girls (I-V) , Shahzad Town
+      - 758 — Islamabad Model School for Girls (I-V), Chakhtan
+      - 757 — Islamabad Model School for Girls (I-V), Chappar Ghasota
+      - 532 — Islamabad Model School For Girls (I-V), Gohra Mast
+      - 745 — Islamabad Model School for Girls (I-V), Alipur Frash
+      - 763 — Islamabad Model School for Girls (I-V), Alipur South
+      - 468 — Islamabad Model School For Girls (I-V), Athal
+      - 477 — Islamabad Model School For Girls (I-V), Bhara kau, Nai Abadi
+      - 536 — Islamabad Model School For Girls (I-V), Boora Bangial
+      - 754 — Islamabad Model School for Girls (I-V), Chirah
+      - 747 — Islamabad Model School for Girls (I-V), Chounial Bangial
+      - 750 — Islamabad Model School for Girls (I-V), Dhok Fatehall
+      - 651 — Islamabad Model School For Girls (I-V), Dhoke Hashoo
+      - 470 — Islamabad Model School For Girls (I-V), Dhoke Jerrani
+      - 652 — Islamabad Model School For Girls (I-V), Dhoke Suleman
+      - 765 — Islamabad Model School for Girls (I-V), Frash Town
+      - 535 — Islamabad Model School For Girls (I-V), Gangota Syedan
+      - 527 — Islamabad Model School For Girls (I-V), Herdogher
+      - 748 — Islamabad Model School for Girls (I-V), Herno Thandapani
+      - 531 — Islamabad Model School For Girls (I-V), Hoon Dhamial
+      - 534 — Islamabad Model School For Girls (I-V), Humak
+      - 654 — Islamabad Model School For Girls (I-V), I-14/3
+      - 756 — Islamabad Model School for Girls (I-V), jhang Syedan
+      - 755 — Islamabad Model School for Girls (I-V), Kalia
+      - 740 — Islamabad Model School for Girls (I-V), Khanna Nai Abadi
+      - 471 — Islamabad Model School For Girls (I-V), Kot Hathial, Nai Abadi
+      - 533 — Islamabad Model School For Girls (I-V), Ladhiot
+      - 479 — Islamabad Model School For Girls (I-V), Maira Malpur
+      - 478 — Islamabad Model School For Girls (I-V), Malpur
+      - 520 — Islamabad Model School For Girls (I-V), MT Humak
+      - 528 — Islamabad Model School For Girls (I-V), Mughal
+      - 759 — Islamabad Model School for Girls (I-V), Nilore
+      - 292 — Islamabad Model School For Girls (I-V), No.2 I-9/1
+      - 742 — Islamabad Model School for Girls (I-V), No.2 Tarlai
+      - 473 — Islamabad Model School For Girls (I-V), Pind Begwal, Dana
+      - 649 — Islamabad Model School For Girls (I-V), Pind Parian
+      - 760 — Islamabad Model School for Girls (I-V), Punjgran
+      - 539 — Islamabad Model School For Girls (I-V), PWD Col
+      - 525 — Islamabad Model School For Girls (I-V), Rawat
+      - 653 — Islamabad Model School For Girls (I-V), Sarae Madhu
+      - 746 — Islamabad Model School for Girls (I-V), Severa
+      - 474 — Islamabad Model School For Girls (I-V), Shah Pur
+      - 739 — Islamabad Model School for Girls (I-V), Shakrial
+      - 526 — Islamabad Model School For Girls (I-V), Sheikhpur
+      - 650 — Islamabad Model School For Girls (I-V), Sheikhpur
+      - 529 — Islamabad Model School For Girls (I-V), Sihala
+      - 540 — Islamabad Model School For Girls (I-V), Sihala Khurd
+      - 530 — Islamabad Model School For Girls (I-V), Sihala Mirzian
+      - 753 — Islamabad Model School for Girls (I-V), Simli Dam
+      - 475 — Islamabad Model School For Girls (I-V), Subban
+      - 743 — Islamabad Model School for Girls (I-V), Tamma
+      - 751 — Islamabad Model School for Girls (I-V), Tumair
+      - 469 — Islamabad Model School For Girls (I-V),Chak Shehzad
+      - 514 — Islamabad Model School For Girls (I-VIII) , Mohri Rawat
+      - 221 — Islamabad Model School for Girls (I-VIII) F-7/1
+      - 209 — Islamabad Model School for Girls (I-VIII) G-6/2
+      - 215 — Islamabad Model School for Girls (I-VIII) G-7/3-2
+      - 523 — Islamabad Model School For Girls (I-VIII) Miana Thub
+      - 521 — Islamabad Model School For Girls (I-VIII) Peija
+      - 284 — Islamabad Model School For Girls (I-VIII), I-8/1
+      - 281 — Islamabad Model School For Girls (I-VIII), I-9/4
+      - 744 — Islamabad Model School for Girls (I-VIII), Alipur Frash MV
+      - 461 — Islamabad Model School For Girls (I-VIII), Bain Nala
+      - 464 — Islamabad Model School For Girls (I-VIII), Bhara Kau
+      - 513 — Islamabad Model School For Girls (I-VIII), Bhimber Trar
+      - 465 — Islamabad Model School For Girls (I-VIII), Bobri
+      - 623 — Islamabad Model School For Girls (I-VIII), Dhoke Jouri
+      - 628 — Islamabad Model School For Girls (I-VIII), Dhoke Paracha
+      - 626 — Islamabad Model School For Girls (I-VIII), Dhreak Mohri
+      - 240 — Islamabad Model School For Girls (I-VIII), G-8/4
+      - 288 — Islamabad Model School For Girls (I-VIII), I-10/4
+      - 524 — Islamabad Model School For Girls (I-VIII), Jandala
+      - 724 — Islamabad Model School for Girls (I-VIII), Kalia
+      - 722 — Islamabad Model School for Girls (I-VIII), Khanna Dak
+      - 752 — Islamabad Model School for Girls (I-VIII), Kijnah
+      - 466 — Islamabad Model School For Girls (I-VIII), Kot Hathial
+      - 462 — Islamabad Model School for Girls (I-VIII), Mandla
+      - 472 — Islamabad Model School For Girls (I-VIII), Mohrian
+      - 519 — Islamabad Model School For Girls (I-VIII), Niazian
+      - 741 — Islamabad Model School for Girls (I-VIII), No.1 Tarlai
+      - 625 — Islamabad Model School For Girls (I-VIII), Noon
+      - 624 — Islamabad Model School For Girls (I-VIII), Pind Paracha
+      - 538 — Islamabad Model School For Girls (I-VIII), PTC Sihala
+      - 517 — Islamabad Model School For Girls (I-VIII), Rajwal
+      - 467 — Islamabad Model School For Girls (I-VIII), Sanjalian
+      - 629 — Islamabad Model School For Girls (I-VIII), Sarae Kharboza
+      - 460 — Islamabad Model School For Girls (I-VIII), Shahdra Kalan
+      - 761 — Islamabad Model School for Girls (I-VIII), Sohan
+      - 211 — Islamabad Model School for Girls (I-X) P.E. CLY G-5
+      - 227 — Islamabad Model School for Girls (I-X) P.M. Colony G-5 Islamabad
+      - 268 — Islamabad Model School For Girls (I-X), G-10/3
+      - 447 — Islamabad Model School For Girls (I-X), Gokina
+      - 454 — Islamabad Model School For Girls (I-X), Lakhwal
+      - 618 — Islamabad Model School For Girls (I-X), Badia Qadir Bakhash
+      - 749 — Islamabad Model School for Girls (I-X), Darkala
+      - 518 — Islamabad Model School For Girls (I-X), Dhaliala
+      - 506 — Islamabad Model School For Girls (I-X), Dhoke Gangal
+      - 275 — Islamabad Model School For Girls (I-X), G-11/2
+      - 258 — Islamabad Model School For Girls (I-X), G-9/1
+      - 510 — Islamabad Model School For Girls (I-X), Humak
+      - 725 — Islamabad Model School for Girls (I-X), Jaba Taili
+      - 611 — Islamabad Model School for Girls (I-X), Jhangi Syedan
+      - 448 — Islamabad Model School For Girls (I-X), Kurri
+      - 627 — Islamabad Model School For Girls (I-X), Maira Beri
+      - 459 — Islamabad Model School For Girls (I-X), Malot
+      - 463 — Islamabad Model School For Girls (I-X), Mohra Noor
+      - 505 — Islamabad Model School For Girls (I-X), Nara Syedan
+      - 617 — Islamabad Model School For Girls (I-X), Naugazi
+      - 723 — Islamabad Model School for Girls (I-X), New Shakrial
+      - 445 — Islamabad Model School For Girls (I-X), NHC
+      - 456 — Islamabad Model School For Girls (I-X), Noor Pur Shahan
+      - 450 — Islamabad Model School For Girls (I-X), Phulgran
+      - 515 — Islamabad Model School For Girls (I-X), R/Col. Rawat
+      - 458 — Islamabad Model School For Girls (I-X), Said Pur
+      - 610 — Islamabad Model School For Girls (I-X), Sangjani
+      - 457 — Islamabad Model School For Girls (I-X), Shahdra Khurd
+      - 452 — Islamabad Model School For Girls (I-X), Talhar
+      - 512 — Islamabad Model School For Girls (I-X), Upran Gohra
+      - 613 — Islamabad Model School For Girls (I-XII), Bhadana Kalan
+      - 504 — Islamabad Model School For Girls (VI-X) , Sihala
+      - 224 — Islamabad Model School for Girls (VI-X) F-6/1
+      - 223 — Islamabad Model School for Girls (VI-X) F-7/2
+      - 207 — Islamabad Model School for Girls (VI-X) G-6/2
+      - 267 — Islamabad Model School For Girls (VI-X), G-10/1
+      - 276 — Islamabad Model School For Girls (VI-X), F-11/1
+      - 278 — Islamabad Model School For Girls (VI-X), G-11/1
+      - 213 — Islamabad Model School For Girls (VI-X), G-7/1
+      - 214 — Islamabad Model School For Girls (VI-X), G-7/2
+      - 250 — Islamabad Model School For Girls (VI-X), G-9/3
+      - 251 — Islamabad Model School For Girls (VI-X), G-9/4
+      - 287 — Islamabad Model School For Girls (VI-X), I-10/4
+      - 616 — Islamabad Model School For Girls (VI-X), I-14/3
+      - 279 — Islamabad Model School For Girls (VI-X), I-8/1
+      - 293 — Islamabad Model School For Girls (VI-X), I-9/4
+      - 511 — Islamabad Model School For Girls, (I-X), Gagri
+      - 236 — Islamabad Model School For Girls(I-X), E-9
+      - 202 — Islamabad Model School for Girls(VI-X) G-6/1-3
+      - 233 — Islamabad Model School For Girls(VI-X), E-8/3
+      - 239 — Islamabad Model School For Girls(VI-X), G-8/2
+      - 237 — Islamabad Model School(I-V), E-7/4
+      - 231 — Islamabad Model School(I-V), F-7/2
+      - 230 — Islamabad Model School(I-V), F-7/2-4
+      - 300 — Islamabad Model School(I-V), F-8/3
+      - 234 — Islamabad Model School(I-V), No.1, E-8
+      - 243 — Islamabad Model School(I-V), No.1, G-8/1
+      - 246 — Islamabad Model School(I-V), No.1, G-8/2
+      - 241 — Islamabad Model School(I-V), No.1, G-8/4
+      - 294 — Islamabad Model School(I-V), No.1, I-9/1
+      - 242 — Islamabad Model School(I-V), No.2 ,G-8/4
+      - 235 — Islamabad Model School(I-V), No.2, E-8
+      - 244 — Islamabad Model School(I-V), No.2, G-8/1
+      - 247 — Islamabad Model School(I-V), No.2, G-8/2
+      - 245 — Islamabad Model School(I-V), No.3, G-8/1
+      - 248 — Islamabad Model School(I-V), PIMS, G-8/3
+      - 655 — Islamabad Model School(I-VIII), D-17
+      - 232 — Islamabad Model School(I-X) P.M. Colony, G-5
+      - 316 — Islamabad Model School(VI-VIII ), Technical, G-7/4
+      - 317 — Islamabad Model School(VI-X), E-9
+      - 304 — Islamabad Model School(VI-X), G-6/4
+      - 303 — Islamabad Model School(VI-X), G-7/3-1
+      - 315 — Islamabad Model School(VI-X), G-8/4
+      - 314 — Islamabad Model School(VI-X), I-8/4
+      - 807 — Islamabad Post Graduate College For Girls(PG), G-10/4
+      - 419 — Mujahid Hussain Shaheed Model School For Boys (I-VIII), Satra Meel
+      - 648 — slamabad Model School For Girls (I-V), Bheka Syedan
     class_admitted_in:
-      label: "Class Admitted In"
+      label: Class Admitted In
       type: dropdown
       required: true
       source_field: class_admitted_id
-
+      options:
+      - Class 10
+      - Class 6
+      - Class 7
+      - Class 8
+      - Class 9
     last_institution_other_fde:
-      label: "Last Institution Other than FDE"
+      label: Last Institution Other than FDE
       type: text
       required: false
       source_field: last_institution_other
-
     shift:
-      label: "Shift"
-      type: radio
+      label: Shift
+      type: dropdown
       required: true
       source_field: shift
-      options: ["Morning", "Evening"]
-
-    medium_of_instruction:
-      label: "Medium of Instruction"
+      options:
+      - Morning
+      - Evening
+      note: Portal may expose as radio or select
+    girls_stipend:
+      label: Girls Stipend
       type: radio
       required: true
+      source_field: girls_stipend
+      options:
+      - 'Yes'
+      - 'No'
+    medium_of_instruction:
+      label: Medium of Instruction
+      type: dropdown
+      required: true
       source_field: medium_of_instruction
-      options: ["Urdu", "English"]
-
+      options:
+      - Urdu
+      - English
     number_of_years_primary:
-      label: "Primary Education Completion (Years)"
+      label: Primary Education Completion (Years)
       type: text
       required: true
       source_field: primary_education_completion_years
-
     avail_institutional_meal:
-      label: "Meal Program"
-      type: radio
-      required: false
-      source_field: school_meal_program_availing
-      options: ["Yes", "No"]
-
-    mode_of_study:
-      label: "Mode of Study"
+      label: Meal Program
       type: radio
       required: true
+      source_field: school_meal_program_availing
+      options:
+      - 'Yes'
+      - 'No'
+    mode_of_study:
+      label: Mode of Study
+      type: dropdown
+      required: true
       source_field: mode_of_study
-      options: ["Day Scholar", "Boarders"]
-
-  sibling_details:
-    total_siblings:
-      label: "Total Siblings"
+      options:
+      - Day Scholar
+      - Boarders
+    transport_facility:
+      label: Transport Facility
+      type: radio
+      required: true
+      source_field: transport_facility
+      options:
+      - 'Yes'
+      - 'No'
+      - Institution Bus
+      - Private
+      note: DB column is transport_facility; portal may use name transport or transport_facility
+    group:
+      label: Group
+      type: dropdown
+      required: false
+      source_field: class_group_id
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - Science Group
+      - Computer Science Group
+      - Technical Stream
+      - Arts Group
+    result_percentage_of_last_class_passed:
+      label: Result / Percentage of Last Class passed
+      type: text
+      required: false
+      source_field: result_percentage
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      placeholder: e.g. 75%
+    last_institution_attended_other_than_fde:
+      label: Last Institution Attended (other than FDE)
+      type: text
+      required: false
+      source_field: last_other_institution
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    number_of_years_spent_completing_primary_education_i_v:
+      label: Number of years spent completing Primary Education (I-V)
+      type: text
+      required: false
+      source_field: primary_education_completion_years
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    total_number_of_siblings:
+      label: Total Number of Siblings
       type: text
       required: true
       source_field: total_siblings
-
-    in_other_fde:
-      label: "Siblings in Other FDE"
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    in_same_institution:
+      label: In Same Institution
+      type: text
+      required: false
+      source_field: siblings_same_institution
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    in_other_fde_institutions:
+      label: In Other FDE Institutions
       type: text
       required: false
       source_field: siblings_other_fde
-
-    is_same_institution:
-      label: "Siblings in Same Institution (Number)"
-      type: number
-      required: false
-      source_field: siblings_same
-
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
     in_private_institutions:
-      label: "Siblings in Private"
+      label: In Private Institutions
       type: text
       required: false
       source_field: siblings_private
-
-  transport_facility:
-    transport_facility:
-      label: "Transport Facility"
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    school_meal_program_availing:
+      label: school_meal_program_availing
+      type: radio
+      required: true
+      source_field: school_meal_program_availing
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
+    cocurricular_activities:
+      label: cocurricular_activities
+      type: radio
+      required: true
+      source_field: cocurricular_activities
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
+    special_interest_achievement_in_co_curricular_activities:
+      label: Special interest / achievement in co-curricular activities?
+      type: text
+      required: true
+      source_field: cocurricular_details
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    has_major_disability:
+      label: has_major_disability
+      type: radio
+      required: true
+      source_field: has_major_disability
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
+    has_mental_disability:
+      label: has_mental_disability
+      type: radio
+      required: true
+      source_field: has_mental_disability
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
+    other_medical_condition_remarks:
+      label: Other Medical Condition / Remarks
+      type: text
+      required: false
+      source_field: other_medical_condition
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    visually_fit:
+      label: visually_fit
+      type: radio
+      required: true
+      source_field: visually_fit
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
+    please_specify_the_glasses_prescription:
+      label: please specify the Glasses Prescription
+      type: text
+      required: true
+      source_field: glass_prescription
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      placeholder: e.g. -1.5 / +2.0
+    uses_glasses:
+      label: uses_glasses
+      type: radio
+      required: true
+      source_field: uses_glasses
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
+    difficulty_while_seeing_the_board_or_reading_textbook:
+      label: Difficulty while seeing the board or reading textbook
+      type: text
+      required: true
+      source_field: difficulty_seeing_board
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    has_hearing_difficulties:
+      label: has_hearing_difficulties
+      type: radio
+      required: true
+      source_field: has_hearing_difficulties
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
+    uses_hearing_aid:
+      label: uses_hearing_aid
+      type: radio
+      required: true
+      source_field: uses_hearing_aid
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
+    difficulty_listening:
+      label: difficulty_listening
+      type: radio
+      required: true
+      source_field: difficulty_listening
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
+    difficulty_walking:
+      label: difficulty_walking
+      type: radio
+      required: true
+      source_field: difficulty_walking
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
+    uses_crutches_walker:
+      label: uses_crutches_walker
+      type: radio
+      required: true
+      source_field: uses_crutches_walker
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
+    difficulty_reading_writing:
+      label: Difficulty Reading / Writing
+      type: text
+      required: true
+      source_field: difficulty_reading_writing
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    difficulty_remembering:
+      label: Difficulty Remembering
+      type: text
+      required: true
+      source_field: difficulty_remembering
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    difficulty_concentrating:
+      label: Difficulty Concentrating
+      type: text
+      required: true
+      source_field: difficulty_concentrating
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    basic_vaccination_completed:
+      label: basic_vaccination_completed
       type: radio
       required: false
+      source_field: basic_vaccination_completed
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
+  sibling_details:
+    total_siblings:
+      label: Total Siblings
+      type: text
+      required: true
+      source_field: total_siblings
+    in_other_fde:
+      label: Siblings in Other FDE
+      type: text
+      required: false
+      source_field: siblings_other_fde
+    is_same_institution:
+      label: Siblings in Same Institution (Number)
+      type: number
+      required: false
+      source_field: siblings_same
+    in_private_institutions:
+      label: Siblings in Private
+      type: text
+      required: false
+      source_field: siblings_private
+  transport_facility:
+    bus_route:
+      label: Bus Route
+      type: dropdown
+      required: true
       source_field: bus_route
-      options: ["Bus", "Private", "None"]
-
+      options:
+      - URBAN-I
+      - URBAN-II
+      - TARNOL
+      - BHARAKAHU
+      - NILORE
+      - SIHALA
   scholarships_and_co_curricular:
     recipient_of_scholarship:
-      label: "Scholarship"
+      label: Scholarship
       type: radio
-      required: false
+      required: true
       source_field: scholarship
-      options: ["Yes", "No"]
-
+      options:
+      - 'Yes'
+      - 'No'
     scholarship_details:
-      label: "Scholarship Details"
+      label: Scholarship Details
       type: text
-      required: false
+      required: true
       source_field: scholarship_details
-
     special_interest:
-      label: "Co-curricular Activities"
+      label: Co-curricular Activities
       type: radio
-      required: false
+      required: true
       source_field: cocurricular_activities
-      options: ["Yes", "No"]
-
+      options:
+      - 'Yes'
+      - 'No'
     achievement_details:
-      label: "Achievement Details"
+      label: Achievement Details
       type: text
-      required: false
+      required: true
       source_field: achievement_details
-
-# ============================================================
-# TAB 4: Emergency Contact
-# ============================================================
+    avail_institutional_meal:
+      label: Meal Program
+      type: radio
+      required: true
+      source_field: school_meal_program_availing
+      options:
+      - 'Yes'
+      - 'No'
 tab_4_emergency_contact:
   emergency_contact_name:
-    label: "Emergency Contact Name"
+    label: Emergency Contact Name
     type: text
     required: true
     source_field: emergency_name
-
   contact_number:
-    label: "Emergency Contact Number"
+    label: Emergency Contact Number
     type: text
     required: true
     source_field: emergency_contact
     validation: mobile_pakistani
-
   relation:
-    label: "Relation"
+    label: Relation
     type: dropdown
     required: true
     source_field: emergency_relation
-
+    options:
+    - Father
+    - Mother
+    - Brother
+    - Sister
+    - Uncle
+    - Others
   other_relation:
-    label: "Other Relation"
+    label: Other Relation
     type: text
-    required: false
+    required: true
     source_field: emergency_relation_other
-
-# ============================================================
-# TAB 5: IDPs Details
-# ============================================================
+  specify_relation:
+    label: Specify Relation
+    type: text
+    required: true
+    source_field: emergency_relation_other
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  digital_device_at_home:
+    label: digital_device_at_home
+    type: radio
+    required: true
+    source_field: digital_device_at_home
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    options:
+    - 'Yes'
+    - 'No'
+  internet_at_home:
+    label: internet_at_home
+    type: radio
+    required: true
+    source_field: internet_at_home
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    options:
+    - 'Yes'
+    - 'No'
 tab_5_idps_details:
   is_student_refugee_idp:
-    label: "Is Student Refugee / IDP"
+    label: Is Student Refugee / IDP
     type: radio
-    required: false
+    required: true
     source_field: is_refugee
-    options: ["Yes", "No"]
-
+    options:
+    - 'Yes'
+    - 'No'
   idp_status:
-    label: "IDP Status"
+    label: IDP Status
     type: radio
     required: false
     source_field: idp_status_id
-
   is_registered_as_refugee:
-    label: "Is Registered as Refugee"
+    label: Is Registered as Refugee
     type: radio
     required: false
     source_field: is_registered_refugee
-    options: ["Yes", "No"]
-
+    options:
+    - 'Yes'
+    - 'No'
   refugee_card_number:
-    label: "Refugee Card Number"
+    label: Refugee Card Number
     type: text
     required: false
     source_field: refugee_card
-
-# ============================================================
-# TAB 6: Health Details
-# ============================================================
+  is_refugee:
+    label: is_refugee
+    type: radio
+    required: true
+    source_field: is_refugee
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    options:
+    - 'Yes'
+    - 'No'
+  digital_device_at_home:
+    label: digital_device_at_home
+    type: radio
+    required: true
+    source_field: digital_device_at_home
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    options:
+    - 'Yes'
+    - 'No'
+  internet_at_home:
+    label: internet_at_home
+    type: radio
+    required: true
+    source_field: internet_at_home
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    options:
+    - 'Yes'
+    - 'No'
 tab_6_health_details:
   any_major_disability:
-    label: "Any Major Disability"
+    label: Any Major Disability
     type: radio
-    required: false
+    required: true
     source_field: has_major_disability
-    options: ["Yes", "No"]
-
+    options:
+    - 'Yes'
+    - 'No'
   disability_type:
-    label: "Disability Type"
+    label: Disability Type
     type: checkbox
     required: false
     source_field: disability_types
-
   disability_certificate:
-    label: "Disability Certificate"
+    label: Disability Certificate
     type: file
     required: false
     source_field: disability_certificate
-
   any_mental_disability:
-    label: "Any Mental Disability"
+    label: Any Mental Disability
     type: radio
-    required: false
+    required: true
     source_field: has_mental_disability
-    options: ["Yes", "No"]
-
+    options:
+    - 'Yes'
+    - 'No'
   mental_disability_type:
-    label: "Mental Disability Type"
+    label: Mental Disability Type
     type: dropdown
     required: false
     source_field: mental_disability_type
-
   other_mental_disability:
-    label: "Other Mental Disability"
+    label: Other Mental Disability
     type: text
     required: false
     source_field: mental_disability_other
-
   other_medical_conditions:
-    label: "Other Medical Conditions"
+    label: Other Medical Conditions
     type: text
     required: false
     source_field: other_conditions
-
   visually_impaired:
-    label: "Visually FIT"
+    label: Visually FIT
     type: radio
-    required: false
+    required: true
     source_field: visually_fit
-    options: ["Yes", "No"]
-
+    options:
+    - 'Yes'
+    - 'No'
+  visually_fit_6x6:
+    label: Visually fit / 6X6
+    type: radio
+    required: true
+    source_field: visually_fit
+    options:
+    - 'Yes'
+    - 'No'
+    note: Separate portal control from Visually FIT; same DB flag
   wear_glasses:
-    label: "Wears Glasses"
+    label: Wears Glasses
     type: radio
-    required: false
+    required: true
     source_field: uses_glasses
-    options: ["Yes", "No"]
-
+    options:
+    - 'Yes'
+    - 'No'
   glass_prescription:
-    label: "Glasses Prescription"
+    label: Glasses Prescription
     type: text
-    required: false
+    required: true
     source_field: glass_prescription
-
   vision_difficulty:
-    label: "Difficulty Seeing Board"
-    type: radio
-    required: false
+    label: Difficulty Seeing Board
+    type: dropdown
+    required: true
     source_field: difficulty_seeing_board
     options:
-      - "No Difficulty"
-      - "Some Difficulty"
-      - "A lot of Difficulty"
-      - "Cannot Do at All"
-
+    - No Difficulty
+    - Some Difficulty
+    - A lot of Difficulty
+    - Cannot Do at All
+    - Cannot do at all
   hearing_difficulty:
-    label: "Has Hearing Difficulty"
+    label: Has Hearing Difficulty
     type: radio
-    required: false
+    required: true
     source_field: has_hearing_difficulties
-    options: ["Yes", "No"]
-
+    options:
+    - 'Yes'
+    - 'No'
   using_hearing_aid:
-    label: "Uses Hearing Aid"
+    label: Uses Hearing Aid
     type: radio
-    required: false
+    required: true
     source_field: uses_hearing_aid
-    options: ["Yes", "No"]
-
+    options:
+    - 'Yes'
+    - 'No'
   hearing_aid_details:
-    label: "Hearing Aid Details"
+    label: Hearing Aid Details
     type: text
     required: false
     source_field: hearing_aid_details
-
   difficulty_listening:
-    label: "Difficulty Listening"
+    label: Difficulty Listening
     type: radio
-    required: false
+    required: true
     source_field: difficulty_listening
-    options: ["Yes", "No"]
-
+    options:
+    - 'Yes'
+    - 'No'
   difficulty_walking:
-    label: "Difficulty Walking"
+    label: Difficulty Walking
     type: radio
-    required: false
+    required: true
     source_field: difficulty_walking
-    options: ["Yes", "No"]
-
+    options:
+    - 'Yes'
+    - 'No'
   use_crutches_walker:
-    label: "Uses Crutches / Walker"
+    label: Uses Crutches / Walker
     type: radio
-    required: false
+    required: true
     source_field: uses_crutches_walker
-    options: ["Yes", "No"]
-
+    options:
+    - 'Yes'
+    - 'No'
   difficulty_reading_writing:
-    label: "Difficulty Reading / Writing"
-    type: radio
-    required: false
+    label: Difficulty Reading / Writing
+    type: dropdown
+    required: true
     source_field: difficulty_reading_writing
     options:
-      - "No Difficulty"
-      - "Some Difficulty"
-      - "A lot of Difficulty"
-      - "Cannot Do at All"
-
+    - No Difficulty
+    - Some Difficulty
+    - A lot of Difficulty
+    - Cannot Do at All
+    - Cannot do at all
   difficulty_remembering:
-    label: "Difficulty Remembering"
-    type: radio
-    required: false
+    label: Difficulty Remembering
+    type: dropdown
+    required: true
     source_field: difficulty_remembering
     options:
-      - "No Difficulty"
-      - "Some Difficulty"
-      - "A lot of Difficulty"
-      - "Cannot Do at All"
-
+    - No Difficulty
+    - Some Difficulty
+    - A lot of Difficulty
+    - Cannot Do at All
+    - Cannot do at all
   difficulty_concentrating:
-    label: "Difficulty Concentrating"
-    type: radio
-    required: false
+    label: Difficulty Concentrating
+    type: dropdown
+    required: true
     source_field: difficulty_concentrating
     options:
-      - "No Difficulty"
-      - "Some Difficulty"
-      - "A lot of Difficulty"
-      - "Cannot Do at All"
-
+    - No Difficulty
+    - Some Difficulty
+    - A lot of Difficulty
+    - Cannot Do at All
+    - Cannot do at all
   basic_vaccination_completed:
-    label: "Basic Vaccination Completed"
+    label: Basic Vaccination Completed
     type: radio
     required: false
     source_field: basic_vaccination_completed
-    options: ["Yes", "No"]
-
-# ============================================================
-# TAB 7: Digital Access
-# ============================================================
+    options:
+    - 'Yes'
+    - 'No'
+  other_medical_condition_remarks:
+    label: Other Medical Condition / Remarks
+    type: text
+    required: false
+    source_field: other_medical_condition
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  please_specify_the_glasses_prescription:
+    label: please specify the Glasses Prescription
+    type: text
+    required: true
+    source_field: glass_prescription
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    placeholder: e.g. -1.5 / +2.0
+  difficulty_while_seeing_the_board_or_reading_textbook:
+    label: Difficulty while seeing the board or reading textbook
+    type: text
+    required: true
+    source_field: difficulty_seeing_board
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  has_major_disability:
+    label: has_major_disability
+    type: radio
+    required: true
+    source_field: has_major_disability
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    options:
+    - 'Yes'
+    - 'No'
+  has_mental_disability:
+    label: has_mental_disability
+    type: radio
+    required: true
+    source_field: has_mental_disability
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    options:
+    - 'Yes'
+    - 'No'
+  uses_glasses:
+    label: uses_glasses
+    type: radio
+    required: true
+    source_field: uses_glasses
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    options:
+    - 'Yes'
+    - 'No'
+  has_hearing_difficulties:
+    label: has_hearing_difficulties
+    type: radio
+    required: true
+    source_field: has_hearing_difficulties
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    options:
+    - 'Yes'
+    - 'No'
+  uses_crutches_walker:
+    label: uses_crutches_walker
+    type: radio
+    required: true
+    source_field: uses_crutches_walker
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    options:
+    - 'Yes'
+    - 'No'
+  digital_device_at_home:
+    label: digital_device_at_home
+    type: radio
+    required: true
+    source_field: digital_device_at_home
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    options:
+    - 'Yes'
+    - 'No'
+  internet_at_home:
+    label: internet_at_home
+    type: radio
+    required: true
+    source_field: internet_at_home
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    options:
+    - 'Yes'
+    - 'No'
 tab_7_digital_access:
   access_to_digital_device:
-    label: "Access to Digital Device"
+    label: Access to Digital Device
     type: radio
-    required: false
+    required: true
     source_field: digital_device_at_home
-    options: ["Yes", "No"]
-
+    options:
+    - 'Yes'
+    - 'No'
   device_type:
-    label: "Device Type"
-    type: checkbox
-    required: false
+    label: Device Type
+    type: dropdown
+    required: true
     source_field: digital_device_type
-
+    options:
+    - Mobile Phone
+    - Laptop
+    - Desktop Computer
+    - Tablet
+    - Chromebook
   internet_access:
-    label: "Internet Access"
+    label: Internet Access
     type: radio
-    required: false
+    required: true
     source_field: internet_at_home
-    options: ["Yes", "No"]
+    options:
+    - 'Yes'
+    - 'No'
+  digital_device_at_home:
+    label: digital_device_at_home
+    type: radio
+    required: true
+    source_field: digital_device_at_home
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    options:
+    - 'Yes'
+    - 'No'
+  internet_at_home:
+    label: internet_at_home
+    type: radio
+    required: true
+    source_field: internet_at_home
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    options:
+    - 'Yes'
+    - 'No'

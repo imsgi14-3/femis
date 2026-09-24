@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import os
 
 from playwright.async_api import async_playwright
-from src.auth import FEMISAuth
+from src.auth import FEMISAuth, SESSION_PATH
 from src.form_filler import FormFiller
 from src.data_sources.photo_handler import PhotoHandler
 from src.data_sources.excel_handler import ExcelHandler
@@ -30,6 +30,7 @@ class FEMISBot:
             captcha_max_retries=self.config["captcha"]["max_retries"],
         )
         self.filler = FormFiller()
+        self.submit = False
         self.photo_handler = PhotoHandler(
             gemini_api_key=os.getenv("GEMINI_API_KEY"),
             gemini_model=self.config["ocr"]["gemini_model"],
@@ -73,8 +74,9 @@ class FEMISBot:
         else:
             raise ValueError(f"Unknown source type: {source_type}")
 
-    async def run(self, source: str, source_type: str = "auto", dry_run: bool = False):
+    async def run(self, source: str, source_type: str = "auto", dry_run: bool = False, submit: bool = False):
         """Main entry point — process all students from the given source."""
+        self.submit = submit
         students = self.load_student_data(source, source_type)
         if not students:
             logger.error("No student data found. Exiting.")
@@ -90,15 +92,37 @@ class FEMISBot:
             )
             context = await browser.new_context(
                 viewport={"width": 1280, "height": 900},
+                storage_state=FEMISAuth.storage_state_path(),
             )
             page = await context.new_page()
+            self.filler.attach_dialog_handler(page)
 
             try:
-                logger.info("Logging into FEMIS portal...")
-                login_ok = await self.auth.login(page, self.config["portal"]["login_url"])
-                if not login_ok:
+                students_url = self.config["portal"].get("students_url", "")
+                login_url = self.config["portal"]["login_url"]
+                logged_in = False
+
+                if FEMISAuth.session_exists() and students_url:
+                    logger.info("Checking saved session...")
+                    logged_in = await self.auth.is_logged_in(page, students_url)
+                    if logged_in:
+                        logger.info("Saved session valid — skipping CAPTCHA.")
+                    else:
+                        logger.warning("Saved session invalid; logging in again.")
+
+                if not logged_in:
+                    # Prefer interactive login (human solves CAPTCHA once)
+                    logger.info("Interactive login — solve CAPTCHA in the browser...")
+                    logged_in = await self.auth.login_interactive(page, login_url)
+                    if not logged_in:
+                        logger.info("Falling back to auto CAPTCHA solve...")
+                        logged_in = await self.auth.login(page, login_url)
+
+                if not logged_in:
                     logger.error("Login failed. Aborting.")
                     return
+
+                await self.auth.save_session(context)
 
                 logger.info("Login successful. Navigating to Add Student page...")
                 await page.goto(self.config["portal"]["create_url"], wait_until="networkidle")
@@ -130,9 +154,13 @@ class FEMISBot:
 
                     try:
                         await self.filler.fill_student_form(page, student)
+                        submitted = False
+                        if getattr(self, "submit", False):
+                            submitted = await self.filler.submit_form(page, student)
                         self.results.append({
-                            "student": student.get("student_name", "Unknown"),
-                            "status": "success",
+                            "student": student.get("student_name") or student.get("name", "Unknown"),
+                            "status": "success" if (submitted or not getattr(self, "submit", False)) else "submit_failed",
+                            "submitted": submitted if getattr(self, "submit", False) else None,
                         })
                     except Exception as e:
                         logger.error(f"Error filling form for student: {e}")
@@ -185,11 +213,12 @@ async def main():
     parser.add_argument("source", help="Path to data source (image directory, Excel/CSV file)")
     parser.add_argument("--type", choices=["photos", "excel", "google_sheets", "webform", "auto"], default="auto")
     parser.add_argument("--dry-run", action="store_true", help="Load data but don't fill forms")
+    parser.add_argument("--submit", action="store_true", help="Submit each form after filling")
     parser.add_argument("--config", default="config/settings.yaml", help="Config file path")
     args = parser.parse_args()
 
     bot = FEMISBot(config_path=args.config)
-    await bot.run(args.source, source_type=args.type, dry_run=args.dry_run)
+    await bot.run(args.source, source_type=args.type, dry_run=args.dry_run, submit=args.submit)
 
 
 if __name__ == "__main__":

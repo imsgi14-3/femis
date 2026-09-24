@@ -147,7 +147,7 @@
       </select>
     </div>
     <div class="col-md-6" id="sub_sector_group" style="display:none;">
-      <label class="form-label">Sub-Sector</label>
+      <label class="form-label">Sub Sector</label>
       <select class="form-select" name="sub_sector_id" id="sub_sector_select">
         <option value="">— Select Sector first —</option>
       </select>
@@ -228,7 +228,7 @@
         </select>
       </div>
       <div class="col-md-6" id="present_sub_sector_group" style="display:none;">
-        <label class="form-label">Sub-Sector</label>
+        <label class="form-label">Sub Sector</label>
         <select class="form-select" name="present_sub_sector_id" id="present_sub_sector_select">
           <option value="">— Select Sector first —</option>
         </select>
@@ -637,7 +637,7 @@
       <div id="class_group">
         {% for cl in opts.classes %}
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="class_id" id="class_{{ loop.index }}" value="{{ cl }}" required>
+          <input class="form-check-input" type="radio" name="class_id" id="class_{{ loop.index }}" value="{{ cl.replace('Class ', '') }}" required>
           <label class="form-check-label" for="class_{{ loop.index }}">{{ cl }}</label>
         </div>
         {% endfor %}
@@ -693,7 +693,7 @@
       <div>
         {% for cl in opts.classes %}
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="class_admitted_id" id="cai_{{ loop.index }}" value="{{ cl }}" required>
+          <input class="form-check-input" type="radio" name="class_admitted_id" id="cai_{{ loop.index }}" value="{{ cl.replace('Class ', '') }}" required>
           <label class="form-check-label" for="cai_{{ loop.index }}">{{ cl }}</label>
         </div>
         {% endfor %}

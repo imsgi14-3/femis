@@ -357,8 +357,8 @@ document.addEventListener("DOMContentLoaded", function () {
     // === Mother Language (select) → show Other ===
     selectToggle("language_id", "mother_language_other_group", ["Other"]);
 
-    // === Emergency Relation (select) → show Other ===
-    selectToggle("emergency_relation", "emergency_relation_other_group", ["Other"]);
+    // === Emergency Relation (select) → show Specify Relation for Others ===
+    selectToggle("emergency_relation", "emergency_relation_other_group", ["Other", "Others"]);
 
     // === Mental Disability Type (select) → show Other ===
     selectToggle("mental_disability_type", "mental_disability_other_group", ["Other"]);
@@ -453,17 +453,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // ==================================================================
     // TAB SWITCHING with unsaved warning
+    // Bootstrap fires show.bs.tab after click — cancel must block HERE,
+    // otherwise preventDefault on click does not stop the tab switch.
     // ==================================================================
     tabPills.forEach(function (pill, idx) {
-        pill.addEventListener("click", function (e) {
-            if (isDirty) {
-                if (!confirm("You have unsaved changes. Switching tabs will lose unsaved data.\n\nContinue?")) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return false;
-                }
-                markClean();
+        pill.addEventListener("show.bs.tab", function (e) {
+            if (!isDirty) return;
+            if (!confirm("You have unsaved changes. Switching tabs will lose unsaved data.\n\nContinue?")) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
             }
+            markClean();
         });
     });
 
@@ -544,7 +545,8 @@ document.addEventListener("DOMContentLoaded", function () {
             {fields: ["mental_disability_type"], trigger: "has_mental_disability", values: ["1"]},
             {fields: ["glass_prescription"], trigger: "uses_glasses", values: ["1"]},
             {fields: ["hearing_aid_details"], trigger: "has_hearing_difficulties", values: ["1"]},
-            {fields: ["bus_route"], trigger: "transport_facility", values: ["Bus"]},
+            {fields: ["bus_route"], trigger: "transport_facility", values: ["Bus", "Institution Bus"]},
+            {fields: ["emergency_relation_other"], trigger: "emergency_relation", values: ["Other", "Others"]},
         ];
         conditionalRequired.forEach(function (cr) {
             var triggerRadio = activeTab.querySelector('input[name="' + cr.trigger + '"]:checked');
