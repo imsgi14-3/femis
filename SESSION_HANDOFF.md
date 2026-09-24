@@ -1,41 +1,57 @@
-# Session Handoff — 2026-09-24 (Session N)
+# Session Handoff — 2026-09-24 (Session 3)
 
 ## Completed Work
 
-### Force-save path (root-cause fix for non-persisting fields)
-- `#saveNextBtn` only advances tabs; never POSTs. Inputs start disabled. No Save button in edit mode.
-- Implemented `_force_save` in `src/form_filler.py`: enables all `#studentForm` fields, POSTs `FormData` + `_method=PUT` to `form.action` with `X-XSRF-TOKEN`.
-- Verified 200 `{"success":true,"code":200,"message":"Saved successfully."}` on every tab.
+### Force-save + submit (committed `87c7964`)
+- `_force_save` in `src/form_filler.py`: enables all `#studentForm` fields, POSTs `FormData` + `_method=PUT` to `form.action` with `X-XSRF-TOKEN` → `Saved successfully` verified on every tab.
 - Called after final tab 7 and before Finish in `submit_form`.
+- Earlier `--submit` run SUCCESS for student #6 (Ayat Mubeen) before portal went down.
+- Radio verify checks `source_field`; broken `transport` alias removed.
+- Dropdown JS jQuery guard fixed ("Illegal invocation").
+- Session must use `storage_state=FEMISAuth.storage_state_path()` or captcha reappears.
+- Portal list search: name only + digit CNIC compare (CNIC filter broken).
 
-### Submit + fill verification
-- `python test_bot.py --student-id 6 --slow 40 --submit` → SUCCESS (force-save OK every tab; form submitted).
-- Radio verify now checks `source_field`; removed broken `transport` alias.
-- Portal list search: CNIC filter does not work — search by name only + digit-only CNIC compare.
-- Session: browser context must pass `storage_state=FEMISAuth.storage_state_path()` or captcha reappears.
+### FEMIS mandatory-field alignment (committed `c99b6e7`)
+- Web form + mapping + bot aligned to FEMIS rules:
+  - Father qualification/income, mother income (unless Housewife), guardian name/CNIC/relation/WhatsApp/profession/income required.
+  - Orphan Type required if Orphan=Yes; Orphan=Yes blocked when both parents alive.
+  - Date of Admission `mm/dd/yyyy`; Class Admitted 1–5→1–5, 6–10→6–10.
+  - Primary Education Years **not** mandatory.
+  - Meal / Transport / Scholarship / Co-curricular required; Transport option = **Institution Bus**.
+  - IDP Status + Registered Refugee required if Refugee=Yes.
+  - Major/Mental disability, Visually FIT, Wears Glasses, Hearing Difficulty, Listening, Walking, Crutches/Walker required.
+  - Glasses Prescription required when Visually FIT=**No**; Hearing Aid if Hearing Difficulty=Yes.
+  - Digital Device + Internet Access required; Device Type if Device=Yes.
+- Bot `_empty_required_on_tab` glass rule updated to match (visually_fit=No).
+- Smoke gate **17/17**.
 
-### Other fixes
-- Dropdown JS fallback: guarded jQuery call (`typeof === 'function'` + try/catch) to stop "Illegal invocation".
-- `smoke_test.py` label check skips portal auto-discovered snake_case labels and portal-only `Visually fit / 6X6` → **16/16**.
-- Temp probe/dump/fix scripts removed from repo root.
+### This-session fixes (uncommitted)
+- Recreated `src/ocr/local_captcha.py` (was deleted by mistake; `auth.py` imports `solve_local`). Stub returns `''` so manual captcha path is used.
+- `_probe_pages.py` temp probe created (delete before commit).
+
+## Portal status — BLOCKED
+- **femis.fde.gov.pk returns 503 Service Unavailable** (list + create). Server down until ~18:00.
+- Last bot run (pre-503 diagnosis): session reused, no captcha; list page had no search input → opened create → tabs missing / form not on page. Root cause = portal 503, not bot logic.
 
 ## Git & File Footprint
-- `src/form_filler.py` — `_force_save`, save-listeners, radio/dropdown fixes
-- `src/auth.py` — session reuse / interactive login
-- `test_bot.py` — storage_state, `--student-id`, `--submit`
-- `config/field_mapping.yaml` — portal options / aliases
-- `femis-web/static/form.js`, `templates/form.html` — web form alignment
-- `smoke_test.py` — label-gate relaxation
-- `insert_test_record.py`, `src/main.py` — minor updates
+| Commit | Contents |
+|--------|----------|
+| `87c7964` (pushed) | force-save, submit, smoke 16/16 |
+| `c99b6e7` (pushed) | FEMIS mandatory fields, Institution Bus, smoke 17/17 |
+| **dirty** | `src/ocr/local_captcha.py` (new stub), `_probe_pages.py` (temp) |
 
 ## Master Roadmap Alignment
-**Portal fill + persist + submit path complete (~7 of 8).** Local web form smoke gate green.
+**Portal fill + persist + submit path complete (~7 of 8).** Mandatory-field alignment done. Waiting on portal recovery for end-to-end re-verify.
 
 ## Next Session Anchor
-1. Optional: confirm portal record state for student #6 after reload (persistence spot-check).
-2. Commit/push remaining dirty files only if user asks.
-3. Optional polish: Guardian Profession/Income "Missing required" warnings despite force-save success.
+1. After portal is up (~18:00): delete `_probe_pages.py`, then re-run  
+   `Remove-Item data\logs\captcha_code.txt -ErrorAction SilentlyContinue; python test_bot.py --student-id 6 --slow 40 --submit`  
+   (manual captcha if session expired).
+2. Confirm edit-page persistence + success toast for student #6.
+3. Commit `src/ocr/local_captcha.py` stub (or restore real OCR) only if user asks.
 
 ## Known Non-Blockers
+- Portal down 503 until ~18:00 (2026-09-24).
 - DBs not synced (local SQLite vs PythonAnywhere); user works locally.
-- Portal date format for save: `DD/MM/YYYY`.
+- Portal save date format `DD/MM/YYYY`; admission field UI wants `mm/dd/yyyy`.
+- Manual captcha: write 4 digits to `data/logs/captcha_code.txt` after seeing `captcha_current.png`.
