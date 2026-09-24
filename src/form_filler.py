@@ -596,9 +596,9 @@ class FormFiller:
                             if (!yes) return;
                         }
                         if (nm === 'glass_prescription' || nm.includes('glass')) {
-                            const glasses = document.querySelector('input[type="radio"][name="uses_glasses"]:checked');
-                            const wears = glasses && ['1','Yes','yes','true'].includes(String(glasses.value));
-                            if (!wears) return;
+                            const vf = document.querySelector('input[type="radio"][name="visually_fit"]:checked');
+                            const notFit = vf && ['0','No','no','false'].includes(String(vf.value));
+                            if (!notFit) return;
                         }
                         if (!v) {
                             seen.add(name);

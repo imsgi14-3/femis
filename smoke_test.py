@@ -80,8 +80,14 @@ check(
     "copyAddresses" in js and '"sub_sector_id", "present_sub_sector_id"' in js,
 )
 check(
-    "form.js mandatoryByTab no longer requires father_qualification",
-    '"father_qualification"' not in js.split("mandatoryByTab")[1].split("};")[0],
+    "form.js requires FEMIS mandatory fields (qualification, income, guardian)",
+    '"father_qualification"' in js.split("mandatoryByTab")[1].split("};")[0]
+    and '"guardian_name"' in js.split("mandatoryByTab")[1].split("};")[0]
+    and '"father_monthly_income"' in js.split("mandatoryByTab")[1].split("};")[0],
+)
+check(
+    "form.js removes primary_education from mandatory",
+    "primary_education_completion_years" not in js.split("mandatoryByTab")[1].split("};")[0],
 )
 
 # --- 3. field_mapping labels match portal form.html ---

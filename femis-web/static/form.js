@@ -295,8 +295,8 @@ document.addEventListener("DOMContentLoaded", function () {
     // === Mother Alive → show details only ===
     radioToggle("is_mother_alive", "mother_details_group", ["1"]);
 
-    // === Orphan → show guardian details when is_orphan=yes ===
-    radioToggle("is_orphan", "orphan_fields", ["1"]);
+    // === Orphan → guardian always visible; orphan_type required only if Yes ===
+    // (orphan_fields stays visible for always-required guardian fields)
 
     // === Auto-set is_orphan=yes + orphan_type when parent(s) dead ===
     (function () {
@@ -364,7 +364,8 @@ document.addEventListener("DOMContentLoaded", function () {
     selectToggle("mental_disability_type", "mental_disability_other_group", ["Other"]);
 
     // === Wears Glasses → show prescription ===
-    radioToggle("uses_glasses", "glass_prescription_group", ["1"]);
+    // FEMIS: Glasses Prescription required when Visually FIT = No
+    radioToggle("visually_fit", "glass_prescription_group", ["0"]);
 
     // === Hearing Aid → show details ===
     radioToggle("uses_hearing_aid", "hearing_aid_details_group", ["1"]);
@@ -407,13 +408,58 @@ document.addEventListener("DOMContentLoaded", function () {
     radioToggle("has_major_disability", "disability_fields", ["1"]);
     radioToggle("has_mental_disability", "mental_disability_type_group", ["1"]);
     radioToggle("has_hearing_difficulties", "hearing_aid_group", ["1"]);
-    radioToggle("difficulty_walking", "crutches_group", ["1"]);
     radioToggle("is_refugee", "idp_fields", ["1"]);
     radioToggle("is_registered_refugee", "refugee_card_group", ["1"]);
     radioToggle("digital_device_at_home", "device_type_group", ["1"]);
-    radioToggle("transport_facility", "bus_route_group", ["Bus"]);
+    radioToggle("transport_facility", "bus_route_group", ["Institution Bus"]);
     radioToggle("scholarship", "scholarship_details_group", ["1"]);
     radioToggle("cocurricular_activities", "co_curricular_details_group", ["1"]);
+
+    // === Guardian block always visible (FEMIS: guardian fields mandatory) ===
+    (function () {
+        var orphanFields = document.getElementById("orphan_fields");
+        if (orphanFields) orphanFields.style.display = "block";
+    })();
+
+    // === Class Admitted In options follow selected Class ===
+    // Class 1-5 → admitted 1..5; Class 6-10 → admitted 6..10
+    (function () {
+        var caiGroup = document.getElementById("class_admitted_group");
+        if (!caiGroup) return;
+        var classRadios = document.querySelectorAll('input[name="class_id"]');
+        function updateClassAdmitted() {
+            var checked = document.querySelector('input[name="class_id"]:checked');
+            if (!checked) return;
+            var classNum = parseInt(checked.value, 10);
+            if (isNaN(classNum)) return;
+            var lo = classNum <= 5 ? 1 : 6;
+            var hi = classNum <= 5 ? 5 : 10;
+            var current = document.querySelector('input[name="class_admitted_id"]:checked');
+            var currentVal = current ? current.value : "";
+            caiGroup.innerHTML = "";
+            for (var n = lo; n <= hi; n++) {
+                var div = document.createElement("div");
+                div.className = "form-check form-check-inline";
+                var input = document.createElement("input");
+                input.className = "form-check-input";
+                input.type = "radio";
+                input.name = "class_admitted_id";
+                input.id = "cai_" + n;
+                input.value = String(n);
+                input.required = true;
+                if (currentVal === String(n)) input.checked = true;
+                var label = document.createElement("label");
+                label.className = "form-check-label";
+                label.htmlFor = "cai_" + n;
+                label.textContent = "Class " + n;
+                div.appendChild(input);
+                div.appendChild(label);
+                caiGroup.appendChild(div);
+            }
+        }
+        classRadios.forEach(function (r) { r.addEventListener("change", updateClassAdmitted); });
+        updateClassAdmitted();
+    })();
 
     // === FDE Institution → Other text ===
     var fdeSelect = document.getElementById("last_institution_fde");
@@ -498,10 +544,30 @@ document.addEventListener("DOMContentLoaded", function () {
     // ==================================================================
     var mandatoryByTab = {
         0: ["name", "is_bform_available", "gender", "date_of_birth", "birth_province_id", "birth_district_id", "nationality", "address_type", "contact_number", "city_id", "religion", "language_id", "email"],
-        1: ["father_name", "father_cnic", "is_father_alive", "father_profession", "mother_name", "is_mother_alive", "mother_profession"],
-        2: ["class_id", "section_id", "date_of_admission", "class_admitted_id", "medium_of_instruction", "mode_of_study", "admission_number", "primary_education_completion_years", "total_siblings"],
+        1: [
+            "father_name", "father_cnic", "is_father_alive", "father_profession",
+            "father_qualification", "father_monthly_income",
+            "mother_name", "is_mother_alive", "mother_profession",
+            "is_orphan",
+            "guardian_name", "guardian_cnic", "guardian_relation",
+            "guardian_contact", "guardian_profession", "guardian_income",
+        ],
+        2: [
+            "class_id", "section_id", "date_of_admission", "class_admitted_id",
+            "medium_of_instruction", "mode_of_study", "admission_number",
+            "total_siblings", "school_meal_program_availing",
+            "transport_facility", "scholarship", "cocurricular_activities",
+        ],
         3: ["emergency_name", "emergency_contact", "emergency_relation"],
-        5: ["difficulty_seeing_board", "difficulty_reading_writing", "difficulty_remembering", "difficulty_concentrating"],
+        4: ["is_refugee"],
+        5: [
+            "has_major_disability", "has_mental_disability", "visually_fit",
+            "uses_glasses", "has_hearing_difficulties", "difficulty_listening",
+            "difficulty_walking", "uses_crutches_walker",
+            "difficulty_seeing_board", "difficulty_reading_writing",
+            "difficulty_remembering", "difficulty_concentrating",
+        ],
+        6: ["digital_device_at_home", "internet_at_home"],
     };
 
     function validateTab(tabIndex) {
@@ -536,16 +602,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Conditional required fields — only validate if the parent field is visible
         var conditionalRequired = [
-            {fields: ["guardian_name", "guardian_cnic", "guardian_relation", "guardian_contact", "guardian_profession", "guardian_income", "orphan_type"], trigger: "is_orphan", values: ["1"]},
+            {fields: ["orphan_type"], trigger: "is_orphan", values: ["1"]},
             {fields: ["scholarship_details"], trigger: "scholarship", values: ["1"]},
             {fields: ["cocurricular_details"], trigger: "cocurricular_activities", values: ["1"]},
             {fields: ["idp_status_id"], trigger: "is_refugee", values: ["1"]},
+            {fields: ["is_registered_refugee"], trigger: "is_refugee", values: ["1"]},
             {fields: ["refugee_card_number"], trigger: "is_registered_refugee", values: ["1"]},
             {fields: ["disability_types[]"], trigger: "has_major_disability", values: ["1"]},
             {fields: ["mental_disability_type"], trigger: "has_mental_disability", values: ["1"]},
-            {fields: ["glass_prescription"], trigger: "uses_glasses", values: ["1"]},
-            {fields: ["hearing_aid_details"], trigger: "has_hearing_difficulties", values: ["1"]},
+            {fields: ["glass_prescription"], trigger: "visually_fit", values: ["0"]},
+            {fields: ["uses_hearing_aid"], trigger: "has_hearing_difficulties", values: ["1"]},
             {fields: ["bus_route"], trigger: "transport_facility", values: ["Bus", "Institution Bus"]},
+            {fields: ["digital_device_type[]"], trigger: "digital_device_at_home", values: ["1"]},
             {fields: ["emergency_relation_other"], trigger: "emergency_relation", values: ["Other", "Others"]},
         ];
         conditionalRequired.forEach(function (cr) {
@@ -563,6 +631,23 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         });
 
+        // Mother Income: mandatory unless profession = Housewife
+        var motherProf = activeTab.querySelector('select[name="mother_profession"]');
+        var motherIncome = activeTab.querySelector('select[name="mother_monthly_income"]');
+        if (motherProf && motherIncome && motherProf.value && motherProf.value !== "Housewife" && !motherIncome.value) {
+            missing.push("Mother's Income (per month)");
+        }
+
+        // Orphan Yes not allowed if both parents alive
+        var orphanYes = activeTab.querySelector('input[name="is_orphan"]:checked');
+        if (orphanYes && orphanYes.value === "1") {
+            var fa = activeTab.querySelector('input[name="is_father_alive"]:checked');
+            var ma = activeTab.querySelector('input[name="is_mother_alive"]:checked');
+            if (fa && fa.value === "1" && ma && ma.value === "1") {
+                missing.push("Is Orphan (not allowed when both parents are alive)");
+            }
+        }
+
         if (missing.length > 0) {
             alert("Please fill the following mandatory fields:\n\n• " + missing.join("\n• "));
             return false;
@@ -575,7 +660,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // ==================================================================
     if (saveNextBtn) {
         saveNextBtn.addEventListener("click", function () {
-            if (currentTab < 6 && !validateTab(currentTab)) return;
+            if (!validateTab(currentTab)) return;
 
             var data = {};
             var activeTab = document.querySelector(".tab-pane.active");

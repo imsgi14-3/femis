@@ -995,11 +995,12 @@ tab_2_parents_guardian:
       type: text
       required: false
       source_field: mother_profession_other
-    income_per_month:
+    mother_income_per_month:
       label: Mother's Income (per month)
       type: dropdown
       required: false
       source_field: mother_monthly_income
+      note: Required unless mother_profession = Housewife
     bps:
       label: Mother's BPS
       type: dropdown
@@ -1017,8 +1018,9 @@ tab_2_parents_guardian:
     orphan_type:
       label: Orphan Type
       type: dropdown
-      required: true
+      required: false
       source_field: orphan_type
+      note: Required when is_orphan = Yes; orphan Yes not allowed if both parents alive
       options:
       - Single Orphan
       - Double Orphan
@@ -1035,7 +1037,7 @@ tab_2_parents_guardian:
     guardian_relation:
       label: Guardian Relation
       type: dropdown
-      required: false
+      required: true
       source_field: guardian_relation
       options:
       - Uncle
@@ -1049,9 +1051,9 @@ tab_2_parents_guardian:
       required: false
       source_field: guardian_relation_other
     guardian_contact:
-      label: Guardian Contact
+      label: Guardian Contact / WhatsApp
       type: text
-      required: false
+      required: true
       source_field: guardian_contact
       validation: mobile_pakistani
     guardian_email:
@@ -1079,7 +1081,7 @@ tab_2_parents_guardian:
     guardian_income:
       label: Guardian Income
       type: dropdown
-      required: false
+      required: true
       source_field: guardian_income
       options:
       - Lessthan 50,000
@@ -1654,8 +1656,9 @@ tab_3_educational_details:
     number_of_years_primary:
       label: Primary Education Completion (Years)
       type: text
-      required: true
+      required: false
       source_field: primary_education_completion_years
+      note: Not mandatory in FEMIS
     avail_institutional_meal:
       label: Meal Program
       type: radio
@@ -1678,11 +1681,10 @@ tab_3_educational_details:
       required: true
       source_field: transport_facility
       options:
-      - 'Yes'
-      - 'No'
       - Institution Bus
       - Private
-      note: DB column is transport_facility; portal may use name transport or transport_facility
+      - None
+      note: DB column is transport_facility; option is Institution Bus (not Bus)
     group:
       label: Group
       type: dropdown
@@ -2020,15 +2022,17 @@ tab_5_idps_details:
     - 'Yes'
     - 'No'
   idp_status:
-    label: IDP Status
-    type: radio
-    required: false
-    source_field: idp_status_id
+      label: IDP Status
+      type: radio
+      required: false
+      source_field: idp_status_id
+      note: Required when is_refugee = Yes
   is_registered_as_refugee:
     label: Is Registered as Refugee
     type: radio
     required: false
     source_field: is_registered_refugee
+    note: Required when is_refugee = Yes
     options:
     - 'Yes'
     - 'No'
@@ -2134,8 +2138,9 @@ tab_6_health_details:
   glass_prescription:
     label: Glasses Prescription
     type: text
-    required: true
+    required: false
     source_field: glass_prescription
+    note: Required when visually_fit = No
   vision_difficulty:
     label: Difficulty Seeing Board
     type: dropdown

@@ -389,7 +389,7 @@
       <input type="email" class="form-control" name="father_email">
     </div>
     <div class="col-md-6">
-      <label class="form-label">Father's Qualification</label>
+      <label class="form-label">Father's Qualification <span class="text-danger">*</span></label>
       <select class="form-select" name="father_qualification" id="father_qualification">
         <option value="">— Select —</option>
         {% for q in opts.father_qualifications %}
@@ -411,7 +411,7 @@
       <input type="text" class="form-control" name="father_profession_other" placeholder="Specify profession">
     </div>
     <div class="col-md-6">
-      <label class="form-label">Father's Income (per month)</label>
+      <label class="form-label">Father's Income (per month) <span class="text-danger">*</span></label>
       <select class="form-select" name="father_monthly_income" id="father_income">
         <option value="">— Select —</option>
         {% for i in opts.father_income %}
@@ -509,13 +509,14 @@
       <input type="text" class="form-control" name="mother_profession_other" placeholder="Specify profession">
     </div>
     <div class="col-md-6">
-      <label class="form-label">Mother's Income (per month)</label>
+      <label class="form-label">Mother's Income (per month) <span class="text-danger">*</span></label>
       <select class="form-select" name="mother_monthly_income" id="mother_income">
         <option value="">— Select —</option>
         {% for i in opts.mother_income %}
         <option value="{{ i }}">{{ i }}</option>
         {% endfor %}
       </select>
+      <div class="form-text">Required unless Mother's Profession is Housewife.</div>
     </div>
     <div class="col-md-6">
       <label class="form-label">Mother's BPS</label>
@@ -532,11 +533,11 @@
 
   <h6 class="text-primary mb-3 border-bottom pb-2">Orphan / Guardian Information</h6>
   <div class="row g-3 mb-4">
-    <div class="col-md-6">
-      <label class="form-label">Is Orphan Child</label>
+<div class="col-md-6">
+      <label class="form-label">Is Orphan Child <span class="text-danger">*</span></label>
       <div>
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="is_orphan" id="is_orphan_yes" value="1">
+          <input class="form-check-input" type="radio" name="is_orphan" id="is_orphan_yes" value="1" required>
           <label class="form-check-label" for="is_orphan_yes">Yes</label>
         </div>
         <div class="form-check form-check-inline">
@@ -547,28 +548,29 @@
     </div>
   </div>
 
-  <div id="orphan_fields" style="display:none;">
+  <div id="orphan_fields">
     <div class="row g-3 mb-4">
       <div class="col-md-6">
-        <label class="form-label">Orphan Type</label>
+        <label class="form-label">Orphan Type <span class="text-danger">*</span></label>
         <select class="form-select" name="orphan_type" id="orphan_type">
           <option value="">— Select —</option>
           {% for ot in opts.orphan_types %}
           <option value="{{ ot }}">{{ ot }}</option>
           {% endfor %}
         </select>
+        <div class="form-text">Required when Is Orphan = Yes.</div>
       </div>
       <div class="col-md-6">
-        <label class="form-label">Guardian Name</label>
-        <input type="text" class="form-control" name="guardian_name">
+        <label class="form-label">Guardian Name <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" name="guardian_name" required>
       </div>
       <div class="col-md-6">
-        <label class="form-label">Guardian CNIC</label>
-        <input type="text" class="form-control" name="guardian_cnic" placeholder="XXXXX-XXXXXXX-X">
+        <label class="form-label">Guardian CNIC <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" name="guardian_cnic" placeholder="XXXXX-XXXXXXX-X" required>
       </div>
       <div class="col-md-6">
-        <label class="form-label">Guardian Relation</label>
-        <select class="form-select" name="guardian_relation" id="guardian_relation">
+        <label class="form-label">Guardian Relation <span class="text-danger">*</span></label>
+        <select class="form-select" name="guardian_relation" id="guardian_relation" required>
           <option value="">— Select —</option>
           {% for gr in opts.guardian_relations %}
           <option value="{{ gr }}">{{ gr }}</option>
@@ -580,8 +582,8 @@
         <input type="text" class="form-control" name="guardian_relation_other" placeholder="Specify relation">
       </div>
       <div class="col-md-6">
-        <label class="form-label">Guardian Contact</label>
-        <input type="tel" class="form-control" name="guardian_contact">
+        <label class="form-label">Guardian Contact / WhatsApp <span class="text-danger">*</span></label>
+        <input type="tel" class="form-control" name="guardian_contact" required>
       </div>
       <div class="col-md-6">
         <label class="form-label">Guardian Email</label>
@@ -592,8 +594,8 @@
         <input type="text" class="form-control" name="guardian_qualification">
       </div>
       <div class="col-md-6">
-        <label class="form-label">Guardian Profession</label>
-        <select class="form-select" name="guardian_profession" id="guardian_profession">
+        <label class="form-label">Guardian Profession <span class="text-danger">*</span></label>
+        <select class="form-select" name="guardian_profession" id="guardian_profession" required>
           <option value="">— Select —</option>
           {% for gp in opts.guardian_professions %}
           <option value="{{ gp }}">{{ gp }}</option>
@@ -605,8 +607,8 @@
         <input type="text" class="form-control" name="guardian_profession_other" placeholder="Specify profession">
       </div>
       <div class="col-md-6">
-        <label class="form-label">Guardian Income</label>
-        <select class="form-select" name="guardian_income" id="guardian_income">
+        <label class="form-label">Guardian Income <span class="text-danger">*</span></label>
+        <select class="form-select" name="guardian_income" id="guardian_income" required>
           <option value="">— Select —</option>
           {% for gi in opts.guardian_income %}
           <option value="{{ gi }}">{{ gi }}</option>
@@ -670,9 +672,9 @@
       <label class="form-label">Result / Percentage of Last Class passed completely</label>
       <input type="text" class="form-control" name="result_percentage">
     </div>
-    <div class="col-md-6">
+<div class="col-md-6">
       <label class="form-label">Date of Admission <span class="text-danger">*</span></label>
-      <input type="date" class="form-control" name="date_of_admission" required>
+      <input type="text" class="form-control" name="date_of_admission" placeholder="mm/dd/yyyy" pattern="\d{2}/\d{2}/\d{4}" title="Format: mm/dd/yyyy" required>
     </div>
     <div class="col-md-6">
       <label class="form-label">Admission Number <span class="text-danger">*</span></label>
@@ -688,9 +690,9 @@
         <option value="Other">Other</option>
       </select>
     </div>
-    <div class="col-md-6">
+<div class="col-md-6">
       <label class="form-label">Class Admitted In <span class="text-danger">*</span></label>
-      <div>
+      <div id="class_admitted_group">
         {% for cl in opts.classes %}
         <div class="form-check form-check-inline">
           <input class="form-check-input" type="radio" name="class_admitted_id" id="cai_{{ loop.index }}" value="{{ cl.replace('Class ', '') }}" required>
@@ -698,6 +700,7 @@
         </div>
         {% endfor %}
       </div>
+      <div class="form-text">Class 1–5 → admitted Class 1–5; Class 6–10 → admitted Class 6–10.</div>
     </div>
     <div class="col-md-6" id="last_institution_other_group" style="display:none;">
       <label class="form-label">Last Institution Other than FDE</label>
@@ -731,12 +734,13 @@
 
   <h6 class="text-primary mb-3 border-bottom pb-2">Additional Information</h6>
   <div class="row g-3 mb-4">
-    <div class="col-md-6">
-      <label class="form-label">Primary Education Completion (Years) <span class="text-danger">*</span></label>
-      <input type="text" class="form-control" name="primary_education_completion_years" required>
+<div class="col-md-6">
+      <label class="form-label">Primary Education Completion (Years)</label>
+      <input type="text" class="form-control" name="primary_education_completion_years">
+      <div class="form-text">Not mandatory in FEMIS.</div>
     </div>
     <div class="col-md-6">
-      <label class="form-label">Meal Program</label>
+      <label class="form-label">Meal Program <span class="text-danger">*</span></label>
       <div>
         <div class="form-check form-check-inline">
           <input class="form-check-input" type="radio" name="school_meal_program_availing" id="meal_yes" value="1">
@@ -775,12 +779,12 @@
       <label class="form-label">Siblings in Private</label>
       <input type="text" class="form-control" name="siblings_private">
     </div>
-    <div class="col-md-6">
-      <label class="form-label">Transport Facility</label>
+<div class="col-md-6">
+      <label class="form-label">Transport Facility <span class="text-danger">*</span></label>
       <div>
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="transport_facility" id="tf_bus" value="Bus">
-          <label class="form-check-label" for="tf_bus">Bus</label>
+          <input class="form-check-input" type="radio" name="transport_facility" id="tf_bus" value="Institution Bus" required>
+          <label class="form-check-label" for="tf_bus">Institution Bus</label>
         </div>
         <div class="form-check form-check-inline">
           <input class="form-check-input" type="radio" name="transport_facility" id="tf_private" value="Private">
@@ -803,11 +807,11 @@
         {% endfor %}
       </div>
     </div>
-    <div class="col-md-6">
-      <label class="form-label">Scholarship</label>
+<div class="col-md-6">
+      <label class="form-label">Scholarship <span class="text-danger">*</span></label>
       <div>
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="scholarship" id="sch_yes" value="1">
+          <input class="form-check-input" type="radio" name="scholarship" id="sch_yes" value="1" required>
           <label class="form-check-label" for="sch_yes">Yes</label>
         </div>
         <div class="form-check form-check-inline">
@@ -817,10 +821,10 @@
       </div>
     </div>
     <div class="col-md-6">
-      <label class="form-label">Co-curricular Activities</label>
+      <label class="form-label">Co-curricular Activities <span class="text-danger">*</span></label>
       <div>
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="cocurricular_activities" id="cc_yes" value="1">
+          <input class="form-check-input" type="radio" name="cocurricular_activities" id="cc_yes" value="1" required>
           <label class="form-check-label" for="cc_yes">Yes</label>
         </div>
         <div class="form-check form-check-inline">
@@ -872,11 +876,11 @@
 <div class="tab-pane fade" id="tab-5">
   <h6 class="text-primary mb-3 border-bottom pb-2">Refugee / IDP Information</h6>
   <div class="row g-3 mb-4">
-    <div class="col-md-6">
-      <label class="form-label">Is Student Refugee / IDP</label>
+<div class="col-md-6">
+      <label class="form-label">Is Student Refugee / IDP <span class="text-danger">*</span></label>
       <div>
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="is_refugee" id="iridp_yes" value="1">
+          <input class="form-check-input" type="radio" name="is_refugee" id="iridp_yes" value="1" required>
           <label class="form-check-label" for="iridp_yes">Yes</label>
         </div>
         <div class="form-check form-check-inline">
@@ -889,7 +893,7 @@
   <div id="idp_fields" style="display:none;">
     <div class="row g-3 mb-4">
       <div class="col-md-6">
-        <label class="form-label">IDP Status</label>
+        <label class="form-label">IDP Status <span class="text-danger">*</span></label>
         <div>
           {% for ids in opts.idp_status %}
           <div class="form-check form-check-inline">
@@ -900,7 +904,7 @@
         </div>
       </div>
       <div class="col-md-6">
-        <label class="form-label">Is Registered as Refugee</label>
+        <label class="form-label">Is Registered as Refugee <span class="text-danger">*</span></label>
         <div>
           <div class="form-check form-check-inline">
             <input class="form-check-input" type="radio" name="is_registered_refugee" id="irr_yes" value="1">
@@ -913,7 +917,7 @@
         </div>
       </div>
       <div class="col-md-6" id="refugee_card_group" style="display:none;">
-        <label class="form-label">Refugee Card Number</label>
+        <label class="form-label">Refugee Card Number <span class="text-danger">*</span></label>
         <input type="text" class="form-control" name="refugee_card_number">
       </div>
     </div>
@@ -924,11 +928,11 @@
 <div class="tab-pane fade" id="tab-6">
   <h6 class="text-primary mb-3 border-bottom pb-2">Disability Information</h6>
   <div class="row g-3 mb-4">
-    <div class="col-md-6">
-      <label class="form-label">Any Major Disability</label>
+<div class="col-md-6">
+      <label class="form-label">Any Major Disability <span class="text-danger">*</span></label>
       <div>
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="has_major_disability" id="md_yes" value="1">
+          <input class="form-check-input" type="radio" name="has_major_disability" id="md_yes" value="1" required>
           <label class="form-check-label" for="md_yes">Yes</label>
         </div>
         <div class="form-check form-check-inline">
@@ -960,11 +964,11 @@
 
   <h6 class="text-primary mb-3 border-bottom pb-2">Mental Health</h6>
   <div class="row g-3 mb-4">
-    <div class="col-md-6">
-      <label class="form-label">Any Mental Disability</label>
+<div class="col-md-6">
+      <label class="form-label">Any Mental Disability <span class="text-danger">*</span></label>
       <div>
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="has_mental_disability" id="mnd_yes" value="1">
+          <input class="form-check-input" type="radio" name="has_mental_disability" id="mnd_yes" value="1" required>
           <label class="form-check-label" for="mnd_yes">Yes</label>
         </div>
         <div class="form-check form-check-inline">
@@ -994,11 +998,11 @@
 
   <h6 class="text-primary mb-3 border-bottom pb-2">Vision</h6>
   <div class="row g-3 mb-4">
-    <div class="col-md-6">
-      <label class="form-label">Visually FIT</label>
+<div class="col-md-6">
+      <label class="form-label">Visually FIT <span class="text-danger">*</span></label>
       <div>
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="visually_fit" id="vf_yes" value="1">
+          <input class="form-check-input" type="radio" name="visually_fit" id="vf_yes" value="1" required>
           <label class="form-check-label" for="vf_yes">Yes</label>
         </div>
         <div class="form-check form-check-inline">
@@ -1008,10 +1012,10 @@
       </div>
     </div>
     <div class="col-md-6">
-      <label class="form-label">Wears Glasses</label>
+      <label class="form-label">Wears Glasses <span class="text-danger">*</span></label>
       <div>
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="uses_glasses" id="wg_yes" value="1">
+          <input class="form-check-input" type="radio" name="uses_glasses" id="wg_yes" value="1" required>
           <label class="form-check-label" for="wg_yes">Yes</label>
         </div>
         <div class="form-check form-check-inline">
@@ -1021,8 +1025,9 @@
       </div>
     </div>
     <div class="col-md-6" id="glass_prescription_group" style="display:none;">
-      <label class="form-label">Glasses Prescription</label>
-      <input type="text" class="form-control" name="glass_prescription" placeholder="Specify prescription details">
+      <label class="form-label">Glasses Prescription <span class="text-danger">*</span></label>
+      <input type="text" class="form-control" name="glass_prescription" placeholder="Specify prescription details" required>
+      <div class="form-text">Required when Visually FIT = No.</div>
     </div>
     <div class="col-md-6">
       <label class="form-label">Difficulty Seeing Board <span class="text-danger">*</span></label>
@@ -1039,11 +1044,11 @@
 
   <h6 class="text-primary mb-3 border-bottom pb-2">Hearing</h6>
   <div class="row g-3 mb-4">
-    <div class="col-md-6">
-      <label class="form-label">Has Hearing Difficulty</label>
+<div class="col-md-6">
+      <label class="form-label">Has Hearing Difficulty <span class="text-danger">*</span></label>
       <div>
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="has_hearing_difficulties" id="hd_yes" value="1">
+          <input class="form-check-input" type="radio" name="has_hearing_difficulties" id="hd_yes" value="1" required>
           <label class="form-check-label" for="hd_yes">Yes</label>
         </div>
         <div class="form-check form-check-inline">
@@ -1053,10 +1058,10 @@
       </div>
     </div>
     <div class="col-md-6" id="hearing_aid_group" style="display:none;">
-      <label class="form-label">Uses Hearing Aid</label>
+      <label class="form-label">Uses Hearing Aid <span class="text-danger">*</span></label>
       <div>
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="uses_hearing_aid" id="uha_yes" value="1">
+          <input class="form-check-input" type="radio" name="uses_hearing_aid" id="uha_yes" value="1" required>
           <label class="form-check-label" for="uha_yes">Yes</label>
         </div>
         <div class="form-check form-check-inline">
@@ -1070,10 +1075,10 @@
       <input type="text" class="form-control" name="hearing_aid_details" placeholder="Specify hearing aid details">
     </div>
     <div class="col-md-6">
-      <label class="form-label">Difficulty Listening</label>
+      <label class="form-label">Difficulty Listening <span class="text-danger">*</span></label>
       <div>
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="difficulty_listening" id="dlis_yes" value="1">
+          <input class="form-check-input" type="radio" name="difficulty_listening" id="dlis_yes" value="1" required>
           <label class="form-check-label" for="dlis_yes">Yes</label>
         </div>
         <div class="form-check form-check-inline">
@@ -1086,11 +1091,11 @@
 
   <h6 class="text-primary mb-3 border-bottom pb-2">Mobility</h6>
   <div class="row g-3 mb-4">
-    <div class="col-md-6">
-      <label class="form-label">Difficulty Walking</label>
+<div class="col-md-6">
+      <label class="form-label">Difficulty Walking <span class="text-danger">*</span></label>
       <div>
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="difficulty_walking" id="dw_yes" value="1">
+          <input class="form-check-input" type="radio" name="difficulty_walking" id="dw_yes" value="1" required>
           <label class="form-check-label" for="dw_yes">Yes</label>
         </div>
         <div class="form-check form-check-inline">
@@ -1099,11 +1104,11 @@
         </div>
       </div>
     </div>
-    <div class="col-md-6" id="crutches_group" style="display:none;">
-      <label class="form-label">Uses Crutches / Walker</label>
+<div class="col-md-6">
+      <label class="form-label">Uses Crutches / Walker <span class="text-danger">*</span></label>
       <div>
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="uses_crutches_walker" id="ucw_yes" value="1">
+          <input class="form-check-input" type="radio" name="uses_crutches_walker" id="ucw_yes" value="1" required>
           <label class="form-check-label" for="ucw_yes">Yes</label>
         </div>
         <div class="form-check form-check-inline">
@@ -1173,11 +1178,11 @@
 <div class="tab-pane fade" id="tab-7">
   <h6 class="text-primary mb-3 border-bottom pb-2">Digital Access Information</h6>
   <div class="row g-3 mb-4">
-    <div class="col-md-6">
-      <label class="form-label">Access to Digital Device</label>
+<div class="col-md-6">
+      <label class="form-label">Access to Digital Device <span class="text-danger">*</span></label>
       <div>
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="digital_device_at_home" id="dda_yes" value="1">
+          <input class="form-check-input" type="radio" name="digital_device_at_home" id="dda_yes" value="1" required>
           <label class="form-check-label" for="dda_yes">Yes</label>
         </div>
         <div class="form-check form-check-inline">
@@ -1187,7 +1192,7 @@
       </div>
     </div>
     <div class="col-md-6" id="device_type_group" style="display:none;">
-      <label class="form-label">Device Type</label>
+      <label class="form-label">Device Type <span class="text-danger">*</span></label>
       <div>
         {% for dt in opts.device_types %}
         <div class="form-check form-check-inline">
@@ -1196,12 +1201,13 @@
         </div>
         {% endfor %}
       </div>
+      <div class="form-text">Required when Access to Digital Device = Yes.</div>
     </div>
     <div class="col-md-6">
-      <label class="form-label">Internet Access</label>
+      <label class="form-label">Internet Access <span class="text-danger">*</span></label>
       <div>
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="internet_at_home" id="ia_yes" value="1">
+          <input class="form-check-input" type="radio" name="internet_at_home" id="ia_yes" value="1" required>
           <label class="form-check-label" for="ia_yes">Yes</label>
         </div>
         <div class="form-check form-check-inline">
