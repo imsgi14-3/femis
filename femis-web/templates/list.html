@@ -33,7 +33,7 @@
                     <td>{{ s.class_id }} - {{ s.section_id }}</td>
                     <td>{{ s.father_name }}</td>
                     <td>{{ s.contact_number }}</td>
-                    <td>{{ s.created_at.strftime('%d %b %Y %I:%M %p') }}</td>
+                    <td>{{ s.created_at.strftime('%d %b %Y %I:%M %p') if s.created_at else '—' }}</td>
                     <td>
                         <a href="/students/{{ s.id }}/json" class="btn btn-outline-secondary btn-sm" target="_blank" title="JSON">
                             <i class="bi bi-code-slash"></i>

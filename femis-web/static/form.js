@@ -91,6 +91,7 @@ document.addEventListener("DOMContentLoaded", function () {
             fetch("/api/districts/" + encodeURIComponent(provinceText))
                 .then(function (r) { return r.json(); })
                 .then(function (districts) {
+                    var pending = districtEl.getAttribute("data-pending-value");
                     districtEl.innerHTML = '<option value="">Select District</option>';
                     districts.forEach(function (d) {
                         var opt = document.createElement("option");
@@ -98,6 +99,10 @@ document.addEventListener("DOMContentLoaded", function () {
                         districtEl.appendChild(opt);
                     });
                     districtEl.disabled = false;
+                    if (pending) {
+                        districtEl.value = pending;
+                        districtEl.removeAttribute("data-pending-value");
+                    }
                 })
                 .catch(function () {
                     districtEl.innerHTML = '<option value="">Error loading districts</option>';
@@ -809,7 +814,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     "housing_society_id": "housing_society_id",
                     "nationality_id": "nationality_id",
                     "religion_id": "religion_id",
-                    "language_id": "mother_language",
+                    "language_id": "language_id",
                     "city_id": "city_id",
                     "same_as_permanent_address": "same_as_permanent_address",
                     "house": "house", "street": "street",
@@ -852,6 +857,9 @@ document.addEventListener("DOMContentLoaded", function () {
                     var sel = document.querySelector('select[name="' + formName + '"]');
                     if (sel) {
                         sel.value = val;
+                        if (String(sel.value) !== String(val)) {
+                            sel.setAttribute("data-pending-value", val);
+                        }
                         sel.dispatchEvent(new Event("change"));
                         return;
                     }
@@ -859,6 +867,16 @@ document.addEventListener("DOMContentLoaded", function () {
                     // Try radio
                     var radio = document.querySelector('input[name="' + formName + '"][value="' + val + '"]');
                     if (radio) { radio.checked = true; radio.dispatchEvent(new Event("change")); return; }
+
+                    if (formName.slice(-2) === "[]") {
+                        var checks = document.querySelectorAll('input[type="checkbox"][name="' + formName + '"]');
+                        if (checks.length) {
+                            var wanted = String(val).split(",").map(function (x) { return x.trim(); }).filter(Boolean);
+                            checks.forEach(function (cb) { cb.checked = wanted.indexOf(cb.value) >= 0; });
+                            checks[0].dispatchEvent(new Event("change"));
+                            return;
+                        }
+                    }
 
                     // Try input
                     var input = document.querySelector('[name="' + formName + '"]');

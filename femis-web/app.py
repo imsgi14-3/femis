@@ -2,12 +2,13 @@
 Flask app replicating the FEMIS portal's 7-tab student form.
 Parents/teachers fill this; the bot reads from the DB and fills the real portal.
 """
-import json, os
+import json, os, re
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy.exc import IntegrityError
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "femis-web-dev-key-change-in-prod")
@@ -28,20 +29,6 @@ db = SQLAlchemy(app)
 
 OPTIONS_PATH = Path(__file__).parent / "portal_options.json"
 
-with app.app_context():
-    db.create_all()
-    # Lightweight migration: add columns missing from older SQLite DBs
-    try:
-        from sqlalchemy import text
-        with db.engine.connect() as conn:
-            cols = {r[1] for r in conn.execute(text("PRAGMA table_info(students)"))}
-            for col in ("sub_sector_id", "present_sub_sector_id"):
-                if col not in cols:
-                    conn.execute(text(f"ALTER TABLE students ADD COLUMN {col} VARCHAR(50)"))
-            conn.commit()
-    except Exception:
-        pass
-
 # ---------------------------------------------------------------------------
 # Models
 # ---------------------------------------------------------------------------
@@ -49,7 +36,10 @@ with app.app_context():
 class Student(db.Model):
     __tablename__ = "students"
     id = db.Column(db.Integer, primary_key=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    # Phase 3B.3: latest modification time (UTC, naive — same convention as created_at).
+    # Version/staleness marker only — bot-job snapshots are separate (docs/phase3b3-schema.md).
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     submitted = db.Column(db.Boolean, default=False)
     locked = db.Column(db.Boolean, default=False)
     role = db.Column(db.String(20), default="student")
@@ -156,6 +146,7 @@ class Student(db.Model):
     siblings_same = db.Column(db.String(10))
     siblings_private = db.Column(db.String(10))
     bus_route = db.Column(db.String(50))
+    transport = db.Column(db.String(50))
     scholarship = db.Column(db.String(10))
     cocurricular_activities = db.Column(db.String(10))
     scholarship_details = db.Column(db.String(200))
@@ -223,6 +214,165 @@ class Teacher(db.Model):
 
 
 # ---------------------------------------------------------------------------
+# Bot job / attempt storage (Phase 3B.3 — schema only; no API in this phase)
+# ---------------------------------------------------------------------------
+# One row = one execution attempt (one-to-many per student). Historical rows
+# are never overwritten; retry creates a new attempt_number.
+# Field classification: docs/phase3b3-schema.md
+
+BOT_JOB_OPEN_STATUSES = ("pending", "claimed", "running")
+BOT_JOB_TERMINAL_STATUSES = ("success", "failed", "cancelled")
+BOT_JOB_STATUSES = BOT_JOB_OPEN_STATUSES + BOT_JOB_TERMINAL_STATUSES
+BOT_JOB_FAILURE_CATEGORIES = (
+    "validation",
+    "field_mapping",
+    "browser",
+    "network",
+    "femis",
+    "captcha",
+    "timeout",
+    "auth_portal",
+    "cancelled_by_operator",
+    "unknown",
+)
+
+
+class BotJob(db.Model):
+    __tablename__ = "bot_jobs"
+
+    # --- identity ---
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(
+        db.Integer, db.ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    attempt_number = db.Column(db.Integer, nullable=False)
+
+    # --- lifecycle ---
+    status = db.Column(db.String(20), nullable=False, default="pending")
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    claimed_at = db.Column(db.DateTime)
+    started_at = db.Column(db.DateTime)
+    completed_at = db.Column(db.DateTime)
+
+    # --- snapshot / version (materialized at claim; null until then) ---
+    student_data_version = db.Column(db.DateTime)
+    snapshot_json = db.Column(db.Text)
+    snapshot_materialized_at = db.Column(db.DateTime)
+
+    # --- claim / lease (values configurable at runtime — not baked in) ---
+    claimed_by = db.Column(db.String(80))
+    lease_expires_at = db.Column(db.DateTime)
+    last_heartbeat_at = db.Column(db.DateTime)
+    claim_generation = db.Column(db.Integer, nullable=False, default=0)
+
+    # --- progress ---
+    current_tab = db.Column(db.Integer)
+    last_completed_tab = db.Column(db.Integer)
+
+    # --- failure / outcome ---
+    failure_category = db.Column(db.String(40))
+    failed_tab = db.Column(db.Integer)
+    failed_field = db.Column(db.String(200))
+    error_message = db.Column(db.Text)
+    outcome_known = db.Column(db.Boolean, nullable=True)
+    bot_result_code = db.Column(db.String(30))
+
+    # --- success evidence (Finish + indicator; schema never equates fill_success with success) ---
+    finish_clicked = db.Column(db.Boolean)
+    indicator_detected = db.Column(db.Boolean)
+
+    # --- retry / audit ---
+    prior_attempt_id = db.Column(db.Integer, db.ForeignKey("bot_jobs.id", ondelete="SET NULL"))
+    created_by = db.Column(db.String(100))
+    requested_at = db.Column(db.DateTime)
+    retry_requested_at = db.Column(db.DateTime)
+    idempotency_key = db.Column(db.String(120))
+
+    __table_args__ = (
+        db.UniqueConstraint("student_id", "attempt_number", name="uq_bot_jobs_student_attempt"),
+        db.UniqueConstraint("idempotency_key", name="uq_bot_jobs_idempotency_key"),
+        db.CheckConstraint(
+            "status IN ('pending','claimed','running','success','failed','cancelled')",
+            name="ck_bot_jobs_status",
+        ),
+        db.CheckConstraint(
+            "failure_category IS NULL OR failure_category IN "
+            "('validation','field_mapping','browser','network','femis','captcha',"
+            "'timeout','auth_portal','cancelled_by_operator','unknown')",
+            name="ck_bot_jobs_failure_category",
+        ),
+        db.CheckConstraint("attempt_number >= 1", name="ck_bot_jobs_attempt_number"),
+        db.CheckConstraint(
+            "status <> 'success' OR (COALESCE(outcome_known, 0) = 1"
+            " AND COALESCE(finish_clicked, 0) = 1 AND COALESCE(indicator_detected, 0) = 1)",
+            name="ck_bot_jobs_success_evidence",
+        ),
+        db.CheckConstraint(
+            "snapshot_json IS NULL OR student_data_version IS NOT NULL",
+            name="ck_bot_jobs_snapshot_requires_version",
+        ),
+        # At most one open job per student (DB-level, race-safe).
+        db.Index(
+            "uq_bot_jobs_open_per_student",
+            "student_id",
+            unique=True,
+            sqlite_where=db.text("status IN ('pending','claimed','running')"),
+        ),
+        db.Index("ix_bot_jobs_status_created", "status", "created_at"),
+        db.Index("ix_bot_jobs_lease", "status", "lease_expires_at"),
+        db.Index("ix_bot_jobs_student_created", "student_id", "created_at"),
+    )
+
+    def to_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
+
+# ---------------------------------------------------------------------------
+# Schema bootstrap / lightweight migration (runs after models are registered)
+# ---------------------------------------------------------------------------
+
+with app.app_context():
+    db.create_all()
+    # Lightweight migration: add columns missing from older SQLite DBs
+    try:
+        from sqlalchemy import text
+        with db.engine.connect() as conn:
+            cols = {r[1] for r in conn.execute(text("PRAGMA table_info(students)"))}
+            for col in ("sub_sector_id", "present_sub_sector_id"):
+                if col not in cols:
+                    conn.execute(text(f"ALTER TABLE students ADD COLUMN {col} VARCHAR(50)"))
+                    cols.add(col)
+            # Phase 3B.3: students.updated_at (UTC version marker; see docs/phase3b3-schema.md)
+            if "updated_at" not in cols:
+                conn.execute(text("ALTER TABLE students ADD COLUMN updated_at DATETIME"))
+            conn.execute(text(
+                "UPDATE students SET updated_at = COALESCE(created_at, CURRENT_TIMESTAMP) "
+                "WHERE updated_at IS NULL"
+            ))
+            # One record per B-Form/CNIC (portal rule: "B-Form Number has already been
+            # taken"). Normalized digits-only uniqueness; empty values stay exempt.
+            # Runs every startup — CREATE INDEX IF NOT EXISTS is idempotent, and
+            # db.create_all() never adds indexes to pre-existing tables.
+            conn.execute(text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_students_b_form ON students ("
+                "replace(replace(replace(b_form, '-', ''), ' ', ''), '.', '')) "
+                "WHERE b_form IS NOT NULL AND b_form <> ''"
+            ))
+            conn.commit()
+    except Exception as e:
+        print(f"schema migration warning: {e}", flush=True)
+
+
+# ---------------------------------------------------------------------------
+# Phase 3B.4 — bot-job API blueprint (store/lifecycle only; no auto-create)
+# ---------------------------------------------------------------------------
+
+from job_api import bp as job_api_bp  # noqa: E402
+
+app.register_blueprint(job_api_bp)
+
+
+# ---------------------------------------------------------------------------
 # Seed data
 # ---------------------------------------------------------------------------
 
@@ -272,7 +422,49 @@ FORM_FIELD_MAP = {
     "result_percentage": "last_class_result",
     "digital_device_type[]": "digital_device_type",
     "present_address": "present_address_other",
+    "transport_facility": "transport",
+    "refugee_card_number": "refugee_card",
+    "disability_types[]": "disability_types",
 }
+
+
+def _map_form_data(data):
+    mapped = {}
+    for form_key, value in (data or {}).items():
+        db_col = FORM_FIELD_MAP.get(form_key, form_key)
+        if db_col and hasattr(Student, db_col):
+            mapped[db_col] = value
+    return mapped
+
+
+def _b_form_digits(value):
+    return re.sub(r"\D", "", value or "")
+
+
+def _b_form_conflict(b_form, exclude_id=None):
+    """Return the student row already holding this B-Form/CNIC, or None.
+
+    Compares digits-only so '35202-1234567-1' == '3520212345671'. Empty/None
+    never conflicts (students without a B-Form are allowed to repeat).
+    """
+    target = _b_form_digits(b_form)
+    if not target:
+        return None
+    query = Student.query.filter(Student.b_form.isnot(None))
+    if exclude_id:
+        query = query.filter(Student.id != exclude_id)
+    for row in query.all():
+        if _b_form_digits(row.b_form) == target:
+            return row
+    return None
+
+
+def _b_form_error(holder, b_form):
+    return (
+        f"B-Form/CNIC {b_form} is already used by student '{holder.name}' "
+        f"(id {holder.id}). The portal keeps one record per CNIC — edit that "
+        f"record instead of creating a duplicate."
+    )
 
 
 @app.route("/api/save-tab", methods=["POST"])
@@ -282,11 +474,7 @@ def api_save_tab():
     student_id = payload.get("student_id")
     data = payload.get("data", {})
 
-    mapped = {}
-    for form_key, value in data.items():
-        db_col = FORM_FIELD_MAP.get(form_key, form_key)
-        if db_col and hasattr(Student, db_col):
-            mapped[db_col] = value
+    mapped = _map_form_data(data)
 
     if student_id:
         student = Student.query.get(student_id)
@@ -303,13 +491,28 @@ def api_save_tab():
             return jsonify({"ok": False, "error": "Student does not belong to your class"}), 403
         if student.locked and role != "teacher":
             return jsonify({"ok": False, "error": "Record is locked by teacher"}), 403
+        if "b_form" in mapped:
+            holder = _b_form_conflict(mapped["b_form"], exclude_id=student.id)
+            if holder:
+                return jsonify({"ok": False, "error": _b_form_error(holder, mapped["b_form"])}), 409
         for k, v in mapped.items():
             setattr(student, k, v)
     else:
+        if "b_form" in mapped:
+            holder = _b_form_conflict(mapped["b_form"])
+            if holder:
+                return jsonify({"ok": False, "error": _b_form_error(holder, mapped["b_form"])}), 409
         student = Student(**mapped)
         db.session.add(student)
 
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        holder = _b_form_conflict(mapped.get("b_form"))
+        if holder:
+            return jsonify({"ok": False, "error": _b_form_error(holder, mapped["b_form"])}), 409
+        raise
     return jsonify({"ok": True, "student_id": student.id})
 
 
@@ -322,8 +525,22 @@ def api_final_submit():
     student = Student.query.get(student_id)
     if not student:
         return jsonify({"ok": False, "error": "Student not found"}), 404
+    mapped = _map_form_data(payload.get("data"))
+    if "b_form" in mapped:
+        holder = _b_form_conflict(mapped["b_form"], exclude_id=student.id)
+        if holder:
+            return jsonify({"ok": False, "error": _b_form_error(holder, mapped["b_form"])}), 409
+    for k, v in mapped.items():
+        setattr(student, k, v)
     student.submitted = True
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        holder = _b_form_conflict(mapped.get("b_form"), exclude_id=student.id)
+        if holder:
+            return jsonify({"ok": False, "error": _b_form_error(holder, mapped["b_form"])}), 409
+        raise
     return jsonify({"ok": True, "student_id": student.id})
 
 
@@ -353,10 +570,24 @@ def api_upload_file():
 @app.route("/submit", methods=["POST"])
 def submit():
     data = request.form.to_dict()
+    if data.get("b_form"):
+        holder = _b_form_conflict(data["b_form"])
+        if holder:
+            flash(_b_form_error(holder, data["b_form"]), "error")
+            return redirect(url_for("index"))
     student = Student(**{k: v for k, v in data.items() if hasattr(Student, k)})
     student.submitted = True
     db.session.add(student)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        holder = _b_form_conflict(data.get("b_form"))
+        if holder:
+            flash(_b_form_error(holder, data["b_form"]), "error")
+        else:
+            raise
+        return redirect(url_for("index"))
     flash("Student data submitted successfully!", "success")
     return redirect(url_for("success", student_id=student.id))
 

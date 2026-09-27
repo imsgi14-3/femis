@@ -47,6 +47,14 @@ CAPITAL_NAME_SOURCES = {
 }
 
 
+def is_submission_success(finish_clicked: bool, indicator_detected: bool) -> bool:
+    """SUBMISSION_SUCCESS: official Finish action completed AND completion detected.
+
+    Fill-only progress is never SUBMISSION_SUCCESS (see FILL_SUCCESS in src.main).
+    """
+    return bool(finish_clicked) and bool(indicator_detected)
+
+
 LIST_URL = "https://femis.fde.gov.pk/students"
 CREATE_URL = "https://femis.fde.gov.pk/students/create"
 
@@ -59,6 +67,12 @@ class FormFiller:
         self._dialog_messages: list[str] = []
         self.form_mode: str = "create"
         self._just_filled: bool = False
+        # Job-mode integration seams (3B.5). Both default to None/False so
+        # batch runs behave exactly as before.
+        self.progress_callback = None      # async callable(tab, stage, field, last_completed, detail)
+        self.abort_check = None            # callable() -> True means abort the run safely
+        self.last_submit: dict | None = None  # evidence captured by submit_form()
+        self._last_attempted_field: str | None = None
 
     def _load_field_map(self) -> dict:
         with open(FIELD_MAP_PATH, "r", encoding="utf-8") as f:
@@ -198,6 +212,30 @@ class FormFiller:
             logger.error(f"Duplicate recovery failed: {e}")
             return False
 
+    async def _notify_progress(self, tab=None, stage=None, field=None,
+                               last_completed=None, detail=None):
+        """Job-mode seam: optional progress post + abort check.
+
+        No-op when no abort_check/progress_callback is installed (batch mode).
+        Callback exceptions propagate (used by the job runner to abort a run
+        when the claim/lease was lost); transport errors are swallowed by the
+        callback itself, never here.
+        """
+        if self.abort_check is not None:
+            try:
+                lost = bool(self.abort_check())
+            except Exception:
+                lost = False
+            if lost:
+                raise RuntimeError("job aborted: claim lost (fencing/lease)")
+        cb = self.progress_callback
+        if cb is None:
+            return
+        res = cb(tab=tab, stage=stage, field=field,
+                 last_completed=last_completed, detail=detail)
+        if asyncio.iscoroutine(res):
+            await res
+
     async def fill_student_form(self, page: Page, student_data: dict) -> bool:
         logger.info(f"Filling form for: {student_data.get('name') or student_data.get('student_name', 'Unknown')}")
         self._attach_save_listeners(page)
@@ -220,6 +258,7 @@ class FormFiller:
                 continue
 
             logger.info(f"--- Tab {i}/7: {tab_name} ---")
+            await self._notify_progress(tab=i, stage="filling")
             if not await self._click_tab(page, i, tab_name, tab_id):
                 continue
 
@@ -243,8 +282,15 @@ class FormFiller:
                     # Recover wizard position if Save advanced past us
                     if i < 7:
                         await self._click_tab(page, i, tab_name, tab_id)
+                await self._notify_progress(
+                    tab=i,
+                    stage="saved" if result.get("ok") else "save_failed",
+                    field=self._last_attempted_field,
+                    last_completed=i if result.get("ok") else None,
+                )
 
         # Persist tab 7 (no Save & Next on last step)
+        await self._notify_progress(tab=7, stage="final_save")
         try:
             if await self._force_save(page):
                 logger.info("Force-save after final tab: OK")
@@ -1251,6 +1297,7 @@ class FormFiller:
         Success is a visible H5 "Form Submitted Successfully!".
         """
         logger.info("Submitting form...")
+        self.last_submit = None  # never leak evidence from a previous attempt
         self._attach_save_listeners(page)
 
         # Re-fill only if cascade/switch may have cleared fields (skip when fill just ran)
@@ -1318,10 +1365,13 @@ class FormFiller:
             logger.warning(f"Force-save before Finish error: {e}")
 
         # Finish button (may become visible after last save)
+        await self._notify_progress(tab=7, stage="submitting")
+        finish_clicked = False
         try:
             finish = page.locator("#finishBtn").first
             if await finish.count() > 0 and await finish.is_visible():
                 await finish.click(timeout=5000)
+                finish_clicked = True
                 await asyncio.sleep(2)
                 await self._handle_confirm(page)
                 logger.info("Clicked Finish")
@@ -1329,17 +1379,32 @@ class FormFiller:
             logger.warning(f"Finish click failed: {e}")
 
         # Wait for success heading (visible) or navigation away from create
-        success = await self._wait_for_success(page, timeout=15000)
+        await self._notify_progress(tab=7, stage="verifying")
+        indicator = await self._wait_for_success(page, timeout=15000)
+        success = is_submission_success(finish_clicked, indicator)
 
         # Collect validation errors if any
         errors = await self._collect_errors(page)
         if errors:
             logger.warning(f"Validation errors: {errors[:8]}")
 
+        diag = None
         if not success:
             diag = await self._diagnose_failure(page)
             if diag:
                 logger.warning(f"Submit diagnostics: {diag}")
+
+        # Job-mode evidence (3B.5): recorded before the screenshot so a
+        # screenshot failure cannot lose Finish/indicator state.
+        # outcome_known: no Finish click => nothing submitted (known);
+        # Finish clicked => known only when the success indicator was seen.
+        self.last_submit = {
+            "finish_clicked": bool(finish_clicked),
+            "indicator_detected": bool(indicator),
+            "outcome_known": True if not finish_clicked else bool(indicator),
+            "errors": list(errors or [])[:10],
+            "diagnostics": diag,
+        }
 
         await page.screenshot(path="data/logs/submit_result.png", full_page=True)
         if success:
@@ -1590,6 +1655,7 @@ class FormFiller:
 
     async def _fill_field(self, page: Page, field_name: str, config: dict, data: dict):
         source_field = config.get("source_field", field_name)
+        self._last_attempted_field = field_name  # job-mode failure evidence
         value = data.get(source_field)
 
         # Portal defaults: only ask conditional fields when the parent flag is set.

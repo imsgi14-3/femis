@@ -11,7 +11,7 @@
                     Student <strong>{{ student.name }}</strong> data has been saved.
                 </p>
                 <p class="text-muted">
-                    Submitted on {{ student.created_at.strftime('%d %B %Y at %I:%M %p') }}
+                    Submitted on {{ student.created_at.strftime('%d %B %Y at %I:%M %p') if student.created_at else '—' }}
                 </p>
 
                 <div class="mt-4">
