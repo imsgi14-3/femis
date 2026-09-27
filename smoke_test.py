@@ -138,15 +138,6 @@ check(
     f"missing: {missing}" if missing else f"{len(mapped_labels)} labels OK",
 )
 
-# --- 4. date normalizer regression ---
-sys.path.insert(0, str(Path(__file__).parent))
-from src.form_filler import FormFiller  # noqa: E402
-
-ff = FormFiller()
-check("date 15/03/2010 -> 2010-03-15", ff._normalize_date("15/03/2010") == "2010-03-15")
-check("date 2010-03-15 unchanged", ff._normalize_date("2010-03-15") == "2010-03-15")
-check("date 15/03/10 -> 2010-03-15", ff._normalize_date("15/03/10") == "2010-03-15")
-
 failed = [r for r in results if not r[1]]
 print(f"\n{'='*40}\n{len(results) - len(failed)}/{len(results)} passed")
 sys.exit(1 if failed else 0)

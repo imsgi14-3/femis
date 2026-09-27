@@ -32,7 +32,7 @@
 {# ============================================================= #}
 <div class="tab-pane fade show active" id="tab-1">
 
-  <h6 class="text-primary mb-3 border-bottom pb-2">Student Information</h6>
+  <h6 class="text-primary mb-3 border-bottom pb-2">Personal Information</h6>
   <div class="row g-3 mb-4">
     <div class="col-md-6">
       <label class="form-label">Name of Student <span class="text-danger">*</span></label>
@@ -107,7 +107,7 @@
     </div>
   </div>
 
-  <h6 class="text-primary mb-3 border-bottom pb-2">Domicile</h6>
+  <h6 class="text-primary mb-3 border-bottom pb-2">Domicile Information</h6>
   <div class="row g-3 mb-4">
     <div class="col-md-6">
       <label class="form-label">Student Domicile — Province</label>
@@ -126,7 +126,7 @@
     </div>
   </div>
 
-  <h6 class="text-primary mb-3 border-bottom pb-2">Temporary Address</h6>
+  <h6 class="text-primary mb-3 border-bottom pb-2">Address (Temporary Address)</h6>
   <div class="row g-3 mb-4">
     <div class="col-md-6">
       <label class="form-label">Address Type <span class="text-danger">*</span></label>
@@ -268,7 +268,7 @@
     </div>
   </div>
 
-  <h6 class="text-primary mb-3 border-bottom pb-2">Other Information</h6>
+  <h6 class="text-primary mb-3 border-bottom pb-2">Religion, Language &amp; Other Details</h6>
   <div class="row g-3 mb-4">
     <div class="col-md-6">
       <label class="form-label">Religion <span class="text-danger">*</span></label>
@@ -350,7 +350,7 @@
 <div class="tab-pane fade" id="tab-2">
 
   <div id="father_fields_group">
-  <h6 class="text-primary mb-3 border-bottom pb-2">Father's Information</h6>
+  <h6 class="text-primary mb-3 border-bottom pb-2">Father Information</h6>
   <div class="row g-3 mb-4">
     <div class="col-md-6">
       <label class="form-label">Father's Name <span class="text-danger">*</span></label>
@@ -448,7 +448,7 @@
   </div>
 
   <div id="mother_fields_group">
-  <h6 class="text-primary mb-3 border-bottom pb-2">Mother's Information</h6>
+  <h6 class="text-primary mb-3 border-bottom pb-2">Mother Information</h6>
   <div class="row g-3 mb-4">
     <div class="col-md-6">
       <label class="form-label">Mother's Name <span class="text-danger">*</span></label>
@@ -531,7 +531,7 @@
   </div>
   </div>
 
-  <h6 class="text-primary mb-3 border-bottom pb-2">Orphan / Guardian Information</h6>
+  <h6 class="text-primary mb-3 border-bottom pb-2">Orphan &amp; Guardian Information</h6>
   <div class="row g-3 mb-4">
 <div class="col-md-6">
       <label class="form-label">Is Orphan Child <span class="text-danger">*</span></label>
@@ -632,7 +632,7 @@
 {# TAB 3 - Educational Details #}
 <div class="tab-pane fade" id="tab-3">
 
-  <h6 class="text-primary mb-3 border-bottom pb-2">Academic Information</h6>
+  <h6 class="text-primary mb-3 border-bottom pb-2">Educational Details</h6>
   <div class="row g-3 mb-4">
     <div class="col-md-6">
       <label class="form-label">Class <span class="text-danger">*</span></label>
@@ -680,16 +680,6 @@
       <label class="form-label">Admission Number <span class="text-danger">*</span></label>
       <input type="text" class="form-control" name="admission_number" required>
     </div>
-    <div class="col-md-6">
-      <label class="form-label">Last Institution Attended Under FDE</label>
-      <select class="form-select" name="last_fde_institution_id" id="last_institution_fde">
-        <option value="">-- Select --</option>
-        {% for inst in opts.fde_institutions %}
-        <option value="{{ inst }}">{{ inst }}</option>
-        {% endfor %}
-        <option value="Other">Other</option>
-      </select>
-    </div>
 <div class="col-md-6">
       <label class="form-label">Class Admitted In <span class="text-danger">*</span></label>
       <div id="class_admitted_group">
@@ -701,10 +691,6 @@
         {% endfor %}
       </div>
       <div class="form-text">Class 1–5 → admitted Class 1–5; Class 6–10 → admitted Class 6–10.</div>
-    </div>
-    <div class="col-md-6" id="last_institution_other_group" style="display:none;">
-      <label class="form-label">Last Institution Other than FDE</label>
-      <input type="text" class="form-control" name="last_other_institution">
     </div>
     <div class="col-md-6">
       <label class="form-label">Shift <span class="text-danger">*</span></label>
@@ -730,14 +716,30 @@
         {% endfor %}
       </div>
     </div>
-  </div>
-
-  <h6 class="text-primary mb-3 border-bottom pb-2">Additional Information</h6>
-  <div class="row g-3 mb-4">
-<div class="col-md-6">
-      <label class="form-label">Primary Education Completion (Years)</label>
-      <input type="text" class="form-control" name="primary_education_completion_years">
-      <div class="form-text">Not mandatory in FEMIS.</div>
+    <div class="col-md-6">
+      <label class="form-label">Mode of Study <span class="text-danger">*</span></label>
+      <div>
+        {% for ms in opts.mode_of_study %}
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="mode_of_study" id="mos_{{ loop.index }}" value="{{ ms }}" required>
+          <label class="form-check-label" for="mos_{{ loop.index }}">{{ ms }}</label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Last Institution Attended Under FDE</label>
+      <select class="form-select" name="last_fde_institution_id" id="last_institution_fde">
+        <option value="">-- Select --</option>
+        {% for inst in opts.fde_institutions %}
+        <option value="{{ inst }}">{{ inst }}</option>
+        {% endfor %}
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div class="col-md-6" id="last_institution_other_group" style="display:none;">
+      <label class="form-label">Last Institution Other than FDE</label>
+      <input type="text" class="form-control" name="last_other_institution">
     </div>
     <div class="col-md-6">
       <label class="form-label">Meal Program <span class="text-danger">*</span></label>
@@ -753,32 +755,33 @@
       </div>
     </div>
     <div class="col-md-6">
-      <label class="form-label">Mode of Study <span class="text-danger">*</span></label>
-      <div>
-        {% for ms in opts.mode_of_study %}
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="mode_of_study" id="mos_{{ loop.index }}" value="{{ ms }}" required>
-          <label class="form-check-label" for="mos_{{ loop.index }}">{{ ms }}</label>
-        </div>
-        {% endfor %}
-      </div>
+      <label class="form-label">Primary Education Completion (Years)</label>
+      <input type="text" class="form-control" name="primary_education_completion_years">
+      <div class="form-text">Not mandatory in FEMIS.</div>
+    </div>
+    <div class="col-12">
+      <strong class="text-primary">Siblings Details</strong>
     </div>
     <div class="col-md-6">
       <label class="form-label">Total Siblings <span class="text-danger">*</span></label>
       <input type="text" class="form-control" name="total_siblings" required>
     </div>
     <div class="col-md-6">
-      <label class="form-label">Siblings in Other FDE</label>
-      <input type="text" class="form-control" name="siblings_other_fde">
-    </div>
-    <div class="col-md-6">
       <label class="form-label">Siblings in Same Institution (Number)</label>
       <input type="number" class="form-control" name="siblings_same_institution" min="0" placeholder="0">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Siblings in Other FDE</label>
+      <input type="text" class="form-control" name="siblings_other_fde">
     </div>
     <div class="col-md-6">
       <label class="form-label">Siblings in Private</label>
       <input type="text" class="form-control" name="siblings_private">
     </div>
+  </div>
+
+  <h6 class="text-primary mb-3 border-bottom pb-2">Transport Facility</h6>
+  <div class="row g-3 mb-4">
 <div class="col-md-6">
       <label class="form-label">Transport Facility <span class="text-danger">*</span></label>
       <div>
@@ -807,6 +810,10 @@
         {% endfor %}
       </div>
     </div>
+  </div>
+
+  <h6 class="text-primary mb-3 border-bottom pb-2">Scholarship &amp; Co-curricular Activities</h6>
+  <div class="row g-3 mb-4">
 <div class="col-md-6">
       <label class="form-label">Scholarship <span class="text-danger">*</span></label>
       <div>
@@ -846,7 +853,7 @@
 
 {# TAB 4 - Emergency Contact #}
 <div class="tab-pane fade" id="tab-4">
-  <h6 class="text-primary mb-3 border-bottom pb-2">Emergency Contact Information</h6>
+  <h6 class="text-primary mb-3 border-bottom pb-2">Emergency Contact Details</h6>
   <div class="row g-3 mb-4">
     <div class="col-md-6">
       <label class="form-label">Emergency Contact Name <span class="text-danger">*</span></label>
@@ -874,7 +881,7 @@
 
 {# TAB 5 - IDPs Details #}
 <div class="tab-pane fade" id="tab-5">
-  <h6 class="text-primary mb-3 border-bottom pb-2">Refugee / IDP Information</h6>
+  <h6 class="text-primary mb-3 border-bottom pb-2">IDPs / Refugee Details</h6>
   <div class="row g-3 mb-4">
 <div class="col-md-6">
       <label class="form-label">Is Student Refugee / IDP <span class="text-danger">*</span></label>
@@ -926,7 +933,7 @@
 
 {# TAB 6 - Health Details #}
 <div class="tab-pane fade" id="tab-6">
-  <h6 class="text-primary mb-3 border-bottom pb-2">Disability Information</h6>
+  <h6 class="text-primary mb-3 border-bottom pb-2">Major Disability</h6>
   <div class="row g-3 mb-4">
 <div class="col-md-6">
       <label class="form-label">Any Major Disability <span class="text-danger">*</span></label>
@@ -990,13 +997,17 @@
       <label class="form-label">Other Mental Disability</label>
       <input type="text" class="form-control" name="mental_disability_other" placeholder="Specify condition">
     </div>
+  </div>
+
+  <h6 class="text-primary mb-3 border-bottom pb-2">Other Medical Conditions</h6>
+  <div class="row g-3 mb-4">
     <div class="col-md-6">
       <label class="form-label">Other Medical Conditions</label>
       <input type="text" class="form-control" name="other_medical_condition">
     </div>
   </div>
 
-  <h6 class="text-primary mb-3 border-bottom pb-2">Vision</h6>
+  <h6 class="text-primary mb-3 border-bottom pb-2">Vision Details</h6>
   <div class="row g-3 mb-4">
 <div class="col-md-6">
       <label class="form-label">Visually FIT <span class="text-danger">*</span></label>
@@ -1042,7 +1053,7 @@
     </div>
   </div>
 
-  <h6 class="text-primary mb-3 border-bottom pb-2">Hearing</h6>
+  <h6 class="text-primary mb-3 border-bottom pb-2">Hearing Details</h6>
   <div class="row g-3 mb-4">
 <div class="col-md-6">
       <label class="form-label">Has Hearing Difficulty <span class="text-danger">*</span></label>
@@ -1089,7 +1100,7 @@
     </div>
   </div>
 
-  <h6 class="text-primary mb-3 border-bottom pb-2">Mobility</h6>
+  <h6 class="text-primary mb-3 border-bottom pb-2">Walking / Mobility</h6>
   <div class="row g-3 mb-4">
 <div class="col-md-6">
       <label class="form-label">Difficulty Walking <span class="text-danger">*</span></label>
@@ -1119,7 +1130,7 @@
     </div>
   </div>
 
-  <h6 class="text-primary mb-3 border-bottom pb-2">Learning Difficulties</h6>
+  <h6 class="text-primary mb-3 border-bottom pb-2">Learning Abilities</h6>
   <div class="row g-3 mb-4">
     <div class="col-md-4">
       <label class="form-label">Difficulty Reading / Writing <span class="text-danger">*</span></label>
@@ -1156,7 +1167,7 @@
     </div>
   </div>
 
-  <h6 class="text-primary mb-3 border-bottom pb-2">Vaccination</h6>
+  <h6 class="text-primary mb-3 border-bottom pb-2">Vaccination Details</h6>
   <div class="row g-3 mb-4">
     <div class="col-md-6">
       <label class="form-label">Basic Vaccination Completed</label>
@@ -1176,7 +1187,7 @@
 
 {# TAB 7 - Digital Access #}
 <div class="tab-pane fade" id="tab-7">
-  <h6 class="text-primary mb-3 border-bottom pb-2">Digital Access Information</h6>
+  <h6 class="text-primary mb-3 border-bottom pb-2">Digital Access</h6>
   <div class="row g-3 mb-4">
 <div class="col-md-6">
       <label class="form-label">Access to Digital Device <span class="text-danger">*</span></label>

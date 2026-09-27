@@ -43,16 +43,15 @@ load_dotenv()
 LOGIN_URL = "https://femis.fde.gov.pk/login"
 CREATE_URL = "https://femis.fde.gov.pk/students/create"
 
-# Tab names as they appear in the portal's top navigation.
-# The script tries multiple strategies to click each tab.
+# (visible tab name, nav element id, panel/div id) — IDs from data/output/dom_structure.json
 TABS = [
-    ("Personal Details", ["tab-nav-personal", "tab-personal"], "tab-1"),
-    ("Parents / Guardian", ["tab-nav-parents", "tab-parents"], "tab-2"),
-    ("Educational Details", ["tab-nav-education", "tab-education"], "tab-3"),
-    ("Emergency Contact", ["tab-nav-emergency", "tab-emergency"], "tab-4"),
-    ("IDPs Details", ["tab-nav-idps", "tab-idps"], "tab-5"),
-    ("Health Details", ["tab-nav-health", "tab-health"], "tab-6"),
-    ("Digital Access", ["tab-nav-digital", "tab-digital"], "tab-7"),
+    ("Personal Details", "tab-nav-personal", "tab-personal"),
+    ("Parents / Guardian", "tab-nav-parents", "tab-parents"),
+    ("Educational Details", "tab-nav-education", "tab-education"),
+    ("Emergency Contact", "tab-nav-emergency", "tab-emergency"),
+    ("IDPs Details", "tab-nav-idps", "tab-idps"),
+    ("Health Details", "tab-nav-health", "tab-health"),
+    ("Digital Access", "tab-nav-digital", "tab-digital"),
 ]
 
 
@@ -141,53 +140,95 @@ async def solve_captcha(page, max_retries=5):
     return False
 
 
+JS_FORCE_PANEL = """([panelId, navId]) => {
+    document.querySelectorAll('.tab-pane').forEach(p => {
+        p.classList.remove('active', 'show');
+        p.style.display = 'none';
+    });
+    document.querySelectorAll('.tab-nav-link, .nav-link').forEach(n => n.classList.remove('active'));
+    const panel = document.getElementById(panelId);
+    if (panel) {
+        panel.classList.add('active', 'show');
+        panel.style.display = 'block';
+    }
+    const nav = document.getElementById(navId);
+    if (nav) nav.classList.add('active');
+    return !!(panel && panel.classList.contains('active'));
+}"""
+
+JS_EXTRACT_HEADINGS = """(containerId) => {
+    const container = document.getElementById(containerId);
+    if (!container) return [];
+    const out = [];
+    container.querySelectorAll('h1, h2, h3, h4, h5, h6, .card-title, .card-header, legend, .form-section-title, .section-title, .accordion-button').forEach(el => {
+        if (el.offsetParent === null) return;
+        const text = (el.textContent || '').trim().replace(/\\s+/g, ' ');
+        if (!text || text.length > 120) return;
+        if (!out.includes(text)) out.push(text);
+    });
+    return out;
+}"""
+
 JS_EXTRACT_FIELDS = """(containerId) => {
     const container = document.getElementById(containerId);
     if (!container) return [];
     const fields = [];
-    container.querySelectorAll('input[type="text"], input[type="number"], input[type="date"], input[type="email"], input[type="tel"], textarea').forEach(el => {
-        const c = el.closest('.mb-3, .row, .col-md-4, .col-md-6, .col-lg-4, div');
+    const labelFor = (el) => {
+        if (el.id) {
+            const fl = container.querySelector('label[for="' + CSS.escape(el.id) + '"]');
+            if (fl) return fl.textContent.trim().replace(/\\s*\\*\\s*$/, '');
+        }
+        const c = el.closest('.mb-3, .form-group, .row, .col-md-4, .col-md-6, .col-lg-4, fieldset, div');
         const l = c ? c.querySelector('label') : null;
-        let label = l ? l.textContent.trim().replace(/\\s*\\*\\s*$/, '') : el.placeholder || el.name || '';
+        if (l) return l.textContent.trim().replace(/\\s*\\*\\s*$/, '');
+        return el.placeholder || el.name || '';
+    };
+    container.querySelectorAll('input[type="text"], input[type="number"], input[type="date"], input[type="email"], input[type="tel"], input[type="file"], textarea').forEach(el => {
+        const c = el.closest('.mb-3, .row, .col-md-4, .col-md-6, .col-lg-4, div');
+        let label = labelFor(el);
         fields.push({
-            type: el.tagName === 'TEXTAREA' ? 'textarea' : (el.type === 'tel' ? 'text' : el.type),
+            type: el.tagName === 'TEXTAREA' ? 'textarea' : (el.type === 'file' ? 'file' : (el.type === 'tel' ? 'text' : el.type)),
             name: el.name, id: el.id, label: label,
             placeholder: el.placeholder || '',
+            accept: el.accept || '',
             required: el.required || (c && c.querySelector('.text-danger') !== null),
             visible: el.offsetParent !== null
         });
     });
     container.querySelectorAll('select').forEach(el => {
-        const c = el.closest('.mb-3, .row, .col-md-4, .col-md-6, .col-lg-4, div');
-        const l = c ? c.querySelector('label') : null;
-        let label = l ? l.textContent.trim().replace(/\\s*\\*\\s*$/, '') : el.name || '';
+        let label = labelFor(el);
         const options = Array.from(el.options).map(o => ({
             value: o.value, text: o.textContent.trim()
         })).filter(o => o.text && o.text !== 'Select' && !o.text.startsWith('Select '));
         fields.push({
             type: 'select', name: el.name, id: el.id, label: label,
             options: options, multiple: el.multiple || false,
-            required: el.required || (c && c.querySelector('.text-danger') !== null)
+            required: el.required
         });
     });
     const rg = {};
     container.querySelectorAll('input[type="radio"]').forEach(el => {
-        const c = el.closest('.mb-3, .row, .col-md-4, .col-md-6, .col-lg-4, div');
-        const l = c ? c.querySelector('label:not(input label)') : null;
-        let gl = l ? l.textContent.trim().replace(/\\s*\\*\\s*$/, '') : el.name || '';
+        const c = el.closest('.mb-3, .row, .col-md-4, .col-md-6, .col-lg-4, fieldset, div');
+        let gl = labelFor(el);
         const gk = el.name || gl;
         if (!rg[gk]) rg[gk] = {
             type: 'radio', name: el.name, label: gl,
             options: [], required: (c && c.querySelector('.text-danger') !== null),
-            selectedValue: null
+            selectedValue: null, visible: el.offsetParent !== null
         };
-        const rl = el.nextElementSibling ? el.nextElementSibling.textContent.trim() : el.value;
+        let rl = '';
+        if (el.id) {
+            const ol = container.querySelector('label[for="' + CSS.escape(el.id) + '"]');
+            if (ol && ol !== c?.querySelector('label')) rl = ol.textContent.trim();
+        }
+        if (!rl && el.nextElementSibling) rl = el.nextElementSibling.textContent.trim();
+        if (!rl) rl = el.value;
         if (rl && rl !== gl && !rg[gk].options.find(o => o.value === el.value)) {
             rg[gk].options.push({value: el.value, label: rl});
         }
         if (el.checked) rg[gk].selectedValue = el.value;
     });
-    Object.values(rg).forEach(g => { if (g.options.length > 0) fields.push(g); });
+    Object.values(rg).forEach(g => fields.push(g));
     container.querySelectorAll('input[type="checkbox"]').forEach(el => {
         const c = el.closest('.mb-3, .row, div');
         const l = c ? c.querySelector('label') : null;
@@ -799,46 +840,53 @@ async def audit():
 
         all_tabs = {}
 
-        for tab_i, (tab_name, tab_nav_ids, panel_id) in enumerate(TABS, 1):
+        for tab_i, (tab_name, nav_id, panel_id) in enumerate(TABS, 1):
             print(f"\n{'─'*60}")
             print(f"Tab {tab_i}/7: {tab_name}")
             print(f"{'─'*60}")
 
-            # Click the tab by its name or ID at the top of the form
             clicked = False
-            for nav_id in tab_nav_ids:
+            strategies = [
+                ("nav-id", f"#{nav_id}"),
+                ("panel-href", f"[href='#{panel_id}']"),
+                ("nav-text", f".tab-nav-link:has-text('{tab_name}')"),
+                ("text", f"text={tab_name}"),
+            ]
+            for strat_name, selector in strategies:
                 try:
-                    el = page.locator(f"#{nav_id}")
+                    el = page.locator(selector).first
                     if await el.count() > 0:
-                        await el.click(timeout=5000)
+                        await el.click(timeout=5000, force=True)
                         clicked = True
+                        print(f"  Clicked via {strat_name}: {selector}")
                         break
-                except Exception:
-                    pass
-
-            if not clicked:
-                # Try clicking by visible text (the tab name)
-                try:
-                    el = page.get_by_role("tab", name=tab_name)
-                    await el.click(timeout=5000)
-                    clicked = True
-                except Exception:
-                    pass
-
-            if not clicked:
-                # Try clicking any element containing the tab name text
-                try:
-                    el = page.locator(f"text={tab_name}").first
-                    await el.click(timeout=5000)
-                    clicked = True
-                except Exception:
-                    pass
+                except Exception as e:
+                    print(f"  Strategy {strat_name} failed: {e}")
 
             if not clicked:
                 print(f"  ERROR: Could not click tab '{tab_name}'. Skipping.")
                 continue
 
             await asyncio.sleep(1.5)
+
+            # Verify the target panel is now active; retry once with force click on href
+            is_active = await page.evaluate(
+                "(id) => { const p = document.getElementById(id); return !!(p && p.classList.contains('active')); }",
+                panel_id,
+            )
+            if not is_active:
+                print(f"  Panel #{panel_id} not active — forcing panel visibility for capture")
+                try:
+                    forced = await page.evaluate(JS_FORCE_PANEL, [panel_id, nav_id])
+                    print(f"  Forced panel active={forced}")
+                    await asyncio.sleep(0.8)
+                except Exception as e:
+                    print(f"  Force panel failed: {e}")
+                is_active = await page.evaluate(
+                    "(id) => { const p = document.getElementById(id); return !!(p && p.classList.contains('active')); }",
+                    panel_id,
+                )
+            print(f"  Panel #{panel_id} active={is_active}")
 
             # Handle Confirm dialog if it appears
             try:
@@ -854,10 +902,15 @@ async def audit():
             for _ in range(10):
                 await page.mouse.wheel(0, 500)
                 await asyncio.sleep(0.3)
+            await page.evaluate("(id) => { const p = document.getElementById(id); if (p) p.scrollIntoView(); }", panel_id)
+            await asyncio.sleep(0.3)
 
             ss_path = log_dir / f"audit_tab_{tab_i}_{tab_name.replace(' ', '_').replace('/', '_')}_{ts}.png"
             await page.screenshot(path=str(ss_path), full_page=True)
             print(f"  Screenshot: {ss_path}")
+
+            headings = await page.evaluate(JS_EXTRACT_HEADINGS, panel_id)
+            print(f"  Group headings ({len(headings)}): {headings}")
 
             # Extract all fields
             fields = await page.evaluate(JS_EXTRACT_FIELDS, panel_id)
@@ -923,6 +976,9 @@ async def audit():
             tab_key = f"tab_{tab_i}"
             all_tabs[tab_key] = {
                 "tab_name": tab_name,
+                "panel_id": panel_id,
+                "panel_active": is_active,
+                "headings": headings,
                 "fields": fields,
                 "conditionals": conditionals,
                 "click_conditionals": click_conditionals,

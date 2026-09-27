@@ -1,0 +1,293 @@
+# FEMIS ↔ Student Portal field-identity crosswalk
+# Phase 3A.1 / 3A.1.1 — READ-ONLY. Identity is independent of location and implementation.
+# Generated: 2026-09-24
+# Statuses: EXACT_IDENTITY | SAME_CONCEPT_DIFFERENT_NAME | SAME_CONCEPT_DIFFERENT_LOCATION
+#           | POSSIBLE_MATCH | DIFFERENT_CONCEPT | FEMIS_ONLY | PORTAL_ONLY | UNRESOLVED
+# confidence: high | medium | low
+# Relationship: one-to-one | one-to-many | many-to-one | many-to-many
+
+meta:
+  phase: 3A.1.1
+  mode: read-only
+  evidence:
+    femis_fields: data/output/portal_audit_20260924_183753.json
+    femis_fields_prior: data/output/portal_audit_20260921_222600.json
+    femis_sections: data/output/form_questions_list.txt
+    femis_nav: data/output/dom_structure.json
+    femis_visual_tabs: data/logs/audit_tab_*_20260924_183753.png
+    portal: femis-web/templates/form.html
+    bot_mapping: config/field_mapping.yaml
+  caveats:
+    - Re-capture 2026-09-24 18:37 succeeded: all seven screenshots show the correct tab active (forced panel visibility after nav click blocked by Tab-1 required-field validation; DOM fields still extracted per panel).
+    - data/output/femis_form.json is NOT FEMIS (excluded).
+    - Identity recorded separately from location and from implementation name.
+    - Radio labels in portal_audit often show the first option text as group label; trust field `name` over extracted radio group label.
+
+tabs:
+  - id: tab_1
+    femis: Personal Details
+    portal: Personal Details
+    identity: EXACT_IDENTITY
+    confidence: high
+    location: same-order-same-title
+    groups:
+      - femis: Personal Information
+        femis_source: screenshot-confirmed
+        portal: Student Information
+        yaml: personal_information
+        identity: SAME_CONCEPT_DIFFERENT_NAME
+        confidence: high
+        relationship: one-to-one
+        fields:
+          - {femis: name, portal: name, yaml: name_of_student, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one, location: same-tab, implementation: {femis: "input[name=name]", portal: "input[name=name]", bot: personal_information.name_of_student}}
+          - {femis: is_bform_available, portal: is_bform_available, yaml: is_bform_available, identity: SAME_CONCEPT_DIFFERENT_NAME, confidence: high, relationship: one-to-one, note: FEMIS radio label often extracted as "Yes"; portal uses full question text}
+          - {femis: b_form, portal: b_form, yaml: cnic_form_b_number / cnic_form_b_no, identity: SAME_CONCEPT_DIFFERENT_NAME, confidence: high, relationship: one-to-many, note: YAML has duplicate keys both mapping b_form}
+          - {femis: gender, portal: gender, yaml: gender, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: date_of_birth, portal: date_of_birth, yaml: date_of_birth, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: null, portal: null, identity: FEMIS_ONLY, confidence: high, label: Temporary Student ID, note: empty name; dynamic widget}
+      - femis: Domicile Information
+        femis_source: screenshot-confirmed
+        portal: Birthplace & Nationality + Domicile
+        yaml: domicile_information
+        identity: SAME_CONCEPT_DIFFERENT_NAME
+        confidence: medium
+        relationship: many-to-one
+        note: Portal splits birth (into personal/birth section) from domicile; FEMIS nests Nationality under Domicile Information on screenshot; birth_province/birth_district visually sit under Personal Information card on FEMIS screenshot
+        fields:
+          - {femis: birth_province_id, portal: birth_province_id, yaml: province_of_birth, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: birth_district_id, portal: birth_district_id, yaml: district_of_birth, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: nationality, portal: nationality, yaml: nationality, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: nationality_id, portal: nationality_id, yaml: other_nationality, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: domicile_province_id, portal: domicile_province_id, yaml: domicile_province, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: domicile_district_id, portal: domicile_district_id, yaml: domicile_district, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - femis: Address (Temporary Address)
+        femis_source: screenshot-confirmed
+        portal: Temporary Address
+        yaml: address_temporary
+        identity: SAME_CONCEPT_DIFFERENT_NAME
+        confidence: high
+        relationship: one-to-one
+        fields:
+          - {femis: address_type, portal: address_type, yaml: address_type, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: sector_id, portal: sector_id, yaml: sector, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: sub_sector_id, portal: sub_sector_id, yaml: sub_sector, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: village_id, portal: village_id, yaml: village, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: housing_society_id, portal: housing_society_id, yaml: housing_society, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: house, portal: house, yaml: house_number, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: street, portal: street, yaml: street_number, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: contact_number, portal: contact_number, yaml: contact_number, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: address, portal: address, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one, note: was MISSING_IN_OURS in prior discrepancy; now present}
+      - femis: Permanent Address
+        femis_source: screenshot-confirmed
+        portal: Permanent Address
+        yaml: address_permanent
+        identity: EXACT_IDENTITY
+        confidence: high
+        relationship: one-to-one
+        fields:
+          - {femis: same_as_permanent_address, portal: same_as_permanent_address, yaml: same_as_temporary, identity: SAME_CONCEPT_DIFFERENT_NAME, confidence: high, relationship: one-to-one}
+          - {femis: city_id, portal: city_id, yaml: city, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: present_address_type, portal: present_address_type, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: present_sector_id, portal: present_sector_id, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: present_sub_sector_id, portal: present_sub_sector_id, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: present_village_id, portal: present_village_id, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: present_housing_society_id, portal: present_housing_society_id, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: present_house, portal: present_house, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: present_street, portal: present_street, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: present_address, portal: present_address, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - femis: Religion, Language & Other Details
+        femis_source: screenshot-confirmed
+        portal: Other Information
+        yaml: religion_language_other
+        identity: SAME_CONCEPT_DIFFERENT_NAME
+        confidence: high
+        relationship: one-to-one
+        fields:
+          - {femis: religion, portal: religion, yaml: religion, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: religion_id, portal: religion_id, yaml: other_religion, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: language_id, portal: language_id, yaml: mother_language, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: mother_language_other, portal: mother_language_other, yaml: other_language, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: blood_group, portal: blood_group, yaml: blood_group, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: email, portal: email, yaml: email, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: girls_stipend, portal: girls_stipend, yaml: girls_stipend, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+          - {femis: is_hafiz, portal: is_hafiz, yaml: is_hafiz, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+
+  - id: tab_2
+    femis: Parents / Guardian
+    portal: Parents / Guardian
+    identity: EXACT_IDENTITY
+    confidence: high
+    groups:
+      - {femis: Father Information, femis_source: screenshot-confirmed, portal: Father's Information, yaml: fathers_information, identity: SAME_CONCEPT_DIFFERENT_NAME, confidence: high, relationship: one-to-one}
+      - {femis: Mother Information, femis_source: screenshot-confirmed, portal: Mother's Information, yaml: mothers_information, identity: SAME_CONCEPT_DIFFERENT_NAME, confidence: high, relationship: one-to-one}
+      - {femis: Orphan & Guardian Information, femis_source: screenshot-confirmed, portal: Orphan / Guardian Information, yaml: orphan_guardian_information, identity: SAME_CONCEPT_DIFFERENT_NAME, confidence: high, relationship: one-to-one, note: ampersand vs slash}
+    fields:
+      - {femis: father_name, portal: father_name, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: father_cnic, portal: father_cnic, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: father_contact, portal: father_contact, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one, label_diff: true}
+      - {femis: father_landline, portal: father_landline, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one, label_diff: true}
+      - {femis: father_email, portal: father_email, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one, label_diff: true}
+      - {femis: father_profession_other, portal: father_profession_other, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: father_qualification, portal: father_qualification, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: father_profession, portal: father_profession, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: father_monthly_income, portal: father_monthly_income, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: father_bps, portal: father_bps, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: father_domicile_province_id, portal: father_domicile_province_id, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: father_domicile_district_id, portal: father_domicile_district_id, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: mother_name, portal: mother_name, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: mother_cnic, portal: mother_cnic, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: mother_contact, portal: mother_contact, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: mother_landline, portal: mother_landline, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: mother_email, portal: mother_email, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: mother_profession_other, portal: mother_profession_other, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: mother_qualification, portal: mother_qualification, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: mother_profession, portal: mother_profession, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: mother_monthly_income, portal: mother_monthly_income, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: mother_bps, portal: mother_bps, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: is_father_alive, portal: is_father_alive, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: is_mother_alive, portal: is_mother_alive, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: is_orphan, portal: is_orphan, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: orphan_type, portal: orphan_type, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: guardian_name, portal: guardian_name, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: guardian_cnic, portal: guardian_cnic, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: guardian_relation, portal: guardian_relation, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: guardian_relation_other, portal: guardian_relation_other, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: guardian_contact, portal: guardian_contact, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: guardian_email, portal: guardian_email, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: guardian_profession, portal: guardian_profession, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: guardian_profession_other, portal: guardian_profession_other, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: guardian_income, portal: guardian_income, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: guardian_bps, portal: guardian_bps, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: null, portal: guardian_qualification, identity: PORTAL_ONLY, confidence: high, relationship: one-to-one, note: Live FEMIS extract 2026-09-24 (36 fields) has father_qualification + mother_qualification but no guardian_qualification; is_father_alive=No reveals guardian_* without qualification; EXTRA_IN_OURS in discrepancy file. form_questions Q46 "Qualification" sits in orphan block but was not found as a named control on FEMIS — treat as portal-only unless future FEMIS capture shows it}
+
+  - id: tab_3
+    femis: Educational Details
+    portal: Educational Details
+    identity: EXACT_IDENTITY
+    confidence: high
+    groups:
+      - {femis: Educational Details, femis_source: screenshot-confirmed, portal: Academic Information, yaml: class_section (partial), identity: SAME_CONCEPT_DIFFERENT_NAME, confidence: high, relationship: many-to-one, note: FEMIS card titled same as tab; includes Siblings Details subsection; portal merges siblings into Academic or Additional — see portal layout}
+      - {femis: Transport Facility, femis_source: screenshot-confirmed, portal: Additional Information (transport_facility + bus_route), yaml: transport_facility, identity: SAME_CONCEPT_DIFFERENT_LOCATION, confidence: high, relationship: many-to-one, note: FEMIS has dedicated card; portal places under Additional Information}
+      - {femis: Scholarship & Co-curricular Activities, femis_source: screenshot-confirmed, portal: Additional Information, yaml: scholarships_and_co_curricular, identity: SAME_CONCEPT_DIFFERENT_NAME, confidence: high, relationship: one-to-one}
+    fields:
+      - {femis: class_id, portal: class_id, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: section_id, portal: section_id, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: class_group_id, portal: class_group_id, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one, label_diff: true}
+      - {femis: result_percentage, portal: result_percentage, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: date_of_admission, portal: date_of_admission, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: admission_number, portal: admission_number, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: last_fde_institution_id, portal: last_fde_institution_id, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: class_admitted_id, portal: class_admitted_id, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: last_other_institution, portal: last_other_institution, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: medium_of_instruction, portal: medium_of_instruction, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: mode_of_study, portal: mode_of_study, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: primary_education_completion_years, portal: primary_education_completion_years, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: school_meal_program_availing, portal: school_meal_program_availing, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: total_siblings, portal: total_siblings, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: siblings_same_institution, portal: siblings_same_institution, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: siblings_other_fde, portal: siblings_other_fde, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: siblings_private, portal: siblings_private, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: bus_route, portal: bus_route, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one, note: FEMIS select revealed when transport_facility=Institution Bus; distinct from transport_facility}
+      - {femis: scholarship, portal: scholarship, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: cocurricular_activities, portal: cocurricular_activities, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: scholarship_details, portal: scholarship_details, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: cocurricular_details, portal: cocurricular_details, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: shift, portal: shift, yaml: shift, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one, note: RESOLVED 3A.1.1 — live FEMIS radio name=shift (Morning|Evening), screenshot-confirmed under Educational Details card; was missing from 20260921 extract due to radio-options filter}
+      - {femis: transport_facility, portal: transport_facility, yaml: transport_facility, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one, note: RESOLVED 3A.1.1 — live FEMIS radio name=transport_facility (Institution Bus|Private), dedicated FEMIS card; portal adds option None; conditional reveals bus_route on Institution Bus; NOT the same concept as bus_route}
+
+  - id: tab_4
+    femis: Emergency Contact
+    portal: Emergency Contact
+    identity: EXACT_IDENTITY
+    confidence: high
+    groups:
+      - {femis: Emergency Contact Details, femis_source: screenshot-confirmed, portal: Emergency Contact Information, yaml: FLAT, identity: SAME_CONCEPT_DIFFERENT_NAME, confidence: high, relationship: one-to-one}
+    fields:
+      - {femis: emergency_name, portal: emergency_name, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: emergency_contact, portal: emergency_contact, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: emergency_relation, portal: emergency_relation, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: emergency_relation_other, portal: emergency_relation_other, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+
+  - id: tab_5
+    femis: IDPs Details
+    portal: IDPs Details
+    identity: EXACT_IDENTITY
+    confidence: high
+    groups:
+      - {femis: IDPs / Refugee Details, femis_source: screenshot-confirmed, portal: Refugee / IDP Information, yaml: FLAT, identity: SAME_CONCEPT_DIFFERENT_NAME, confidence: high, relationship: one-to-one}
+    fields:
+      - {femis: is_refugee, portal: is_refugee, yaml: is_refugee / is_student_refugee_idp, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-many}
+      - {femis: is_registered_refugee, portal: is_registered_refugee, yaml: is_registered_as_refugee, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: idp_status_id, portal: idp_status_id, yaml: idp_status, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: refugee_card_number, portal: refugee_card_number, yaml: refugee_card_number, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+
+  - id: tab_6
+    femis: Health Details
+    portal: Health Details
+    identity: EXACT_IDENTITY
+    confidence: high
+    groups:
+      - {femis: Major Disability, femis_source: screenshot-confirmed, portal: Disability Information, yaml: FLAT, identity: SAME_CONCEPT_DIFFERENT_NAME, confidence: high, relationship: one-to-one, note: "has_major_disability; disability_types[] + disability_certificate appear when Yes"}
+      - {femis: Mental Health, femis_source: screenshot-confirmed, portal: Mental Health, yaml: FLAT, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: Other Medical Conditions, femis_source: screenshot-confirmed, portal: Mental Health (other_medical_condition), yaml: FLAT, identity: SAME_CONCEPT_DIFFERENT_LOCATION, confidence: medium, relationship: one-to-one, note: portal nests other_medical_condition under Mental Health; FEMIS has its own card}
+      - {femis: Vision Details, femis_source: screenshot-confirmed, portal: Vision, yaml: FLAT, identity: SAME_CONCEPT_DIFFERENT_NAME, confidence: high, relationship: one-to-one}
+      - {femis: Hearing Details, femis_source: screenshot-confirmed, portal: Hearing, yaml: FLAT, identity: SAME_CONCEPT_DIFFERENT_NAME, confidence: high, relationship: one-to-one}
+      - {femis: Walking / Mobility, femis_source: screenshot-confirmed, portal: Mobility, yaml: FLAT, identity: SAME_CONCEPT_DIFFERENT_NAME, confidence: high, relationship: one-to-one}
+      - {femis: Learning Abilities, femis_source: screenshot-confirmed, portal: Learning Difficulties, yaml: FLAT, identity: SAME_CONCEPT_DIFFERENT_NAME, confidence: high, relationship: one-to-one}
+      - {femis: Vaccination Details, femis_source: screenshot-confirmed, portal: Vaccination, yaml: FLAT, identity: SAME_CONCEPT_DIFFERENT_NAME, confidence: high, relationship: one-to-one}
+    fields:
+      - {femis: "disability_types[]", portal: "disability_types[]", yaml: disability_type / has_major_disability, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one, note: FEMIS multi-select dropdown; portal may use checkbox group}
+      - {femis: has_major_disability, portal: has_major_disability, yaml: any_major_disability / has_major_disability, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: has_mental_disability, portal: has_mental_disability, yaml: any_mental_disability / has_mental_disability, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: mental_disability_type, portal: mental_disability_type, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: mental_disability_other, portal: mental_disability_other, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: other_medical_condition, portal: other_medical_condition, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: visually_fit, portal: visually_fit, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: uses_glasses, portal: uses_glasses, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: glass_prescription, portal: glass_prescription, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: difficulty_seeing_board, portal: difficulty_seeing_board, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: has_hearing_difficulties, portal: has_hearing_difficulties, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: uses_hearing_aid, portal: uses_hearing_aid, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: hearing_aid_details, portal: hearing_aid_details, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: difficulty_listening, portal: difficulty_listening, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: difficulty_walking, portal: difficulty_walking, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: uses_crutches_walker, portal: uses_crutches_walker, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: difficulty_reading_writing, portal: difficulty_reading_writing, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: difficulty_remembering, portal: difficulty_remembering, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: difficulty_concentrating, portal: difficulty_concentrating, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: basic_vaccination_completed, portal: basic_vaccination_completed, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: disability_certificate, portal: disability_certificate, yaml: disability_certificate, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one, note: "RESOLVED 3A.1.1 — live FEMIS input[type=file] name=disability_certificate, conditional on has_major_disability=Yes; prior extracts missed file inputs"}
+
+  - id: tab_7
+    femis: Digital Access
+    portal: Digital Access
+    identity: EXACT_IDENTITY
+    confidence: high
+    groups:
+      - {femis: Digital Access, femis_source: screenshot-confirmed, portal: Digital Access Information, yaml: FLAT, identity: SAME_CONCEPT_DIFFERENT_NAME, confidence: high, relationship: one-to-one}
+    fields:
+      - {femis: digital_device_at_home, portal: digital_device_at_home, yaml: access_to_digital_device / digital_device_at_home, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: "digital_device_type[]", portal: "digital_device_type[]", yaml: device_type, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one, note: FEMIS multi-select; revealed when digital_device_at_home=Yes}
+      - {femis: internet_at_home, portal: internet_at_home, yaml: internet_access / internet_at_home, identity: EXACT_IDENTITY, confidence: high, relationship: one-to-one}
+      - {femis: null, portal: null, identity: FEMIS_ONLY, confidence: high, label: Device Type (empty-name textarea sibling), note: "alongside digital_device_type[]"}
+
+open_items:
+  - item: Re-capture FEMIS screenshots after tab navigation (tabs 2-7 previously showed Tab 1)
+    status: RESOLVED
+    resolution: Screenshots data/logs/audit_tab_*_20260924_183753.png show correct active tab for all 7; group headings extracted into portal_audit_20260924_183753.json. Nav click blocked by Tab-1 validation; auditor force-activates panel for capture only (no form submit).
+  - item: Confirm guardian_qualification on FEMIS
+    status: PORTAL_ONLY
+    confidence: high
+    resolution: Live FEMIS tab_2 extract (36 named controls) has father_qualification + mother_qualification, not guardian_qualification; is_father_alive=No reveals guardian_* without qualification. Portal field remains portal-only (EXTRA_IN_OURS).
+  - item: Confirm shift on FEMIS tab_3 (present in form_questions, absent portal_audit 20260921)
+    status: EXACT_IDENTITY
+    confidence: high
+    resolution: Live FEMIS radio name=shift (Morning|Evening) under Educational Details card; screenshot-confirmed. Prior extract dropped radios with empty option labels.
+  - item: Confirm transport_facility vs bus_route / Transport Facility radio identity
+    status: EXACT_IDENTITY
+    confidence: high
+    resolution: transport_facility = radio (Institution Bus|Private) in dedicated FEMIS card; bus_route = select revealed when Institution Bus. Distinct concepts, both on FEMIS and portal. Portal radio adds option None vs FEMIS two options (option-set difference only).
+  - item: Confirm disability_certificate control on FEMIS
+    status: EXACT_IDENTITY
+    confidence: high
+    resolution: Live FEMIS input[type=file] name=disability_certificate, conditional on has_major_disability=Yes. Prior JS_EXTRACT_FIELDS omitted type=file.

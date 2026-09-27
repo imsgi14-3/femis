@@ -50,6 +50,8 @@ class WebFormHandler:
         student = dict(row)
         student.pop("id", None)
         student.pop("created_at", None)
+        if "transport" in student:
+            student.setdefault("transport_facility", student.get("transport"))
         return student
 
     def read_all(self, limit: int = None) -> list[dict]:
@@ -74,6 +76,8 @@ class WebFormHandler:
             # Remove metadata columns
             student.pop("id", None)
             student.pop("created_at", None)
+            if "transport" in student:
+                student.setdefault("transport_facility", student.get("transport"))
             students.append(student)
 
         logger.info(f"Loaded {len(students)} students from webform database")
@@ -111,6 +115,8 @@ class WebFormHandler:
             student.pop("id", None)
             student.pop("created_at", None)
             student.pop("processed", None)
+            if "transport" in student:
+                student.setdefault("transport_facility", student.get("transport"))
             students.append(student)
 
         logger.info(f"Loaded {len(students)} unprocessed students from webform database")

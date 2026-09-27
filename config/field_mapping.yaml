@@ -93,6 +93,8 @@ tab_1_personal_details:
       - Vehari
       - Wazirabad
       - Murree
+      - Rawa
+      - Islamabad
     cnic_form_b_no:
       label: CNIC/Form-B No.
       type: text
@@ -209,6 +211,20 @@ tab_1_personal_details:
       - Vehari
       - Wazirabad
       - Murree
+      - Rawa
+      - Muzaffarabad
+      - Neelum
+      - Hattian Bala
+      - Mirpur
+      - Kotli
+      - Bhimber
+      - Bagh
+      - Haveli
+      - Rawalakot
+      - Sudhnoti Pallandri
+      - Jhelum Valley
+      - Poonch
+      - Sudhanoti
     is_hafiz:
       label: is_hafiz
       type: radio
@@ -282,6 +298,7 @@ tab_1_personal_details:
       - D-12
       - D-13
       - D-14
+      - E-10
     sub_sector:
       label: Sub Sector
       type: dropdown
@@ -293,6 +310,10 @@ tab_1_personal_details:
       - I-14/2
       - I-14/3
       - I-14/4
+      - F-6/1
+      - F-6/2
+      - F-6/3
+      - F-6/4
     village:
       label: Village
       type: dropdown
@@ -417,6 +438,11 @@ tab_1_personal_details:
       - Bajaur
       - Bhimber
       - Lakki Marwat
+      - Lower Chitral
+      - Swat
+      - South Waziristan
+      - Kotli
+      - karak
     same_as_temporary:
       label: Same as Temporary Address
       type: checkbox
@@ -485,6 +511,7 @@ tab_1_personal_details:
       - D-12
       - D-13
       - D-14
+      - E-10
     sub_sector:
       label: Sub Sector
       type: dropdown
@@ -496,6 +523,10 @@ tab_1_personal_details:
       - I-14/2
       - I-14/3
       - I-14/4
+      - F-6/1
+      - F-6/2
+      - F-6/3
+      - F-6/4
     village:
       label: Village
       type: dropdown
@@ -676,6 +707,7 @@ tab_2_parents_guardian:
       - 100,001 - 200,000
       - 200,001 - 300,000
       - Above 300,000
+      - Less than 50,000
     bps:
       label: Father's BPS
       type: dropdown
@@ -890,7 +922,8 @@ tab_2_parents_guardian:
       type: radio
       required: true
       source_field: transport_facility
-      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      note: Auto-discovered from portal DOM (map source_field to DB column when known);
+        DB column is transport, aliased to transport_facility in webform_handler
       options:
       - Institution Bus
       - Private
@@ -927,6 +960,152 @@ tab_2_parents_guardian:
       options:
       - 'Yes'
       - 'No'
+    name_of_student:
+      label: Name of Student
+      type: text
+      required: true
+      source_field: name
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    is_bform_available:
+      label: is_bform_available
+      type: radio
+      required: false
+      source_field: is_bform_available
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
+    cnic_form_b_no:
+      label: CNIC/Form-B No.
+      type: text
+      required: true
+      source_field: b_form
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      placeholder: XXXXX-XXXXXXX-X
+    gender:
+      label: Gender
+      type: text
+      required: true
+      source_field: gender
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    date_of_birth:
+      label: Date of Birth
+      type: text
+      required: true
+      source_field: date_of_birth
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    province_of_birth:
+      label: Province of Birth
+      type: text
+      required: true
+      source_field: birth_province_id
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    district_of_birth:
+      label: District of Birth
+      type: text
+      required: true
+      source_field: birth_district_id
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    nationality:
+      label: Nationality
+      type: text
+      required: true
+      source_field: nationality
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    student_domicile_province:
+      label: Student Domicile — Province
+      type: text
+      required: false
+      source_field: domicile_province_id
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    student_domicile_district:
+      label: Student Domicile — District
+      type: text
+      required: false
+      source_field: domicile_district_id
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    address_type:
+      label: Address Type
+      type: text
+      required: true
+      source_field: address_type
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    sector:
+      label: Sector
+      type: text
+      required: true
+      source_field: sector_id
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    sub_sector:
+      label: Sub Sector
+      type: text
+      required: true
+      source_field: sub_sector_id
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    house:
+      label: 'House #'
+      type: text
+      required: false
+      source_field: house
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    street:
+      label: 'Street #'
+      type: text
+      required: false
+      source_field: street
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    contact_number_whatsapp:
+      label: Contact Number / WhatsApp
+      type: text
+      required: true
+      source_field: contact_number
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    city:
+      label: City
+      type: text
+      required: true
+      source_field: city_id
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    same_as_permanent_address:
+      label: same_as_permanent_address
+      type: checkbox
+      required: false
+      source_field: same_as_permanent_address
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    religion:
+      label: Religion
+      type: text
+      required: true
+      source_field: religion
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    mother_language:
+      label: Mother Language
+      type: text
+      required: true
+      source_field: language_id
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    blood_group:
+      label: Blood Group
+      type: text
+      required: false
+      source_field: blood_group
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    is_hafiz:
+      label: is_hafiz
+      type: radio
+      required: false
+      source_field: is_hafiz
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
+    email_id:
+      label: Email ID
+      type: text
+      required: false
+      source_field: email
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      placeholder: fde@gmail.com
   mothers_information:
     mothers_name:
       label: Mother's Name
@@ -1020,7 +1199,8 @@ tab_2_parents_guardian:
       type: dropdown
       required: false
       source_field: orphan_type
-      note: Required when is_orphan = Yes; orphan Yes not allowed if both parents alive
+      note: Required when is_orphan = Yes; orphan Yes not allowed if both parents
+        alive
       options:
       - Single Orphan
       - Double Orphan
@@ -1612,6 +1792,9 @@ tab_3_educational_details:
       - 807 — Islamabad Post Graduate College For Girls(PG), G-10/4
       - 419 — Mujahid Hussain Shaheed Model School For Boys (I-VIII), Satra Meel
       - 648 — slamabad Model School For Girls (I-V), Bheka Syedan
+      - 547 — Islamabad Model College For Boys (I-XII), Mohra Nagial
+      - 544 — Islamabad Model College For Boys (VI-XII), Bhimber Trar
+      - 229 — Islamabad Model School (I-VIII) F-6/3
     class_admitted_in:
       label: Class Admitted In
       type: dropdown
@@ -1684,7 +1867,8 @@ tab_3_educational_details:
       - Institution Bus
       - Private
       - None
-      note: DB column is transport_facility; option is Institution Bus (not Bus)
+      note: DB column is transport (portal field transport_facility, aliased in webform_handler);
+        option is Institution Bus (not Bus)
     group:
       label: Group
       type: dropdown
@@ -1890,6 +2074,152 @@ tab_3_educational_details:
       options:
       - 'Yes'
       - 'No'
+    name_of_student:
+      label: Name of Student
+      type: text
+      required: true
+      source_field: name
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    is_bform_available:
+      label: is_bform_available
+      type: radio
+      required: false
+      source_field: is_bform_available
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
+    cnic_form_b_no:
+      label: CNIC/Form-B No.
+      type: text
+      required: true
+      source_field: b_form
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      placeholder: XXXXX-XXXXXXX-X
+    gender:
+      label: Gender
+      type: text
+      required: true
+      source_field: gender
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    date_of_birth:
+      label: Date of Birth
+      type: text
+      required: true
+      source_field: date_of_birth
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    province_of_birth:
+      label: Province of Birth
+      type: text
+      required: true
+      source_field: birth_province_id
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    district_of_birth:
+      label: District of Birth
+      type: text
+      required: true
+      source_field: birth_district_id
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    nationality:
+      label: Nationality
+      type: text
+      required: true
+      source_field: nationality
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    student_domicile_province:
+      label: Student Domicile — Province
+      type: text
+      required: false
+      source_field: domicile_province_id
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    student_domicile_district:
+      label: Student Domicile — District
+      type: text
+      required: false
+      source_field: domicile_district_id
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    address_type:
+      label: Address Type
+      type: text
+      required: true
+      source_field: address_type
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    sector:
+      label: Sector
+      type: text
+      required: true
+      source_field: sector_id
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    sub_sector:
+      label: Sub Sector
+      type: text
+      required: true
+      source_field: sub_sector_id
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    house:
+      label: 'House #'
+      type: text
+      required: false
+      source_field: house
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    street:
+      label: 'Street #'
+      type: text
+      required: false
+      source_field: street
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    contact_number_whatsapp:
+      label: Contact Number / WhatsApp
+      type: text
+      required: true
+      source_field: contact_number
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    city:
+      label: City
+      type: text
+      required: true
+      source_field: city_id
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    same_as_permanent_address:
+      label: same_as_permanent_address
+      type: checkbox
+      required: false
+      source_field: same_as_permanent_address
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    religion:
+      label: Religion
+      type: text
+      required: true
+      source_field: religion
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    mother_language:
+      label: Mother Language
+      type: text
+      required: true
+      source_field: language_id
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    blood_group:
+      label: Blood Group
+      type: text
+      required: false
+      source_field: blood_group
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    is_hafiz:
+      label: is_hafiz
+      type: radio
+      required: false
+      source_field: is_hafiz
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
+    email_id:
+      label: Email ID
+      type: text
+      required: false
+      source_field: email
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      placeholder: fde@gmail.com
   sibling_details:
     total_siblings:
       label: Total Siblings
@@ -2012,6 +2342,152 @@ tab_4_emergency_contact:
     options:
     - 'Yes'
     - 'No'
+  name_of_student:
+    label: Name of Student
+    type: text
+    required: true
+    source_field: name
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  is_bform_available:
+    label: is_bform_available
+    type: radio
+    required: false
+    source_field: is_bform_available
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    options:
+    - 'Yes'
+    - 'No'
+  cnic_form_b_no:
+    label: CNIC/Form-B No.
+    type: text
+    required: true
+    source_field: b_form
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    placeholder: XXXXX-XXXXXXX-X
+  gender:
+    label: Gender
+    type: text
+    required: true
+    source_field: gender
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  date_of_birth:
+    label: Date of Birth
+    type: text
+    required: true
+    source_field: date_of_birth
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  province_of_birth:
+    label: Province of Birth
+    type: text
+    required: true
+    source_field: birth_province_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  district_of_birth:
+    label: District of Birth
+    type: text
+    required: true
+    source_field: birth_district_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  nationality:
+    label: Nationality
+    type: text
+    required: true
+    source_field: nationality
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  student_domicile_province:
+    label: Student Domicile — Province
+    type: text
+    required: false
+    source_field: domicile_province_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  student_domicile_district:
+    label: Student Domicile — District
+    type: text
+    required: false
+    source_field: domicile_district_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  address_type:
+    label: Address Type
+    type: text
+    required: true
+    source_field: address_type
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  sector:
+    label: Sector
+    type: text
+    required: true
+    source_field: sector_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  sub_sector:
+    label: Sub Sector
+    type: text
+    required: true
+    source_field: sub_sector_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  house:
+    label: 'House #'
+    type: text
+    required: false
+    source_field: house
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  street:
+    label: 'Street #'
+    type: text
+    required: false
+    source_field: street
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  contact_number_whatsapp:
+    label: Contact Number / WhatsApp
+    type: text
+    required: true
+    source_field: contact_number
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  city:
+    label: City
+    type: text
+    required: true
+    source_field: city_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  same_as_permanent_address:
+    label: same_as_permanent_address
+    type: checkbox
+    required: false
+    source_field: same_as_permanent_address
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  religion:
+    label: Religion
+    type: text
+    required: true
+    source_field: religion
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  mother_language:
+    label: Mother Language
+    type: text
+    required: true
+    source_field: language_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  blood_group:
+    label: Blood Group
+    type: text
+    required: false
+    source_field: blood_group
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  is_hafiz:
+    label: is_hafiz
+    type: radio
+    required: false
+    source_field: is_hafiz
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    options:
+    - 'Yes'
+    - 'No'
+  email_id:
+    label: Email ID
+    type: text
+    required: false
+    source_field: email
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    placeholder: fde@gmail.com
 tab_5_idps_details:
   is_student_refugee_idp:
     label: Is Student Refugee / IDP
@@ -2022,11 +2498,11 @@ tab_5_idps_details:
     - 'Yes'
     - 'No'
   idp_status:
-      label: IDP Status
-      type: radio
-      required: false
-      source_field: idp_status_id
-      note: Required when is_refugee = Yes
+    label: IDP Status
+    type: radio
+    required: false
+    source_field: idp_status_id
+    note: Required when is_refugee = Yes
   is_registered_as_refugee:
     label: Is Registered as Refugee
     type: radio
@@ -2068,6 +2544,152 @@ tab_5_idps_details:
     options:
     - 'Yes'
     - 'No'
+  name_of_student:
+    label: Name of Student
+    type: text
+    required: true
+    source_field: name
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  is_bform_available:
+    label: is_bform_available
+    type: radio
+    required: false
+    source_field: is_bform_available
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    options:
+    - 'Yes'
+    - 'No'
+  cnic_form_b_no:
+    label: CNIC/Form-B No.
+    type: text
+    required: true
+    source_field: b_form
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    placeholder: XXXXX-XXXXXXX-X
+  gender:
+    label: Gender
+    type: text
+    required: true
+    source_field: gender
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  date_of_birth:
+    label: Date of Birth
+    type: text
+    required: true
+    source_field: date_of_birth
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  province_of_birth:
+    label: Province of Birth
+    type: text
+    required: true
+    source_field: birth_province_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  district_of_birth:
+    label: District of Birth
+    type: text
+    required: true
+    source_field: birth_district_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  nationality:
+    label: Nationality
+    type: text
+    required: true
+    source_field: nationality
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  student_domicile_province:
+    label: Student Domicile — Province
+    type: text
+    required: false
+    source_field: domicile_province_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  student_domicile_district:
+    label: Student Domicile — District
+    type: text
+    required: false
+    source_field: domicile_district_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  address_type:
+    label: Address Type
+    type: text
+    required: true
+    source_field: address_type
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  sector:
+    label: Sector
+    type: text
+    required: true
+    source_field: sector_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  sub_sector:
+    label: Sub Sector
+    type: text
+    required: true
+    source_field: sub_sector_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  house:
+    label: 'House #'
+    type: text
+    required: false
+    source_field: house
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  street:
+    label: 'Street #'
+    type: text
+    required: false
+    source_field: street
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  contact_number_whatsapp:
+    label: Contact Number / WhatsApp
+    type: text
+    required: true
+    source_field: contact_number
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  city:
+    label: City
+    type: text
+    required: true
+    source_field: city_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  same_as_permanent_address:
+    label: same_as_permanent_address
+    type: checkbox
+    required: false
+    source_field: same_as_permanent_address
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  religion:
+    label: Religion
+    type: text
+    required: true
+    source_field: religion
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  mother_language:
+    label: Mother Language
+    type: text
+    required: true
+    source_field: language_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  blood_group:
+    label: Blood Group
+    type: text
+    required: false
+    source_field: blood_group
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  is_hafiz:
+    label: is_hafiz
+    type: radio
+    required: false
+    source_field: is_hafiz
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    options:
+    - 'Yes'
+    - 'No'
+  email_id:
+    label: Email ID
+    type: text
+    required: false
+    source_field: email
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    placeholder: fde@gmail.com
 tab_6_health_details:
   any_major_disability:
     label: Any Major Disability
@@ -2320,6 +2942,152 @@ tab_6_health_details:
     options:
     - 'Yes'
     - 'No'
+  name_of_student:
+    label: Name of Student
+    type: text
+    required: true
+    source_field: name
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  is_bform_available:
+    label: is_bform_available
+    type: radio
+    required: false
+    source_field: is_bform_available
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    options:
+    - 'Yes'
+    - 'No'
+  cnic_form_b_no:
+    label: CNIC/Form-B No.
+    type: text
+    required: true
+    source_field: b_form
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    placeholder: XXXXX-XXXXXXX-X
+  gender:
+    label: Gender
+    type: text
+    required: true
+    source_field: gender
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  date_of_birth:
+    label: Date of Birth
+    type: text
+    required: true
+    source_field: date_of_birth
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  province_of_birth:
+    label: Province of Birth
+    type: text
+    required: true
+    source_field: birth_province_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  district_of_birth:
+    label: District of Birth
+    type: text
+    required: true
+    source_field: birth_district_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  nationality:
+    label: Nationality
+    type: text
+    required: true
+    source_field: nationality
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  student_domicile_province:
+    label: Student Domicile — Province
+    type: text
+    required: false
+    source_field: domicile_province_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  student_domicile_district:
+    label: Student Domicile — District
+    type: text
+    required: false
+    source_field: domicile_district_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  address_type:
+    label: Address Type
+    type: text
+    required: true
+    source_field: address_type
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  sector:
+    label: Sector
+    type: text
+    required: true
+    source_field: sector_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  sub_sector:
+    label: Sub Sector
+    type: text
+    required: true
+    source_field: sub_sector_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  house:
+    label: 'House #'
+    type: text
+    required: false
+    source_field: house
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  street:
+    label: 'Street #'
+    type: text
+    required: false
+    source_field: street
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  contact_number_whatsapp:
+    label: Contact Number / WhatsApp
+    type: text
+    required: true
+    source_field: contact_number
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  city:
+    label: City
+    type: text
+    required: true
+    source_field: city_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  same_as_permanent_address:
+    label: same_as_permanent_address
+    type: checkbox
+    required: false
+    source_field: same_as_permanent_address
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  religion:
+    label: Religion
+    type: text
+    required: true
+    source_field: religion
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  mother_language:
+    label: Mother Language
+    type: text
+    required: true
+    source_field: language_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  blood_group:
+    label: Blood Group
+    type: text
+    required: false
+    source_field: blood_group
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  is_hafiz:
+    label: is_hafiz
+    type: radio
+    required: false
+    source_field: is_hafiz
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    options:
+    - 'Yes'
+    - 'No'
+  email_id:
+    label: Email ID
+    type: text
+    required: false
+    source_field: email
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    placeholder: fde@gmail.com
 tab_7_digital_access:
   access_to_digital_device:
     label: Access to Digital Device
@@ -2366,3 +3134,149 @@ tab_7_digital_access:
     options:
     - 'Yes'
     - 'No'
+  name_of_student:
+    label: Name of Student
+    type: text
+    required: true
+    source_field: name
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  is_bform_available:
+    label: is_bform_available
+    type: radio
+    required: false
+    source_field: is_bform_available
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    options:
+    - 'Yes'
+    - 'No'
+  cnic_form_b_no:
+    label: CNIC/Form-B No.
+    type: text
+    required: true
+    source_field: b_form
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    placeholder: XXXXX-XXXXXXX-X
+  gender:
+    label: Gender
+    type: text
+    required: true
+    source_field: gender
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  date_of_birth:
+    label: Date of Birth
+    type: text
+    required: true
+    source_field: date_of_birth
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  province_of_birth:
+    label: Province of Birth
+    type: text
+    required: true
+    source_field: birth_province_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  district_of_birth:
+    label: District of Birth
+    type: text
+    required: true
+    source_field: birth_district_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  nationality:
+    label: Nationality
+    type: text
+    required: true
+    source_field: nationality
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  student_domicile_province:
+    label: Student Domicile — Province
+    type: text
+    required: false
+    source_field: domicile_province_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  student_domicile_district:
+    label: Student Domicile — District
+    type: text
+    required: false
+    source_field: domicile_district_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  address_type:
+    label: Address Type
+    type: text
+    required: true
+    source_field: address_type
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  sector:
+    label: Sector
+    type: text
+    required: true
+    source_field: sector_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  sub_sector:
+    label: Sub Sector
+    type: text
+    required: true
+    source_field: sub_sector_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  house:
+    label: 'House #'
+    type: text
+    required: false
+    source_field: house
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  street:
+    label: 'Street #'
+    type: text
+    required: false
+    source_field: street
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  contact_number_whatsapp:
+    label: Contact Number / WhatsApp
+    type: text
+    required: true
+    source_field: contact_number
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  city:
+    label: City
+    type: text
+    required: true
+    source_field: city_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  same_as_permanent_address:
+    label: same_as_permanent_address
+    type: checkbox
+    required: false
+    source_field: same_as_permanent_address
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  religion:
+    label: Religion
+    type: text
+    required: true
+    source_field: religion
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  mother_language:
+    label: Mother Language
+    type: text
+    required: true
+    source_field: language_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  blood_group:
+    label: Blood Group
+    type: text
+    required: false
+    source_field: blood_group
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  is_hafiz:
+    label: is_hafiz
+    type: radio
+    required: false
+    source_field: is_hafiz
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    options:
+    - 'Yes'
+    - 'No'
+  email_id:
+    label: Email ID
+    type: text
+    required: false
+    source_field: email
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    placeholder: fde@gmail.com

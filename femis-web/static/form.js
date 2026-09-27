@@ -669,15 +669,16 @@ document.addEventListener("DOMContentLoaded", function () {
             // Collect all form fields from active tab (include present_* even when
             // the permanent block is hidden by "Same as Temporary Address")
             var fields = activeTab.querySelectorAll("input, select, textarea");
-            var deviceChecked = [];
+            var arrayChecks = {};
             fields.forEach(function (f) {
                 var isPresentAddr = f.name && f.name.indexOf("present_") === 0;
                 if (f.offsetParent === null && f.type !== "hidden" && !isPresentAddr) return;
                 if (f.type === "radio") {
                     if (f.checked) data[f.name] = f.value;
                 } else if (f.type === "checkbox") {
-                    if (f.name === "digital_device_type[]") {
-                        if (f.checked) deviceChecked.push(f.value);
+                    if (f.name && f.name.slice(-2) === "[]") {
+                        if (!arrayChecks[f.name]) arrayChecks[f.name] = [];
+                        if (f.checked) arrayChecks[f.name].push(f.value);
                     } else {
                         data[f.name] = f.checked ? (f.value || "1") : "";
                     }
@@ -687,7 +688,9 @@ document.addEventListener("DOMContentLoaded", function () {
                     data[f.name] = f.value;
                 }
             });
-            data["digital_device_type[]"] = deviceChecked.join(",");
+            Object.keys(arrayChecks).forEach(function (n) {
+                data[n] = arrayChecks[n].join(",");
+            });
 
             // Also collect all hidden fields in the form
             document.querySelectorAll("#admissionForm input[type='hidden']").forEach(function (f) {
@@ -697,7 +700,7 @@ document.addEventListener("DOMContentLoaded", function () {
             var isLastTab = currentTab >= 6;
             var endpoint = isLastTab ? "/api/final-submit" : "/api/save-tab";
             var payload = isLastTab
-                ? { student_id: studentId.value }
+                ? { student_id: studentId.value, data: data }
                 : { tab: currentTab + 1, student_id: studentId.value || null, data: data };
 
             saveNextBtn.disabled = true;
@@ -790,7 +793,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     "emergency_contact": "emergency_contact",
                     "is_refugee": "is_refugee",
                     "is_registered_refugee": "is_registered_refugee",
-                    "refugee_card": "refugee_card",
+                    "refugee_card": "refugee_card_number",
+                    "transport": "transport_facility",
                     "has_major_disability": "has_major_disability",
                     "has_mental_disability": "has_mental_disability",
                     "other_medical_condition": "other_medical_condition",
