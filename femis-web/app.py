@@ -2,9 +2,10 @@
 Flask app replicating the FEMIS portal's 7-tab student form.
 Parents/teachers fill this; the bot reads from the DB and fills the real portal.
 """
-import json, os, re
+import json, os, re, sqlite3
 from pathlib import Path
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
+from flask import (Flask, render_template, request, jsonify, redirect, url_for,
+                   flash, session, send_file)
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -940,6 +941,37 @@ def api_admin_reset_teacher_password(teacher_id):
     teacher.set_password(password)
     db.session.commit()
     return jsonify({"ok": True})
+
+
+@app.route("/api/admin/export")
+def api_admin_export():
+    """Full-DB snapshot for the local pull script (tools/sync_from_portal.py).
+
+    Uses sqlite3's backup API — a consistent copy even during live writes.
+    The temp file is deleted once the response is fully sent.
+    """
+    if not session.get("role"):
+        return jsonify({"ok": False, "error": "Authentication required"}), 401
+    if session.get("role") != "admin":
+        return jsonify({"ok": False, "error": "Admin only"}), 403
+    src_path = db.engine.url.database
+    if not src_path:
+        return jsonify({"ok": False, "error": "SQLite export requires an SQLite database"}), 500
+    ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    snapshot = Path(_instance_dir) / f"femis_export_{ts}.db"
+    src = sqlite3.connect(src_path)
+    dst = sqlite3.connect(str(snapshot))
+    try:
+        with dst:
+            src.backup(dst)
+    finally:
+        dst.close()
+        src.close()
+    resp = send_file(snapshot, as_attachment=True,
+                     download_name=f"femis_{ts}.db",
+                     mimetype="application/octet-stream")
+    resp.call_on_close(lambda: snapshot.unlink(missing_ok=True))
+    return resp
 
 
 # ---------------------------------------------------------------------------

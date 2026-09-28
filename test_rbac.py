@@ -355,6 +355,36 @@ try:
         check("J13 admin deletes any student", r.status_code == 200
               and (r.get_json() or {}).get("ok"), r.status_code)
 
+        # ==============================================================
+        # K. Admin DB export (source for tools/sync_from_portal.py)
+        # ==============================================================
+        r = app.test_client().get("/api/admin/export")
+        check("K1 anon export -> 401", r.status_code == 401, r.status_code)
+        r = t_9a.get("/api/admin/export")
+        check("K2 teacher export -> 403", r.status_code == 403, r.status_code)
+        r = adm.get("/api/admin/export")
+        check("K3 admin export -> valid sqlite attachment",
+              r.status_code == 200
+              and r.data[:16] == b"SQLite format 3\x00"
+              and "attachment" in (r.headers.get("Content-Disposition") or ""),
+              (r.status_code, r.data[:16], r.headers.get("Content-Disposition")))
+        import tempfile as _tf
+        with _tf.NamedTemporaryFile(suffix=".db", delete=False) as _f:
+            _f.write(r.data)
+            _tmp_db = _f.name
+        try:
+            _con = sqlite3.connect(_tmp_db)
+            _integrity = _con.execute("PRAGMA integrity_check").fetchone()[0]
+            _n_students = _con.execute("SELECT COUNT(*) FROM students").fetchone()[0]
+            _n_admins = _con.execute(
+                "SELECT COUNT(*) FROM teachers WHERE role='admin'").fetchone()[0]
+            _con.close()
+        finally:
+            Path(_tmp_db).unlink(missing_ok=True)
+        check("K4 export passes integrity_check + contains data",
+              str(_integrity).lower() == "ok" and _n_students >= 6 and _n_admins == 1,
+              (_integrity, _n_students, _n_admins))
+
 finally:
     # ------------------------------------------------------------------
     # Cleanup: temp students + temp teacher; baseline must be restored.

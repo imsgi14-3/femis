@@ -3,9 +3,11 @@ config/*.json
 data/input/*
 data/logs/*
 data/output/*
+data/backups/*
 !data/input/.gitkeep
 !data/logs/.gitkeep
 !data/output/.gitkeep
+!data/backups/.gitkeep
 __pycache__/
 *.pyc
 .env
