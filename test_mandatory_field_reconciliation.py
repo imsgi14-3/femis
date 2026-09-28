@@ -337,6 +337,11 @@ check("[33] emergency relation Other/Others -> Specify Relation mandatory + aste
       'selectToggle("emergency_relation", "emergency_relation_other_group", ["Other", "Others"])' in JS and
       'Specify Relation <span class="text-danger">*</span>' in HTML,
       str(cond_rule("emergency_relation_other")))
+check("[34] guardian relation Other -> Other Relation mandatory + asterisk",
+      cond_rule("guardian_relation_other") == ("guardian_relation", ["Other"]) and
+      'selectToggle("guardian_relation", "guardian_relation_other_group", ["Other"])' in JS and
+      'Other Relation <span class="text-danger">*</span>' in HTML,
+      str(cond_rule("guardian_relation_other")))
 
 # ---- cross-cutting facts ----
 check("[X] no server-side mandatory validation in save/submit routes",

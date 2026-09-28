@@ -697,6 +697,7 @@ document.addEventListener("DOMContentLoaded", function () {
             {fields: ["bus_route"], trigger: "transport_facility", values: ["Bus", "Institution Bus"]},
             {fields: ["digital_device_type[]"], trigger: "digital_device_at_home", values: ["1"]},
             {fields: ["emergency_relation_other"], trigger: "emergency_relation", values: ["Other", "Others"]},
+            {fields: ["guardian_relation_other"], trigger: "guardian_relation", values: ["Other"]},
             {fields: ["father_contact"], trigger: "is_father_alive", values: ["1"]},
             {fields: ["mother_contact"], trigger: "is_mother_alive", values: ["1"]},
             {fields: ["mother_bps"], trigger: "mother_profession", values: ["Govt Employee"]},
