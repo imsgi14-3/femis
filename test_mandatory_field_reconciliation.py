@@ -1,12 +1,14 @@
-"""Phase 3B.11 — mandatory-field reconciliation test (diagnosis, characterization).
+"""Mandatory-field reconciliation test — locks the POST-FIX state.
 
 Audits the ACTUAL current implementation (femis-web/templates/form.html +
 femis-web/static/form.js + femis-web/app.py) against the admin-documented FEMIS
 requirements — not against any previous phase report.
 
-Each requirement is evaluated as MET or GAP. The assertions lock the CURRENT state,
-so a future fix must consciously update this file. Discrepancies are reported here,
-NOT fixed (Phase 3B.11 stops after diagnosis).
+History: written in Phase 3B.11 as a diagnosis that locked the GAP state; updated
+alongside the misalignment-report §6 fixes (visibility-gated validateTab, guardian
+gating, hearing-aid parity, mother-income asterisk, all-tabs final submit).
+Each requirement is evaluated as MET or GAP; further fixes must consciously
+update this file.
 """
 import re
 import sys
@@ -89,15 +91,20 @@ print("=" * 78)
 print("MANDATORY-FIELD RECONCILIATION (actual current HTML / JS / server)")
 print("=" * 78)
 
-# 1. sector + sub-sector when address uses sector
+# 1. sector + sub-sector when address uses sector (FIXED: visibility-gated mandatory)
 for f in ("sector_id", "sub_sector_id"):
-    enforced = js_mandatory(f) or cond_rule(f) is not None or html_required(f)
-    check(f"[1] {f}: enforcement state as diagnosed", enforced is False,
-          "not required in HTML, not in mandatoryByTab, no conditional rule")
-if not (js_mandatory("sector_id") or cond_rule("sector_id")):
-    gap("1. sector/sub-sector when address=Sector",
-        "address_type=Sector does not make sector_id/sub_sector_id required in JS; "
-        "HTML controls have no required attribute")
+    check(f"[1] {f} JS-mandatory (tab0, visibility-gated)", js_mandatory(f))
+check("[1] b_form JS-mandatory (tab0, visibility-gated)", js_mandatory("b_form"))
+check("[1] present_* address trio JS-mandatory (tab0, visibility-gated)",
+      all(js_mandatory(f) for f in
+          ("present_address_type", "present_sector_id", "present_sub_sector_id")))
+check("[1] shift JS-mandatory (tab2)", js_mandatory("shift"))
+check("[1] validateTab skips hidden fields",
+      "isHiddenWithin" in JS and "isHiddenWithin(pane, ctl.els[0])" in JS,
+      "hidden-group fields are not enforced")
+check("[1] final submit validates every tab",
+      'for (var t = 0; t < tabIds.length; t++)' in JS and
+      "validateTab(t, document.getElementById(tabIds[t]))" in JS)
 
 # 2-3. father income + qualification
 check("[2] father_monthly_income is JS-mandatory (tab1)", js_mandatory("father_monthly_income"))
@@ -113,18 +120,33 @@ check("[4] orphan_type conditional rule exists", cond_rule("orphan_type") == ("i
 check("[5] orphan+both-alive guard present in JS",
       "not allowed when both parents are alive" in JS)
 
-# 6. guardian name / cnic / relation / whatsapp
+# 6. guardian name / cnic / relation / whatsapp (FIXED: conditional on father not alive)
 for f in ("guardian_name", "guardian_cnic", "guardian_relation", "guardian_contact"):
-    check(f"[6] {f} JS-mandatory (tab1)", js_mandatory(f))
+    check(f"[6] {f} conditional on is_father_alive=no (tab1)",
+          cond_rule(f) == ("is_father_alive", ["0"]), str(cond_rule(f)))
     check(f"[6] {f} HTML required", html_required(f))
+check("[6] guardian block visibility wired (father not alive)",
+      'id="guardian_group"' in HTML and
+      'radioToggle("is_father_alive", "guardian_group", ["0"])' in JS)
 
 # 7. guardian profession + income
 for f in ("guardian_profession", "guardian_income"):
-    check(f"[7] {f} JS-mandatory (tab1)", js_mandatory(f))
+    check(f"[7] {f} conditional on is_father_alive=no (tab1)",
+          cond_rule(f) == ("is_father_alive", ["0"]), str(cond_rule(f)))
+check("[7] guardian_bps visibility wired (guardian profession = Govt Employee)",
+      'id="guardian_bps_group"' in HTML and
+      'selectToggle("guardian_profession", "guardian_bps_group", ["Govt Employee"])' in JS)
 
-# 8. mother income unless housewife
+# 8. mother income unless housewife (FIXED: asterisk clears + visibility-aware guard)
 check("[8] mother-income unless-Housewife rule present", "Housewife" in JS
       and "Mother's Income" in JS)
+check("[8] asterisk is conditional (id present, hidden by default)",
+      'id="mother_income_required"' in HTML and
+      'style="display:none;">*</span>' in HTML)
+check("[8] asterisk toggler wired to mother_profession",
+      "mother_income_required" in JS and "toggleStar" in JS)
+check("[8] guard skips when the mother group is hidden",
+      "isHiddenWithin(pane, motherProf)" in JS)
 
 # 9. date of admission MM/DD/YYYY
 has_date_format = bool(re.search(
@@ -198,12 +220,39 @@ check("[22] glass_prescription conditional on visually_fit=no",
       cond_rule("glass_prescription") == ("visually_fit", ["0"]),
       str(cond_rule("glass_prescription")))
 
-# 23-24. hearing block
+# 23-24. hearing block (FIXED: uses_hearing_aid unconditional + always visible)
 check("[23] has_hearing_difficulties JS-mandatory (tab5)",
       js_mandatory("has_hearing_difficulties"))
-check("[24] uses_hearing_aid conditional on hearing difficulty=yes",
-      cond_rule("uses_hearing_aid") == ("has_hearing_difficulties", ["1"]),
-      str(cond_rule("uses_hearing_aid")))
+check("[24] uses_hearing_aid JS-mandatory (tab5, unconditional)",
+      js_mandatory("uses_hearing_aid"), str(cond_rule("uses_hearing_aid")))
+check("[24] uses_hearing_aid group always visible",
+      'id="hearing_aid_group"' in HTML and
+      not re.search(r'id="hearing_aid_group"[^>]*style="display:none', HTML))
+check("[24] hearing_aid_details trigger = has_hearing_difficulties=yes",
+      'radioToggle("has_hearing_difficulties", "hearing_aid_details_group", ["1"])' in JS
+      and 'radioToggle("uses_hearing_aid", "hearing_aid_details_group"' not in JS)
+
+# 24b. parent-contact conditionals (report §6-P1.5)
+check("[24b] father_contact conditional on father alive",
+      cond_rule("father_contact") == ("is_father_alive", ["1"]), str(cond_rule("father_contact")))
+check("[24b] mother_contact conditional on mother alive",
+      cond_rule("mother_contact") == ("is_mother_alive", ["1"]), str(cond_rule("mother_contact")))
+
+# 24c. orphan type group visibility (shows only when is_orphan=yes)
+check("[24c] orphan_type_group visibility wired",
+      'id="orphan_type_group"' in HTML and
+      'radioToggle("is_orphan", "orphan_type_group", ["1"])' in JS)
+
+# 24d. portal visibility parity gates (report §6-P3)
+check("[24d] girls_stipend gated on gender=Female",
+      'id="girls_stipend_group"' in HTML and
+      'selectToggle("gender", "girls_stipend_group", ["Female"])' in JS)
+check("[24d] domicile gated on nationality=Pakistani",
+      'id="domicile_fields"' in HTML and
+      'selectToggle("nationality", "domicile_fields", ["Pakistani"])' in JS)
+check("[24d] is_hafiz gated on religion=Muslim",
+      'id="hafiz_group"' in HTML and
+      'selectToggle("religion", "hafiz_group", ["Muslim"])' in JS)
 
 # 25-27. walking / listening / aids
 check("[25] difficulty_listening JS-mandatory (tab5)", js_mandatory("difficulty_listening"))
@@ -230,8 +279,8 @@ if not server_mandatory:
 html_only = [n for n, r in sorted(ctrl.items())
              if r["required"] and n not in JS_MAND
              and not any(n in f for f, _, _ in COND)]
-check("[X] HTML-required-but-not-JS list captured",
-      set(html_only) >= {"b_form", "house", "street"},
+check("[X] HTML-required-but-not-JS list captured (b_form now JS-enforced)",
+      set(html_only) >= {"house", "street"} and "b_form" not in html_only,
       f"html-only required: {html_only}")
 if html_only:
     gap("X. HTML-only required attributes",

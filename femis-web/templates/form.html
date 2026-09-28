@@ -108,7 +108,7 @@
   </div>
 
   <h6 class="text-primary mb-3 border-bottom pb-2">Domicile Information</h6>
-  <div class="row g-3 mb-4">
+  <div class="row g-3 mb-4" id="domicile_fields">
     <div class="col-md-6">
       <label class="form-label">Student Domicile — Province</label>
       <select class="form-select" name="domicile_province_id" id="domicile_province_id">
@@ -315,7 +315,7 @@
       <label class="form-label">Email ID <span class="text-danger">*</span></label>
       <input type="email" class="form-control" name="email" required>
     </div>
-    <div class="col-md-6">
+    <div class="col-md-6" id="girls_stipend_group">
       <label class="form-label">Girls Stipend</label>
       <div>
         <div class="form-check form-check-inline">
@@ -509,7 +509,7 @@
       <input type="text" class="form-control" name="mother_profession_other" placeholder="Specify profession">
     </div>
     <div class="col-md-6">
-      <label class="form-label">Mother's Income (per month) <span class="text-danger">*</span></label>
+      <label class="form-label">Mother's Income (per month) <span class="text-danger" id="mother_income_required" style="display:none;">*</span></label>
       <select class="form-select" name="mother_monthly_income" id="mother_income">
         <option value="">— Select —</option>
         {% for i in opts.mother_income %}
@@ -550,7 +550,7 @@
 
   <div id="orphan_fields">
     <div class="row g-3 mb-4">
-      <div class="col-md-6">
+      <div class="col-md-6" id="orphan_type_group" style="display:none;">
         <label class="form-label">Orphan Type <span class="text-danger">*</span></label>
         <select class="form-select" name="orphan_type" id="orphan_type">
           <option value="">— Select —</option>
@@ -560,6 +560,8 @@
         </select>
         <div class="form-text">Required when Is Orphan = Yes.</div>
       </div>
+    </div>
+    <div class="row g-3 mb-4" id="guardian_group" style="display:none;">
       <div class="col-md-6">
         <label class="form-label">Guardian Name <span class="text-danger">*</span></label>
         <input type="text" class="form-control" name="guardian_name" required>
@@ -615,7 +617,7 @@
           {% endfor %}
         </select>
       </div>
-      <div class="col-md-6">
+      <div class="col-md-6" id="guardian_bps_group">
         <label class="form-label">Guardian BPS</label>
         <select class="form-select" name="guardian_bps" id="guardian_bps">
           <option value="">— Select —</option>
@@ -1068,7 +1070,7 @@
         </div>
       </div>
     </div>
-    <div class="col-md-6" id="hearing_aid_group" style="display:none;">
+    <div class="col-md-6" id="hearing_aid_group">
       <label class="form-label">Uses Hearing Aid <span class="text-danger">*</span></label>
       <div>
         <div class="form-check form-check-inline">

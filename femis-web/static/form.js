@@ -243,6 +243,25 @@ document.addEventListener("DOMContentLoaded", function () {
     // === Conditional: Religion (select) → show Other Religion ===
     selectToggle("religion", "other_religion_group", ["Non-Muslim"]);
 
+    // === Visibility parity with FEMIS portal (misalignment report §6-P3) ===
+    selectToggle("gender", "girls_stipend_group", ["Female"]);
+    selectToggle("nationality", "domicile_fields", ["Pakistani"]);
+    selectToggle("religion", "hafiz_group", ["Muslim"]);
+    selectToggle("guardian_profession", "guardian_bps_group", ["Govt Employee"]);
+
+    // === Mother's Income asterisk: show only when enforced (rule §8-8.1) ===
+    (function () {
+        var prof = document.getElementById("mother_profession");
+        var star = document.getElementById("mother_income_required");
+        if (!prof || !star) return;
+        function toggleStar() {
+            var v = (prof.value || "").trim().toLowerCase();
+            star.style.display = (v && v !== "housewife") ? "inline" : "none";
+        }
+        prof.addEventListener("change", toggleStar);
+        toggleStar();
+    })();
+
     // === Conditional: Same as Temp → show/hide permanent address fields ===
     checkboxToggle("same_as_temporary", "permanent_address_fields", true);
 
@@ -372,8 +391,8 @@ document.addEventListener("DOMContentLoaded", function () {
     // FEMIS: Glasses Prescription required when Visually FIT = No
     radioToggle("visually_fit", "glass_prescription_group", ["0"]);
 
-    // === Hearing Aid → show details ===
-    radioToggle("uses_hearing_aid", "hearing_aid_details_group", ["1"]);
+    // === Hearing Aid details ← Has Hearing Difficulty = Yes (portal click-map) ===
+    radioToggle("has_hearing_difficulties", "hearing_aid_details_group", ["1"]);
 
     // === Class → Section dynamic: 1-8 → A,B; 9-10 → A,B,C ===
     (function () {
@@ -412,7 +431,6 @@ document.addEventListener("DOMContentLoaded", function () {
     })();
     radioToggle("has_major_disability", "disability_fields", ["1"]);
     radioToggle("has_mental_disability", "mental_disability_type_group", ["1"]);
-    radioToggle("has_hearing_difficulties", "hearing_aid_group", ["1"]);
     radioToggle("is_refugee", "idp_fields", ["1"]);
     radioToggle("is_registered_refugee", "refugee_card_group", ["1"]);
     radioToggle("digital_device_at_home", "device_type_group", ["1"]);
@@ -420,11 +438,9 @@ document.addEventListener("DOMContentLoaded", function () {
     radioToggle("scholarship", "scholarship_details_group", ["1"]);
     radioToggle("cocurricular_activities", "co_curricular_details_group", ["1"]);
 
-    // === Guardian block always visible (FEMIS: guardian fields mandatory) ===
-    (function () {
-        var orphanFields = document.getElementById("orphan_fields");
-        if (orphanFields) orphanFields.style.display = "block";
-    })();
+    // === Orphan Type ← is_orphan=Yes; Guardian block ← father not alive (FEMIS) ===
+    radioToggle("is_orphan", "orphan_type_group", ["1"]);
+    radioToggle("is_father_alive", "guardian_group", ["0"]);
 
     // === Class Admitted In options follow selected Class ===
     // Class 1-5 → admitted 1..5; Class 6-10 → admitted 6..10
@@ -546,20 +562,21 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // ==================================================================
     // MANDATORY FIELD VALIDATION per tab
+    // Visibility-gated: fields inside a hidden group are NOT enforced —
+    // mirrors FEMIS, which only requires what it currently shows
+    // (misalignment report §6-P1.1/P1.2/P1.3).
     // ==================================================================
     var mandatoryByTab = {
-        0: ["name", "is_bform_available", "gender", "date_of_birth", "birth_province_id", "birth_district_id", "nationality", "address_type", "contact_number", "city_id", "religion", "language_id", "email"],
+        0: ["name", "is_bform_available", "b_form", "gender", "date_of_birth", "birth_province_id", "birth_district_id", "nationality", "address_type", "sector_id", "sub_sector_id", "contact_number", "city_id", "present_address_type", "present_sector_id", "present_sub_sector_id", "religion", "language_id", "email"],
         1: [
             "father_name", "father_cnic", "is_father_alive", "father_profession",
             "father_qualification", "father_monthly_income",
             "mother_name", "is_mother_alive", "mother_profession",
             "is_orphan",
-            "guardian_name", "guardian_cnic", "guardian_relation",
-            "guardian_contact", "guardian_profession", "guardian_income",
         ],
         2: [
             "class_id", "section_id", "date_of_admission", "class_admitted_id",
-            "medium_of_instruction", "mode_of_study", "admission_number",
+            "medium_of_instruction", "mode_of_study", "admission_number", "shift",
             "total_siblings", "school_meal_program_availing",
             "transport_facility", "scholarship", "cocurricular_activities",
         ],
@@ -568,44 +585,77 @@ document.addEventListener("DOMContentLoaded", function () {
         5: [
             "has_major_disability", "has_mental_disability", "visually_fit",
             "uses_glasses", "has_hearing_difficulties", "difficulty_listening",
-            "difficulty_walking", "uses_crutches_walker",
+            "difficulty_walking", "uses_crutches_walker", "uses_hearing_aid",
             "difficulty_seeing_board", "difficulty_reading_writing",
             "difficulty_remembering", "difficulty_concentrating",
         ],
         6: ["digital_device_at_home", "internet_at_home"],
     };
 
-    function validateTab(tabIndex) {
+    // Hidden-field detection: an element is hidden when any ancestor INSIDE
+    // its tab pane has computed display:none. The pane itself is ignored so a
+    // non-active pane can still be validated (final submit checks every tab).
+    function isHiddenWithin(pane, el) {
+        if (!el || !pane) return false;
+        var node = el;
+        while (node && node !== pane) {
+            if (window.getComputedStyle(node).display === "none") return true;
+            node = node.parentElement;
+        }
+        return false;
+    }
+
+    function fieldControl(pane, fname) {
+        var radios = pane.querySelectorAll('input[type="radio"][name="' + fname + '"]');
+        if (radios.length) return { kind: "radio", els: radios };
+        var sel = pane.querySelector('select[name="' + fname + '"]');
+        if (sel) return { kind: "select", els: [sel] };
+        var checks = pane.querySelectorAll('input[type="checkbox"][name="' + fname + '"]');
+        if (checks.length) return { kind: "checkbox", els: checks };
+        var input = pane.querySelector('input:not([type="radio"]):not([type="checkbox"])[name="' + fname + '"], textarea[name="' + fname + '"]');
+        if (input) return { kind: "text", els: [input] };
+        return null;
+    }
+
+    function controlValue(ctl) {
+        if (ctl.kind === "radio") {
+            for (var i = 0; i < ctl.els.length; i++) {
+                if (ctl.els[i].checked) return ctl.els[i].value;
+            }
+            return "";
+        }
+        if (ctl.kind === "checkbox") {
+            // For [] groups the requirement is the control being rendered
+            // (value semantics unchanged from rev.1).
+            return ctl.els[0].value;
+        }
+        return ctl.els[0].value.trim();
+    }
+
+    function fieldLabel(pane, fname) {
+        var label = pane.querySelector('label[for="' + fname + '"]');
+        if (!label) {
+            label = pane.querySelector('label:has(+ [name="' + fname + '"]), label:has(+ div [name="' + fname + '"])');
+        }
+        return label ? label.textContent.replace("*", "").trim() : fname;
+    }
+
+    function validateTab(tabIndex, pane) {
         var fields = mandatoryByTab[tabIndex];
         if (!fields) return true;
-        var activeTab = document.querySelector(".tab-pane.active");
-        if (!activeTab) return true;
+        if (!pane) pane = document.querySelector(".tab-pane.active");
+        if (!pane) return true;
         var missing = [];
         fields.forEach(function (fname) {
-            var radios = activeTab.querySelectorAll('input[type="radio"][name="' + fname + '"]');
-            var sel = activeTab.querySelector('select[name="' + fname + '"]');
-            var input = activeTab.querySelector('input:not([type="radio"]):not([type="checkbox"])[name="' + fname + '"]');
-            var val = "";
-            if (radios.length > 0) {
-                var checked = activeTab.querySelector('input[name="' + fname + '"]:checked');
-                val = checked ? checked.value : "";
-            } else if (sel) {
-                val = sel.value;
-            } else if (input) {
-                val = input.value.trim();
-            }
-            if (!val) {
-                var label = activeTab.querySelector('label[for="' + fname + '"]');
-                if (!label) {
-                    var lbl = activeTab.querySelector('label:has(+ [name="' + fname + '"]), label:has(+ div [name="' + fname + '"])');
-                    label = lbl;
-                }
-                var labelText = label ? label.textContent.replace("*", "").trim() : fname;
-                missing.push(labelText);
+            var ctl = fieldControl(pane, fname);
+            if (!ctl) return;                            // control not rendered — nothing to fill
+            if (isHiddenWithin(pane, ctl.els[0])) return; // hidden group → not enforced (§6-P1.3)
+            if (!controlValue(ctl)) {
+                missing.push(fieldLabel(pane, fname));
             }
         });
 
-        // Conditional required fields — only validate if the parent field is visible
+        // Conditional required fields — trigger on AND field group visible
         var conditionalRequired = [
             {fields: ["orphan_type"], trigger: "is_orphan", values: ["1"]},
             {fields: ["scholarship_details"], trigger: "scholarship", values: ["1"]},
@@ -616,45 +666,51 @@ document.addEventListener("DOMContentLoaded", function () {
             {fields: ["disability_types[]"], trigger: "has_major_disability", values: ["1"]},
             {fields: ["mental_disability_type"], trigger: "has_mental_disability", values: ["1"]},
             {fields: ["glass_prescription"], trigger: "visually_fit", values: ["0"]},
-            {fields: ["uses_hearing_aid"], trigger: "has_hearing_difficulties", values: ["1"]},
             {fields: ["bus_route"], trigger: "transport_facility", values: ["Bus", "Institution Bus"]},
             {fields: ["digital_device_type[]"], trigger: "digital_device_at_home", values: ["1"]},
             {fields: ["emergency_relation_other"], trigger: "emergency_relation", values: ["Other", "Others"]},
+            {fields: ["father_contact"], trigger: "is_father_alive", values: ["1"]},
+            {fields: ["mother_contact"], trigger: "is_mother_alive", values: ["1"]},
+            {fields: ["guardian_name", "guardian_cnic", "guardian_relation", "guardian_contact", "guardian_profession", "guardian_income"], trigger: "is_father_alive", values: ["0"]},
         ];
         conditionalRequired.forEach(function (cr) {
-            var triggerRadio = activeTab.querySelector('input[name="' + cr.trigger + '"]:checked');
+            var triggerRadio = pane.querySelector('input[name="' + cr.trigger + '"]:checked');
             if (!triggerRadio || cr.values.indexOf(triggerRadio.value) < 0) return;
             cr.fields.forEach(function (fname) {
-                var input = activeTab.querySelector('[name="' + fname + '"]');
-                var sel = activeTab.querySelector('select[name="' + fname + '"]');
-                var val = sel ? sel.value : (input ? input.value.trim() : "");
-                if (!val) {
-                    var label = activeTab.querySelector('label[for="' + fname + '"]');
-                    var labelText = label ? label.textContent.replace("*", "").trim() : fname;
+                var ctl = fieldControl(pane, fname);
+                if (!ctl) return;
+                if (isHiddenWithin(pane, ctl.els[0])) return;
+                if (!controlValue(ctl)) {
+                    var labelText = fieldLabel(pane, fname);
                     if (missing.indexOf(labelText) < 0) missing.push(labelText);
                 }
             });
         });
 
-        // Mother Income: mandatory unless profession = Housewife
-        var motherProf = activeTab.querySelector('select[name="mother_profession"]');
-        var motherIncome = activeTab.querySelector('select[name="mother_monthly_income"]');
-        if (motherProf && motherIncome && motherProf.value && motherProf.value !== "Housewife" && !motherIncome.value) {
-            missing.push("Mother's Income (per month)");
+        // Mother Income: mandatory unless profession = Housewife (§8).
+        // Skips entirely when either control's group is hidden (8.3 dead zone).
+        var motherProf = pane.querySelector('select[name="mother_profession"]');
+        var motherIncome = pane.querySelector('select[name="mother_monthly_income"]');
+        if (motherProf && motherIncome &&
+            !isHiddenWithin(pane, motherProf) && !isHiddenWithin(pane, motherIncome)) {
+            var mp = (motherProf.value || "").trim().toLowerCase();
+            if (mp && mp !== "housewife" && !motherIncome.value) {
+                missing.push("Mother's Income (per month)");
+            }
         }
 
         // Orphan Yes not allowed if both parents alive
-        var orphanYes = activeTab.querySelector('input[name="is_orphan"]:checked');
+        var orphanYes = pane.querySelector('input[name="is_orphan"]:checked');
         if (orphanYes && orphanYes.value === "1") {
-            var fa = activeTab.querySelector('input[name="is_father_alive"]:checked');
-            var ma = activeTab.querySelector('input[name="is_mother_alive"]:checked');
+            var fa = pane.querySelector('input[name="is_father_alive"]:checked');
+            var ma = pane.querySelector('input[name="is_mother_alive"]:checked');
             if (fa && fa.value === "1" && ma && ma.value === "1") {
                 missing.push("Is Orphan (not allowed when both parents are alive)");
             }
         }
 
         if (missing.length > 0) {
-            alert("Please fill the following mandatory fields:\n\n• " + missing.join("\n• "));
+            alert("Tab " + (tabIndex + 1) + " — please fill the following mandatory fields:\n\n• " + missing.join("\n• "));
             return false;
         }
         return true;
@@ -665,7 +721,17 @@ document.addEventListener("DOMContentLoaded", function () {
     // ==================================================================
     if (saveNextBtn) {
         saveNextBtn.addEventListener("click", function () {
-            if (!validateTab(currentTab)) return;
+            var isLastTab = currentTab >= 6;
+            if (isLastTab) {
+                // Final submit validates EVERY tab: FEMIS requires the full
+                // record at submit, and jumping tabs never validated the ones
+                // skipped along the way (§8-8.2).
+                for (var t = 0; t < tabIds.length; t++) {
+                    if (!validateTab(t, document.getElementById(tabIds[t]))) return;
+                }
+            } else if (!validateTab(currentTab)) {
+                return;
+            }
 
             var data = {};
             var activeTab = document.querySelector(".tab-pane.active");
@@ -702,7 +768,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 data[f.name] = f.value;
             });
 
-            var isLastTab = currentTab >= 6;
             var endpoint = isLastTab ? "/api/final-submit" : "/api/save-tab";
             var payload = isLastTab
                 ? { student_id: studentId.value, data: data }

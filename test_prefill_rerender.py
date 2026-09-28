@@ -63,9 +63,9 @@ FILL_JS = """
     }
     const el = document.querySelector('input:not([type=radio]):not([type=checkbox])[name="' + fname + '"], textarea[name="' + fname + '"]');
     if (el) {
-      if (!el.value) {
+        if (!el.value) {
         if (el.type === 'date') el.value = '2015-01-01';
-        else if (fname.indexOf('cnic') >= 0) el.value = '3520212345678';
+        else if (fname.indexOf('cnic') >= 0 || fname.indexOf('b_form') >= 0) el.value = '3520212345678';
         else if (fname.indexOf('contact') >= 0 || fname.indexOf('phone') >= 0) el.value = '03001234567';
         else if (el.type === 'email') el.value = 'probe@example.com';
         else if (el.type === 'number') el.value = '1';
@@ -138,9 +138,30 @@ CLEAR_CHECKBOXES_JS = """
 }
 """
 
-# mandatoryByTab[0] (form.js) minus the fields prefilled from the fixture
-TAB1_FILL = ["name", "is_bform_available", "gender", "date_of_birth", "nationality",
+# mandatoryByTab[0] (form.js) minus the fields prefilled from the fixture.
+# b_form + present_* are newly mandatory (misalignment report §6-P1.1); the
+# present-address sub-sector needs its own fill after the cascade resolves.
+TAB1_FILL = ["name", "is_bform_available", "b_form", "gender", "date_of_birth", "nationality",
              "contact_number", "city_id", "religion", "language_id", "email"]
+TAB1_PRESENT = ["present_address_type", "present_sector_id"]
+TAB1_PRESENT_SUB = ["present_sub_sector_id"]
+# Final submit validates every tab (§8-8.2) — each tab must be filled + saved.
+TAB2_FILL = ["father_name", "father_cnic", "is_father_alive", "father_contact",
+             "father_qualification", "father_profession", "father_monthly_income",
+             "mother_name", "is_mother_alive", "mother_contact", "mother_profession",
+             "mother_monthly_income"]
+TAB3_FILL = ["class_id", "section_id", "date_of_admission", "class_admitted_id",
+             "medium_of_instruction", "mode_of_study", "admission_number", "shift",
+             "total_siblings", "school_meal_program_availing",
+             "transport_facility", "bus_route", "scholarship", "scholarship_details",
+             "cocurricular_activities", "cocurricular_details"]
+TAB4_FILL = ["emergency_name", "emergency_contact", "emergency_relation"]
+TAB5_FILL = ["is_refugee", "idp_status_id", "is_registered_refugee", "refugee_card_number"]  # UI tab-5 = IDPs (mandatoryByTab[4])
+TAB6_FILL = ["has_major_disability", "has_mental_disability", "mental_disability_type",
+             "visually_fit", "uses_glasses",
+             "has_hearing_difficulties", "uses_hearing_aid", "difficulty_listening",
+             "difficulty_walking", "uses_crutches_walker", "difficulty_seeing_board",
+             "difficulty_reading_writing", "difficulty_remembering", "difficulty_concentrating"]
 TAB7_FILL = ["digital_device_at_home", "internet_at_home"]
 
 PROBE = "P3B13 PREFILL PROBE"
@@ -204,6 +225,13 @@ def main():
             fill = page.evaluate(FILL_JS, {"fields": TAB1_FILL, "set": {}})
             check("tab-1 mandatory filled",
                   all(v not in ("NO_CONTROL", "") for v in fill.values()), str(fill))
+            # present-address cascade: address type + sector first, sub-sector
+            # only once /api/sub-sectors has resolved
+            page.evaluate(FILL_JS, {"fields": TAB1_PRESENT, "set": {}})
+            page.wait_for_timeout(700)
+            fill_sub = page.evaluate(FILL_JS, {"fields": TAB1_PRESENT_SUB, "set": {}})
+            check("tab-1 present sub-sector control reachable after cascade",
+                  fill_sub.get("present_sub_sector_id") != "NO_CONTROL", str(fill_sub))
             dialogs.clear()
             with page.expect_response(lambda x: "api/save-tab" in x.url, timeout=20000) as ri:
                 page.click("#save-next-btn")
@@ -219,8 +247,23 @@ def main():
             check("control: digital_device untouched by tab-1 save",
                   row["digital_device_type"] == "Mobile Phone,Laptop", repr(row["digital_device_type"]))
 
-            # --- tab-7 save (final-submit): checkbox values preserved ---
-            page.click('a[href="#tab-7"]')
+            # --- tabs 2-6: fill + save each (auto-advance after every save) ---
+            # Final submit now validates EVERY tab (§8-8.2), so each must pass
+            # its own Save & Next validation first.
+            for idx, fields in [(2, TAB2_FILL), (3, TAB3_FILL), (4, TAB4_FILL),
+                                (5, TAB5_FILL), (6, TAB6_FILL)]:
+                page.wait_for_selector(f"#tab-{idx}.active", timeout=5000)
+                fx = page.evaluate(FILL_JS, {"fields": fields, "set": {}})
+                check(f"tab-{idx} mandatory filled",
+                      all(v not in ("NO_CONTROL", "") for v in fx.values()), str(fx))
+                dialogs.clear()
+                with page.expect_response(lambda x: "api/save-tab" in x.url, timeout=20000) as ri:
+                    page.click("#save-next-btn")
+                check(f"tab-{idx} save ok", ri.value.json().get("ok") is True,
+                      str(ri.value.json()))
+                check(f"no validation alert on tab-{idx} save", not dialogs, str(dialogs))
+
+            # --- tab-7 save (final-submit): validates all tabs, keeps checkbox values ---
             page.wait_for_selector("#tab-7.active", timeout=5000)
             fill7 = page.evaluate(FILL_JS, {"fields": TAB7_FILL, "set": {}})
             check("tab-7 mandatory filled",
@@ -228,7 +271,7 @@ def main():
             dialogs.clear()
             with page.expect_response(lambda x: "api/final-submit" in x.url, timeout=20000) as ri:
                 page.click("#save-next-btn")
-            check("tab-7 save ok (final-submit)", ri.value.status == 200, str(ri.value.status))
+            check("tab-7 save ok (final-submit, all tabs validated)", ri.value.status == 200, str(ri.value.status))
             check("no validation alert on tab-7 save", not dialogs, str(dialogs))
 
             row = q("SELECT digital_device_type, disability_types, sub_sector_id, birth_district_id "
@@ -252,17 +295,32 @@ def main():
                   and dom.get("sub_sector_id") == "I-14/3"
                   and dom.get("digital_device_type[]") == "Mobile Phone,Laptop", str(dom))
 
-            # --- intentional clear still works (tab-1: sub_sector) ---
-            setres = page.evaluate(SET_JS, {"sub_sector_id": ""})
-            check("clear sub_sector applied", setres.get("sub_sector_id") == "ok", str(setres))
+            # --- intentional set + clear still works (tab-1: blood_group) ---
+            # sub_sector_id is now portal-mandatory while its group is visible,
+            # so the clear-probe uses a non-mandatory field instead (§6-P1.1).
+            setres = page.evaluate(SET_JS, {"blood_group": "B+"})
+            check("blood_group set applied", setres.get("blood_group") == "ok", str(setres))
+            dialogs.clear()
+            with page.expect_response(lambda x: "api/save-tab" in x.url, timeout=20000) as ri:
+                page.click("#save-next-btn")
+            check("tab-1 save after set ok", ri.value.json().get("ok") is True,
+                  str(ri.value.json()))
+            check("no validation alert on set-save", not dialogs, str(dialogs))
+            row = q("SELECT blood_group FROM students WHERE id=?", (sid,))
+            check("set of blood_group persists", row["blood_group"] == "B+", repr(row["blood_group"]))
+
+            page.click('a[href="#tab-1"]')
+            page.wait_for_selector("#tab-1.active", timeout=5000)
+            setres = page.evaluate(SET_JS, {"blood_group": ""})
+            check("clear blood_group applied", setres.get("blood_group") == "ok", str(setres))
             dialogs.clear()
             with page.expect_response(lambda x: "api/save-tab" in x.url, timeout=20000) as ri:
                 page.click("#save-next-btn")
             check("tab-1 save after clear ok", ri.value.json().get("ok") is True)
             check("no validation alert on clear-save", not dialogs, str(dialogs))
-            row = q("SELECT sub_sector_id FROM students WHERE id=?", (sid,))
-            check("intentional clear of sub_sector persists",
-                  (row["sub_sector_id"] or "") == "", repr(row["sub_sector_id"]))
+            row = q("SELECT blood_group FROM students WHERE id=?", (sid,))
+            check("intentional clear of blood_group persists",
+                  (row["blood_group"] or "") == "", repr(row["blood_group"]))
 
             # --- intentional clear of checkbox array (tab-7) ---
             page.click('a[href="#tab-7"]')
