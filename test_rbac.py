@@ -385,6 +385,61 @@ try:
               str(_integrity).lower() == "ok" and _n_students >= 6 and _n_admins == 1,
               (_integrity, _n_students, _n_admins))
 
+        # ==============================================================
+        # L. Blank /form route + post-submit redirect (Add Student fix)
+        # ==============================================================
+        r = app.test_client().get("/form")
+        check("L1 anon /form -> login", r.status_code == 302
+              and "/login" in (r.headers.get("Location") or ""),
+              r.headers.get("Location"))
+
+        r = t_9a.get("/form")
+        body = r.get_data(as_text=True)
+        check("L2 teacher /form -> blank new-student form",
+              r.status_code == 200 and "New Student Admission" in body
+              and 'id="student_id" value=""' in body, str(r.status_code))
+
+        r = adm.get("/form")
+        check("L3 admin /form -> blank new-student form",
+              r.status_code == 200
+              and "New Student Admission" in r.get_data(as_text=True),
+              str(r.status_code))
+
+        sid_mine = create_student("RBAC Redirect Student", "9", "A", "991")
+        created_students.append(sid_mine)
+        r = client(role="student", student_id=sid_mine).get("/form")
+        check("L4 student /form -> redirect to own record",
+              r.status_code == 302
+              and f"/form/{sid_mine}" in (r.headers.get("Location") or ""),
+              r.headers.get("Location"))
+
+        r = client(role="student", student_id=sid_mine).post(
+            "/api/final-submit", json={"student_id": sid_mine, "data": {}})
+        b = r.get_json() or {}
+        check("L5 student final-submit -> student dashboard",
+              r.status_code == 200 and b.get("redirect") == "/student-dashboard",
+              json.dumps(b))
+
+        r = adm.post("/api/final-submit",
+                     json={"student_id": sid_mine, "data": {}})
+        b = r.get_json() or {}
+        check("L6 admin final-submit -> success page",
+              r.status_code == 200
+              and (b.get("redirect") or "").startswith("/success/"),
+              json.dumps(b))
+
+        r = t_9a.get("/teacher-dashboard")
+        body = r.get_data(as_text=True)
+        check("L7 dashboard button is Add Student -> /form, New Admission gone",
+              "Add Student" in body and 'href="/form"' in body
+              and "New Admission" not in body, str(r.status_code))
+
+        r = client(role="student").get("/student-dashboard")
+        body = r.get_data(as_text=True)
+        check("L8 student Start Form button links to /form",
+              r.status_code == 200 and 'href="/form"' in body,
+              str(r.status_code))
+
 finally:
     # ------------------------------------------------------------------
     # Cleanup: temp students + temp teacher; baseline must be restored.

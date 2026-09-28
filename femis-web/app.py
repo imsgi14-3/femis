@@ -451,6 +451,18 @@ def index():
     return redirect(url_for("student_dashboard"))
 
 
+@app.route("/form")
+def new_form():
+    role = session.get("role")
+    if not role:
+        return redirect(url_for("login"))
+    student_id = session.get("student_id")
+    if role == "student" and student_id:
+        return redirect(url_for("edit_form", student_id=student_id))
+    return render_template("form.html", opts=seed_options(), edit_id=None,
+                           student=None, is_locked=False)
+
+
 @app.route("/form/<int:student_id>")
 def edit_form(student_id):
     if not session.get("role"):
@@ -593,7 +605,9 @@ def api_final_submit():
         if holder:
             return jsonify({"ok": False, "error": _b_form_error(holder, mapped["b_form"])}), 409
         raise
-    return jsonify({"ok": True, "student_id": student.id})
+    redirect_url = ("/student-dashboard" if session.get("role") == "student"
+                    else url_for("success", student_id=student.id))
+    return jsonify({"ok": True, "student_id": student.id, "redirect": redirect_url})
 
 
 @app.route("/api/upload-file", methods=["POST"])

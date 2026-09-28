@@ -852,7 +852,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 Promise.all(uploadPromises).then(function () {
                     markClean();
                     if (isLastTab) {
-                        window.location.href = "/success/" + res.student_id;
+                        window.location.href = res.redirect || "/success/" + res.student_id;
                     } else {
                         var nextTab = tabPills[currentTab + 1];
                         if (nextTab) {
@@ -862,7 +862,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 }).catch(function () {
                     markClean();
                     if (isLastTab) {
-                        window.location.href = "/success/" + res.student_id;
+                        window.location.href = res.redirect || "/success/" + res.student_id;
                     } else {
                         var nextTab = tabPills[currentTab + 1];
                         if (nextTab) {
