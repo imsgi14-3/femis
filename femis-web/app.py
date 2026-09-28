@@ -782,14 +782,20 @@ def teacher_dashboard():
         return redirect(url_for("login"))
     teacher_class = session.get("teacher_class")
     teacher_section = session.get("teacher_section")
-    if teacher_class and teacher_section:
+    teachers = []
+    if role == "admin":
+        students = Student.query.order_by(Student.created_at.desc()).all()
+        teachers = (Teacher.query.filter(Teacher.role != "admin")
+                    .order_by(Teacher.created_at.desc()).all())
+    elif teacher_class and teacher_section:
         students = Student.query.filter(
             Student.class_id.ilike(teacher_class),
             Student.section_id.ilike(teacher_section),
         ).order_by(Student.created_at.desc()).all()
     else:
         students = []
-    return render_template("dashboard.html", students=students, role=role, user_name=name)
+    return render_template("dashboard.html", students=students, teachers=teachers,
+                           role=role, user_name=name)
 
 
 @app.route("/logout")
@@ -875,6 +881,65 @@ def api_unlock_student(student_id):
     student.locked = False
     db.session.commit()
     return jsonify({"ok": True, "locked": False})
+
+
+@app.route("/api/delete/<int:student_id>", methods=["POST"])
+def api_delete_student(student_id):
+    role = session.get("role")
+    if role not in ("teacher", "admin"):
+        return jsonify({"ok": False, "error": "Teachers only"}), 403
+    student = Student.query.get(student_id)
+    if not student:
+        return jsonify({"ok": False, "error": "Not found"}), 404
+    if role == "teacher" and not _teacher_owns(student):
+        return jsonify({"ok": False, "error": "Not your class/section"}), 403
+    # SQLite FK pragma is off -> delete bot_jobs explicitly (incl. attempts).
+    n_jobs = BotJob.query.filter(BotJob.student_id == student_id) \
+        .delete(synchronize_session=False)
+    for p in UPLOAD_FOLDER.glob(f"student_{student_id}_*"):
+        try:
+            p.unlink()
+        except OSError:
+            pass
+    db.session.delete(student)
+    db.session.commit()
+    return jsonify({"ok": True, "deleted_jobs": n_jobs})
+
+
+# ---------------------------------------------------------------------------
+# Admin — teacher management (create lives at /api/register-teacher)
+# ---------------------------------------------------------------------------
+
+@app.route("/api/admin/teachers/<int:teacher_id>/delete", methods=["POST"])
+def api_admin_delete_teacher(teacher_id):
+    if session.get("role") != "admin":
+        return jsonify({"ok": False, "error": "Admin only"}), 403
+    teacher = Teacher.query.get(teacher_id)
+    if not teacher:
+        return jsonify({"ok": False, "error": "Not found"}), 404
+    if teacher.role == "admin":
+        return jsonify({"ok": False, "error": "Admin account cannot be deleted"}), 403
+    db.session.delete(teacher)
+    db.session.commit()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/admin/teachers/<int:teacher_id>/reset-password", methods=["POST"])
+def api_admin_reset_teacher_password(teacher_id):
+    if session.get("role") != "admin":
+        return jsonify({"ok": False, "error": "Admin only"}), 403
+    teacher = Teacher.query.get(teacher_id)
+    if not teacher:
+        return jsonify({"ok": False, "error": "Not found"}), 404
+    if teacher.role == "admin":
+        return jsonify({"ok": False,
+                        "error": "Admin password is managed via environment variable"}), 403
+    password = (request.get_json() or {}).get("password", "").strip()
+    if not password:
+        return jsonify({"ok": False, "error": "New password required"}), 400
+    teacher.set_password(password)
+    db.session.commit()
+    return jsonify({"ok": True})
 
 
 # ---------------------------------------------------------------------------
