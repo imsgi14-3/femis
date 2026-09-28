@@ -586,6 +586,7 @@ tab_1_personal_details:
       - Kalasha
       - Kohistani
       - Persian
+      - Pothowari
     other_language:
       label: Other Language
       type: text
@@ -774,6 +775,7 @@ tab_2_parents_guardian:
       - Wazirabad
       - Murree
       - Chakwal
+      - Rawa
     is_orphan:
       label: is_orphan
       type: radio
@@ -1107,6 +1109,45 @@ tab_2_parents_guardian:
       source_field: email
       note: Auto-discovered from portal DOM (map source_field to DB column when known)
       placeholder: fde@gmail.com
+    girls_stipend:
+      label: girls_stipend
+      type: radio
+      required: false
+      source_field: girls_stipend
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
+    this_field:
+      label: This field
+      type: text
+      required: true
+      source_field: this_field
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    uncle:
+      label: Uncle
+      type: text
+      required: true
+      source_field: uncle
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    govt_employee:
+      label: Govt Employee
+      type: text
+      required: true
+      source_field: govt_employee
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    range:
+      label: Range
+      type: text
+      required: true
+      source_field: range
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    only_capital_alphabets:
+      label: only capital alphabets
+      type: text
+      required: true
+      source_field: only_capital_alphabets
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
   mothers_information:
     mothers_name:
       label: Mother's Name
@@ -1198,7 +1239,7 @@ tab_2_parents_guardian:
     orphan_type:
       label: Orphan Type
       type: dropdown
-      required: false
+      required: true
       source_field: orphan_type
       note: Required when is_orphan = Yes; orphan Yes not allowed if both parents
         alive
@@ -1270,6 +1311,7 @@ tab_2_parents_guardian:
       - 100,001 - 200,000
       - 200,001 - 300,000
       - Above 300,000
+      - Less than 50,000
     guardian_bps:
       label: Guardian BPS
       type: dropdown
@@ -1796,6 +1838,9 @@ tab_3_educational_details:
       - 547 — Islamabad Model College For Boys (I-XII), Mohra Nagial
       - 544 — Islamabad Model College For Boys (VI-XII), Bhimber Trar
       - 229 — Islamabad Model School (I-VIII) F-6/3
+      - 278 — Islamabad Model College For Girls (VI-XII), G-11/1
+      - 522 — Islamabad Model School for Girls (I-VIII) , Pindory Syedan
+      - 573 — Islamabad Model School For Girls (I-VIII), CBR Town
     class_admitted_in:
       label: Class Admitted In
       type: dropdown
@@ -2221,6 +2266,130 @@ tab_3_educational_details:
       source_field: email
       note: Auto-discovered from portal DOM (map source_field to DB column when known)
       placeholder: fde@gmail.com
+    father_s_name:
+      label: Father's Name
+      type: text
+      required: true
+      source_field: father_name
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    father_s_cnic:
+      label: Father's CNIC
+      type: text
+      required: true
+      source_field: father_cnic
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    is_father_alive:
+      label: is_father_alive
+      type: radio
+      required: true
+      source_field: is_father_alive
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
+    father_domicile_province:
+      label: Father Domicile — Province
+      type: text
+      required: false
+      source_field: father_domicile_province_id
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    father_domicile_district:
+      label: Father Domicile — District
+      type: text
+      required: false
+      source_field: father_domicile_district_id
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    mother_s_name:
+      label: Mother's Name
+      type: text
+      required: true
+      source_field: mother_name
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    mother_s_cnic:
+      label: Mother's CNIC
+      type: text
+      required: false
+      source_field: mother_cnic
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    is_mother_alive:
+      label: is_mother_alive
+      type: radio
+      required: true
+      source_field: is_mother_alive
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
+    is_orphan:
+      label: is_orphan
+      type: radio
+      required: true
+      source_field: is_orphan
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
+    orphan_type:
+      label: Orphan Type
+      type: text
+      required: true
+      source_field: orphan_type
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    guardian_name:
+      label: Guardian Name
+      type: text
+      required: true
+      source_field: guardian_name
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    guardian_cnic:
+      label: Guardian CNIC
+      type: text
+      required: true
+      source_field: guardian_cnic
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    relation:
+      label: Relation
+      type: text
+      required: true
+      source_field: guardian_relation
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    contact_number_whatsapp_number:
+      label: Contact Number / Whatsapp Number
+      type: text
+      required: true
+      source_field: guardian_contact
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    email:
+      label: Email
+      type: text
+      required: false
+      source_field: guardian_email
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      placeholder: ahmad@gmail.com
+    profession:
+      label: Profession
+      type: text
+      required: true
+      source_field: guardian_profession
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    income:
+      label: Income
+      type: text
+      required: true
+      source_field: guardian_income
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    this_field:
+      label: This field
+      type: text
+      required: true
+      source_field: this_field
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    route:
+      label: Route
+      type: text
+      required: true
+      source_field: route
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
   sibling_details:
     total_siblings:
       label: Total Siblings
@@ -2489,6 +2658,177 @@ tab_4_emergency_contact:
     source_field: email
     note: Auto-discovered from portal DOM (map source_field to DB column when known)
     placeholder: fde@gmail.com
+  girls_stipend:
+    label: girls_stipend
+    type: radio
+    required: false
+    source_field: girls_stipend
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    options:
+    - 'Yes'
+    - 'No'
+  class:
+    label: Class
+    type: text
+    required: true
+    source_field: class_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  section:
+    label: Section
+    type: text
+    required: true
+    source_field: section_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  group:
+    label: Group
+    type: text
+    required: false
+    source_field: class_group_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  result_percentage_of_last_class_passed:
+    label: Result / Percentage of Last Class passed
+    type: text
+    required: false
+    source_field: result_percentage
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    placeholder: e.g. 75%
+  date_of_admission:
+    label: Date of Admission
+    type: text
+    required: true
+    source_field: date_of_admission
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    placeholder: mm/dd/yyyy
+  admission_number:
+    label: Admission Number
+    type: text
+    required: true
+    source_field: admission_number
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    placeholder: '125'
+  class_admitted_in:
+    label: Class Admitted In
+    type: text
+    required: true
+    source_field: class_admitted_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  shift:
+    label: shift
+    type: radio
+    required: true
+    source_field: shift
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    options:
+    - Morning
+    - Evening
+  medium_of_instruction:
+    label: Medium of Instruction
+    type: text
+    required: true
+    source_field: medium_of_instruction
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  mode_of_study:
+    label: Mode of Study
+    type: text
+    required: false
+    source_field: mode_of_study
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  last_institution_attended_under_fde:
+    label: Last Institution Attended under FDE
+    type: text
+    required: false
+    source_field: last_fde_institution_id
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  last_institution_attended_other_than_fde:
+    label: Last Institution Attended (other than FDE)
+    type: text
+    required: false
+    source_field: last_other_institution
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  school_meal_program_availing:
+    label: school_meal_program_availing
+    type: radio
+    required: true
+    source_field: school_meal_program_availing
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    options:
+    - 'Yes'
+    - 'No'
+  number_of_years_spent_completing_primary_education_i_v:
+    label: Number of years spent completing Primary Education (I-V)
+    type: text
+    required: false
+    source_field: primary_education_completion_years
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  total_number_of_siblings:
+    label: Total Number of Siblings
+    type: text
+    required: true
+    source_field: total_siblings
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  in_same_institution:
+    label: In Same Institution
+    type: text
+    required: false
+    source_field: siblings_same_institution
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  in_other_fde_institutions:
+    label: In Other FDE Institutions
+    type: text
+    required: false
+    source_field: siblings_other_fde
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  in_private_institutions:
+    label: In Private Institutions
+    type: text
+    required: false
+    source_field: siblings_private
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  transport_facility:
+    label: transport_facility
+    type: radio
+    required: true
+    source_field: transport_facility
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    options:
+    - Institution Bus
+    - Private
+  bus_route:
+    label: Bus Route
+    type: text
+    required: true
+    source_field: bus_route
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  scholarship:
+    label: scholarship
+    type: radio
+    required: true
+    source_field: scholarship
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    options:
+    - 'Yes'
+    - 'No'
+  cocurricular_activities:
+    label: cocurricular_activities
+    type: radio
+    required: true
+    source_field: cocurricular_activities
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    options:
+    - 'Yes'
+    - 'No'
+  this_field:
+    label: This field
+    type: text
+    required: true
+    source_field: this_field
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  emergency_relation:
+    label: Emergency relation
+    type: text
+    required: true
+    source_field: emergency_relation
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
 tab_5_idps_details:
   is_student_refugee_idp:
     label: Is Student Refugee / IDP
@@ -2691,6 +3031,24 @@ tab_5_idps_details:
     source_field: email
     note: Auto-discovered from portal DOM (map source_field to DB column when known)
     placeholder: fde@gmail.com
+  emergency_contact_name:
+    label: Emergency Contact Name
+    type: text
+    required: true
+    source_field: emergency_name
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  contact_number:
+    label: Contact Number
+    type: text
+    required: true
+    source_field: emergency_contact
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  relation:
+    label: Relation
+    type: text
+    required: true
+    source_field: emergency_relation
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
 tab_6_health_details:
   any_major_disability:
     label: Any Major Disability
