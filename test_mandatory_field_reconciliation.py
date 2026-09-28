@@ -306,6 +306,18 @@ check("[24e] mapping marks is_hafiz required:false in every entry",
       len(_hafiz_req) >= 9 and all(r == ["required: false"] for r in _hafiz_req),
       str(_hafiz_req))
 
+# 24f. girls_stipend REQUIRED when gender = Female (user first-hand, rev.2g)
+check("[24f] girls_stipend conditional on gender=Female",
+      cond_rule("girls_stipend") == ("gender", ["Female"]),
+      str(cond_rule("girls_stipend")))
+check("[24f] girls_stipend label carries red asterisk",
+      '<label class="form-label">Girls Stipend <span class="text-danger">*</span></label>' in HTML)
+check("[24f] girls_stipend not JS-mandatory when hidden (not in mandatoryByTab)",
+      js_mandatory("girls_stipend") is False,
+      "enforced via conditionalRequired + hidden-group skip, not tab list")
+check("[24f] mapping documents gender=Female condition",
+      "Required when gender = Female" in MAPPING)
+
 # 25-27. walking / listening / aids
 check("[25] difficulty_listening JS-mandatory (tab5)", js_mandatory("difficulty_listening"))
 check("[26] difficulty_walking JS-mandatory (tab5)", js_mandatory("difficulty_walking"))

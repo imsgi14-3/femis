@@ -616,6 +616,7 @@ tab_1_personal_details:
       type: radio
       required: false
       source_field: girls_stipend
+      note: Required when gender = Female (group hidden otherwise; user first-hand)
       options:
       - 'Yes'
       - 'No'

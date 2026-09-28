@@ -701,6 +701,7 @@ document.addEventListener("DOMContentLoaded", function () {
             {fields: ["father_contact"], trigger: "is_father_alive", values: ["1"]},
             {fields: ["mother_contact"], trigger: "is_mother_alive", values: ["1"]},
             {fields: ["mother_bps"], trigger: "mother_profession", values: ["Govt Employee"]},
+            {fields: ["girls_stipend"], trigger: "gender", values: ["Female"]},
             {fields: ["guardian_name", "guardian_cnic", "guardian_relation", "guardian_contact", "guardian_profession", "guardian_income"], trigger: "is_father_alive", values: ["0"]},
         ];
         conditionalRequired.forEach(function (cr) {
