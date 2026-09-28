@@ -313,6 +313,16 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     })();
 
+    // === Total Siblings: digits only, no leading zeros (1/2/3 — not 01/02) ===
+    (function () {
+        var el = document.querySelector('input[name="total_siblings"]');
+        if (!el) return;
+        el.addEventListener("input", function () {
+            var v = el.value.replace(/[^0-9]/g, "").replace(/^0+(?=[0-9])/, "");
+            if (v !== el.value) el.value = v;
+        });
+    })();
+
     // === Father Alive → show details only ===
     radioToggle("is_father_alive", "father_details_group", ["1"]);
 
@@ -354,6 +364,23 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         fatherRadios.forEach(function (r) { r.addEventListener("change", checkParentStatus); });
         motherRadios.forEach(function (r) { r.addEventListener("change", checkParentStatus); });
+
+        // Selecting Orphan = Yes while BOTH parents are alive is invalid —
+        // flip it back to No immediately (validateTab's orphan guard remains
+        // the save-time backstop for records loaded from elsewhere).
+        document.querySelectorAll('input[name="is_orphan"]').forEach(function (r) {
+            r.addEventListener("change", function () {
+                if (!this.checked || this.value !== "1" || !orphanNo) return;
+                var fa = document.querySelector('input[name="is_father_alive"]:checked');
+                var ma = document.querySelector('input[name="is_mother_alive"]:checked');
+                if (fa && fa.value === "1" && ma && ma.value === "1") {
+                    orphanNo.checked = true;
+                    orphanNo.dispatchEvent(new Event("change"));
+                    if (orphanTypeSelect) orphanTypeSelect.value = "";
+                    alert("Is Orphan cannot be Yes when both parents are alive.");
+                }
+            });
+        });
     })();
 
     // === Father Profession (select) → show Other + show BPS only for Govt Employee ===
@@ -369,8 +396,9 @@ document.addEventListener("DOMContentLoaded", function () {
         toggleBps();
     })();
 
-    // === Mother Profession (select) → show Other ===
+    // === Mother Profession (select) → show Other + show BPS only for Govt Employee ===
     selectToggle("mother_profession", "mother_profession_other_group", ["Other"]);
+    selectToggle("mother_profession", "mother_bps_group", ["Govt Employee"]);
 
     // === Guardian Relation (select) → show Other ===
     selectToggle("guardian_relation", "guardian_relation_other_group", ["Other"]);
@@ -571,7 +599,7 @@ document.addEventListener("DOMContentLoaded", function () {
         1: [
             "father_name", "father_cnic", "is_father_alive", "father_profession",
             "father_qualification", "father_monthly_income",
-            "mother_name", "is_mother_alive", "mother_profession",
+            "mother_name", "is_mother_alive", "mother_profession", "mother_qualification",
             "is_orphan",
         ],
         2: [
@@ -671,11 +699,20 @@ document.addEventListener("DOMContentLoaded", function () {
             {fields: ["emergency_relation_other"], trigger: "emergency_relation", values: ["Other", "Others"]},
             {fields: ["father_contact"], trigger: "is_father_alive", values: ["1"]},
             {fields: ["mother_contact"], trigger: "is_mother_alive", values: ["1"]},
+            {fields: ["mother_bps"], trigger: "mother_profession", values: ["Govt Employee"]},
             {fields: ["guardian_name", "guardian_cnic", "guardian_relation", "guardian_contact", "guardian_profession", "guardian_income"], trigger: "is_father_alive", values: ["0"]},
         ];
         conditionalRequired.forEach(function (cr) {
-            var triggerRadio = pane.querySelector('input[name="' + cr.trigger + '"]:checked');
-            if (!triggerRadio || cr.values.indexOf(triggerRadio.value) < 0) return;
+            // Trigger may be a radio group or a <select> (e.g. mother_profession)
+            var triggerVal = null;
+            var trigSel = pane.querySelector('select[name="' + cr.trigger + '"]');
+            if (trigSel) {
+                triggerVal = trigSel.value;
+            } else {
+                var triggerRadio = pane.querySelector('input[name="' + cr.trigger + '"]:checked');
+                triggerVal = triggerRadio ? triggerRadio.value : null;
+            }
+            if (triggerVal === null || triggerVal === "" || cr.values.indexOf(triggerVal) < 0) return;
             cr.fields.forEach(function (fname) {
                 var ctl = fieldControl(pane, fname);
                 if (!ctl) return;

@@ -149,7 +149,7 @@ TAB1_PRESENT_SUB = ["present_sub_sector_id"]
 TAB2_FILL = ["father_name", "father_cnic", "is_father_alive", "father_contact",
              "father_qualification", "father_profession", "father_monthly_income",
              "mother_name", "is_mother_alive", "mother_contact", "mother_profession",
-             "mother_monthly_income"]
+             "mother_qualification", "mother_bps", "mother_monthly_income"]
 TAB3_FILL = ["class_id", "section_id", "date_of_admission", "class_admitted_id",
              "medium_of_instruction", "mode_of_study", "admission_number", "shift",
              "total_siblings", "school_meal_program_availing",

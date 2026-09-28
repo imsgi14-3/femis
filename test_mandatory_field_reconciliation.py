@@ -102,6 +102,10 @@ check("[1] present_* address trio JS-mandatory (tab0, visibility-gated)",
 check("[1] sub-sector group gated on address type = Sector (temp + present)",
       JS.count('if (subSectorDiv) subSectorDiv.style.display = val === "Sector" ? "block" : "none";') == 2,
       "both address_type toggles show #sub_sector_group / #present_sub_sector_group for Sector")
+check("[1] red asterisk on all 4 sector/sub-sector labels",
+      HTML.count('<label class="form-label">Sector <span class="text-danger">*</span></label>') == 2 and
+      HTML.count('<label class="form-label">Sub Sector <span class="text-danger">*</span></label>') == 2,
+      "labels visibly marked mandatory when the group is shown")
 check("[1] shift JS-mandatory (tab2)", js_mandatory("shift"))
 check("[1] validateTab skips hidden fields",
       "isHiddenWithin" in JS and "isHiddenWithin(pane, ctl.els[0])" in JS,
@@ -116,6 +120,19 @@ check("[2] father_monthly_income HTML required", html_required("father_monthly_i
       "HTML has no required attr; JS tab1 is the enforcement layer (documented)")
 check("[3] father_qualification is JS-mandatory (tab1)", js_mandatory("father_qualification"))
 
+# 3b. mother qualification mandatory + mother BPS only for Govt Employee
+check("[3b] mother_qualification is JS-mandatory (tab1)", js_mandatory("mother_qualification"))
+check("[3b] mother_qualification label carries red asterisk",
+      '<label class="form-label">Mother\'s Qualification <span class="text-danger">*</span></label>' in HTML)
+check("[3b] mother_bps conditional on mother_profession=Govt Employee",
+      cond_rule("mother_bps") == ("mother_profession", ["Govt Employee"]),
+      str(cond_rule("mother_bps")))
+check("[3b] mother_bps group gated on profession=Govt Employee",
+      'id="mother_bps_group"' in HTML and
+      'selectToggle("mother_profession", "mother_bps_group", ["Govt Employee"])' in JS)
+check("[3b] mother_bps label carries red asterisk (visible only when required)",
+      '<label class="form-label">Mother\'s BPS <span class="text-danger">*</span></label>' in HTML)
+
 # 4. orphan type when orphan=yes
 check("[4] orphan_type conditional rule exists", cond_rule("orphan_type") == ("is_orphan", ["1"]),
       str(cond_rule("orphan_type")))
@@ -123,6 +140,10 @@ check("[4] orphan_type conditional rule exists", cond_rule("orphan_type") == ("i
 # 5. orphan=yes invalid when both parents alive
 check("[5] orphan+both-alive guard present in JS",
       "not allowed when both parents are alive" in JS)
+check("[5b] orphan=Yes auto-corrected at selection time (both parents alive)",
+      'Is Orphan cannot be Yes when both parents are alive.' in JS and
+      "input[name=\"is_orphan\"]" in JS,
+      "change listener flips orphan back to No + alert")
 
 # 6. guardian name / cnic / relation / whatsapp (FIXED: conditional on father not alive)
 for f in ("guardian_name", "guardian_cnic", "guardian_relation", "guardian_contact"):
@@ -152,17 +173,31 @@ check("[8] asterisk toggler wired to mother_profession",
 check("[8] guard skips when the mother group is hidden",
       "isHiddenWithin(pane, motherProf)" in JS)
 
-# 9. date of admission MM/DD/YYYY
+# 9. date of admission — now a native calendar input (ISO, same as date_of_birth)
 has_date_format = bool(re.search(
     r'date_of_admission.*?(\d\{2\}/\d\{2\}/\d\{4\}|MM/DD/YYYY|Date\.parse|isValidDate)',
     JS, re.S)) and bool(re.search(r'\d\{2\}/\d\{2\}/\d\{4\}', JS))
+date_picker = re.search(r'<input type="date" class="form-control" name="date_of_admission"', HTML) is not None
 check("[9] date_of_admission is JS-mandatory (presence only)", js_mandatory("date_of_admission"))
+check("[9] date_of_admission renders as a calendar (type=date)", date_picker)
 check("[9] MM/DD/YYYY format rule absent (as diagnosed)", has_date_format is False,
       "no format/regex validation found for date_of_admission")
 if not has_date_format:
-    gap("9. date of admission MM/DD/YYYY",
-        "presence-only validation; any date string accepted, format never checked "
-        "in HTML (no pattern attr) or JS or server")
+    if date_picker:
+        gap("9. date of admission format",
+            "client-side format enforced by the native type=date input (ISO, matches "
+            "date_of_birth and stored values); server still accepts any string")
+    else:
+        gap("9. date of admission MM/DD/YYYY",
+            "presence-only validation; any date string accepted, format never checked "
+            "in HTML (no pattern attr) or JS or server")
+
+# 9b. total siblings — number spinner like siblings_same_institution, no 01/02
+check("[9b] total_siblings is a number spinner (type=number, min 0, step 1)",
+      re.search(r'<input type="number" class="form-control" name="total_siblings" min="0" step="1"',
+                HTML) is not None)
+check("[9b] total_siblings strips non-digits + leading zeros (only 123, not 01)",
+      'input[name="total_siblings"]' in JS and 'replace(/^0+(?=[0-9])/, "")' in JS)
 
 # 10. class admitted ranges 1-5 / 6-10
 check("[10] class-admitted range logic 1-5 / 6-10 present",
@@ -283,6 +318,25 @@ check("[29] digital_device_type[] conditional on device access=yes",
       cond_rule("digital_device_type[]") == ("digital_device_at_home", ["1"]),
       str(cond_rule("digital_device_type[]")))
 check("[30] internet_at_home JS-mandatory (tab6)", js_mandatory("internet_at_home"))
+
+# 31-33. conditional detail fields shown by their Yes/Other triggers (portal labels)
+check("[31] scholarship_details conditional on scholarship=yes + group wired + asterisk",
+      cond_rule("scholarship_details") == ("scholarship", ["1"]) and
+      'id="scholarship_details_group"' in HTML and
+      'radioToggle("scholarship", "scholarship_details_group", ["1"])' in JS and
+      '<label class="form-label">Scholarship Details <span class="text-danger">*</span></label>' in HTML,
+      str(cond_rule("scholarship_details")))
+check("[32] achievement (cocurricular) details conditional + group wired + asterisk",
+      cond_rule("cocurricular_details") == ("cocurricular_activities", ["1"]) and
+      'id="co_curricular_details_group"' in HTML and
+      'radioToggle("cocurricular_activities", "co_curricular_details_group", ["1"])' in JS and
+      '<label class="form-label">Achievement Details <span class="text-danger">*</span></label>' in HTML,
+      str(cond_rule("cocurricular_details")))
+check("[33] emergency relation Other/Others -> Specify Relation mandatory + asterisk",
+      cond_rule("emergency_relation_other") == ("emergency_relation", ["Other", "Others"]) and
+      'selectToggle("emergency_relation", "emergency_relation_other_group", ["Other", "Others"])' in JS and
+      'Specify Relation <span class="text-danger">*</span>' in HTML,
+      str(cond_rule("emergency_relation_other")))
 
 # ---- cross-cutting facts ----
 check("[X] no server-side mandatory validation in save/submit routes",

@@ -138,7 +138,7 @@
       </select>
     </div>
     <div class="col-md-6" id="sector_group" style="display:none;">
-      <label class="form-label">Sector</label>
+      <label class="form-label">Sector <span class="text-danger">*</span></label>
       <select class="form-select" name="sector_id" id="sector_select">
         <option value="">— Select —</option>
         {% for s in opts.sectors %}
@@ -147,7 +147,7 @@
       </select>
     </div>
     <div class="col-md-6" id="sub_sector_group" style="display:none;">
-      <label class="form-label">Sub Sector</label>
+      <label class="form-label">Sub Sector <span class="text-danger">*</span></label>
       <select class="form-select" name="sub_sector_id" id="sub_sector_select">
         <option value="">— Select Sector first —</option>
       </select>
@@ -219,7 +219,7 @@
         </select>
       </div>
       <div class="col-md-6" id="present_sector_group" style="display:none;">
-        <label class="form-label">Sector</label>
+        <label class="form-label">Sector <span class="text-danger">*</span></label>
         <select class="form-select" name="present_sector_id" id="present_sector_select">
           <option value="">— Select —</option>
           {% for s in opts.sectors %}
@@ -228,7 +228,7 @@
         </select>
       </div>
       <div class="col-md-6" id="present_sub_sector_group" style="display:none;">
-        <label class="form-label">Sub Sector</label>
+        <label class="form-label">Sub Sector <span class="text-danger">*</span></label>
         <select class="form-select" name="present_sub_sector_id" id="present_sub_sector_select">
           <option value="">— Select Sector first —</option>
         </select>
@@ -487,7 +487,7 @@
       <input type="email" class="form-control" name="mother_email">
     </div>
     <div class="col-md-6">
-      <label class="form-label">Mother's Qualification</label>
+      <label class="form-label">Mother's Qualification <span class="text-danger">*</span></label>
       <select class="form-select" name="mother_qualification" id="mother_qualification">
         <option value="">— Select —</option>
         {% for q in opts.mother_qualifications %}
@@ -518,8 +518,8 @@
       </select>
       <div class="form-text">Required unless Mother's Profession is Housewife.</div>
     </div>
-    <div class="col-md-6">
-      <label class="form-label">Mother's BPS</label>
+    <div class="col-md-6" id="mother_bps_group" style="display:none;">
+      <label class="form-label">Mother's BPS <span class="text-danger">*</span></label>
       <select class="form-select" name="mother_bps" id="mother_bps">
         <option value="">— Select —</option>
         {% for b in opts.mother_bps %}
@@ -676,7 +676,7 @@
     </div>
 <div class="col-md-6">
       <label class="form-label">Date of Admission <span class="text-danger">*</span></label>
-      <input type="text" class="form-control" name="date_of_admission" placeholder="mm/dd/yyyy" pattern="\d{2}/\d{2}/\d{4}" title="Format: mm/dd/yyyy" required>
+      <input type="date" class="form-control" name="date_of_admission" required>
     </div>
     <div class="col-md-6">
       <label class="form-label">Admission Number <span class="text-danger">*</span></label>
@@ -766,7 +766,7 @@
     </div>
     <div class="col-md-6">
       <label class="form-label">Total Siblings <span class="text-danger">*</span></label>
-      <input type="text" class="form-control" name="total_siblings" required>
+      <input type="number" class="form-control" name="total_siblings" min="0" step="1" placeholder="0" required>
     </div>
     <div class="col-md-6">
       <label class="form-label">Siblings in Same Institution (Number)</label>
@@ -843,11 +843,11 @@
       </div>
     </div>
     <div class="col-md-6" id="scholarship_details_group" style="display:none;">
-      <label class="form-label">Scholarship Details</label>
+      <label class="form-label">Scholarship Details <span class="text-danger">*</span></label>
       <input type="text" class="form-control" name="scholarship_details">
     </div>
     <div class="col-md-6" id="co_curricular_details_group" style="display:none;">
-      <label class="form-label">Achievement Details</label>
+      <label class="form-label">Achievement Details <span class="text-danger">*</span></label>
       <input type="text" class="form-control" name="cocurricular_details">
     </div>
   </div>
@@ -875,7 +875,7 @@
       </select>
     </div>
     <div class="col-md-6" id="emergency_relation_other_group" style="display:none;">
-      <label class="form-label">Other Relation</label>
+      <label class="form-label">Specify Relation <span class="text-danger">*</span></label>
       <input type="text" class="form-control" name="emergency_relation_other" placeholder="Specify relation">
     </div>
   </div>
