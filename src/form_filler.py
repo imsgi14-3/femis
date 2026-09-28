@@ -175,11 +175,22 @@ class FormFiller:
                         f"Name matched but CNIC differs (want {b_form}); row={row_text!r}. Opening create."
                     )
                 else:
+                    # Row link is the read-only View page (all inputs disabled,
+                    # no Finish). The wizard lives on /edit — normalize and fall
+                    # back to the raw href if that URL does not resolve.
+                    if not edit_url.rstrip("/").endswith("/edit"):
+                        edit_url = edit_url.rstrip("/") + "/edit"
                     logger.info(
                         f"Found existing student (name={name!r}, cnic_match={cnic_ok}), "
                         f"opening edit: {edit_url}"
                     )
-                    await page.goto(edit_url, wait_until="networkidle")
+                    resp = await page.goto(edit_url, wait_until="networkidle")
+                    if resp is not None and resp.status >= 400:
+                        logger.warning(
+                            f"Edit URL {edit_url} -> HTTP {resp.status}; "
+                            f"falling back to {result['href']}"
+                        )
+                        await page.goto(result["href"], wait_until="networkidle")
                     await asyncio.sleep(2)
                     self.form_mode = "edit"
                     return "edit"
@@ -252,36 +263,57 @@ class FormFiller:
 
         for i, (tab_name, tab_id) in enumerate(TAB_IDS, 1):
             if probe_edit and i < fill_from:
-                logger.info(f"--- Tab {i}/7: {tab_name} (already valid — skip fill, still learn) ---")
-                if await self._click_tab(page, i, tab_name, tab_id):
-                    await self._learn_unmapped_fields(page, i)
+                # Valid tabs stay untouched; no learn here — reading fields from
+                # an inactive pane taught the config junk duplicate entries.
+                logger.info(f"--- Tab {i}/7: {tab_name} (already valid — skip fill) ---")
                 continue
 
             logger.info(f"--- Tab {i}/7: {tab_name} ---")
             await self._notify_progress(tab=i, stage="filling")
-            if not await self._click_tab(page, i, tab_name, tab_id):
-                continue
+            # Reach this tab the way the portal does: Save & Next traversal.
+            # Top-nav clicks are inert on this wizard and would leave us on
+            # the wrong pane (silently no-op fill / junk learn).
+            if not await self._on_tab_pane(page, tab_id) and not await self._advance_to_tab(page, i):
+                logger.error(f"Cannot reach tab {i} via Save & Next — aborting fill traversal")
+                break
 
             await self._fill_tab_fields(page, i, student_data)
             await self._learn_unmapped_fields(page, i)
 
             if i < 7:
                 result = await self._save_next(page, i)
-                if not result.get("ok") and probe_edit:
-                    # Retry once after light defaults — re-open the same tab first
-                    # because Save may have advanced the wizard even on failure.
+                if not result.get("ok"):
+                    # Retry once after light defaults — only when the wizard is
+                    # still on this tab (Save & Next is the only way back/forth;
+                    # a failed save stays put).
                     try:
-                        await self._click_tab(page, i, tab_name, tab_id)
-                        await self._fill_default_required(page, student_data)
-                        await self._learn_unmapped_fields(page, i)
+                        await self._handle_confirm(page)
+                        if await self._on_tab_pane(page, tab_id):
+                            await self._fill_default_required(page, student_data)
+                            await self._learn_unmapped_fields(page, i)
+                            result = await self._save_next(page, i)
                     except Exception:
                         pass
-                    result = await self._save_next(page, i)
                 if not result.get("ok"):
-                    await self._learn_unmapped_fields(page, i, result.get("errors") or [])
-                    # Recover wizard position if Save advanced past us
-                    if i < 7:
-                        await self._click_tab(page, i, tab_name, tab_id)
+                    dup_errs = [
+                        str(e).lower() for e in (result.get("errors") or [])
+                    ]
+                    if any("already been taken" in e for e in dup_errs) and await self._recover_duplicate(
+                        page, student_data
+                    ):
+                        # CNIC exists on the portal — open_form switched us to the
+                        # existing record's edit page; redo this tab and re-save.
+                        logger.warning(
+                            f"  Duplicate B-Form on save — switched to edit mode; redoing tab {i}"
+                        )
+                        if not await self._advance_to_tab(page, i):
+                            logger.warning(f"  Could not traverse to tab {i} after duplicate switch")
+                        await self._fill_tab_fields(page, i, student_data)
+                        result = await self._save_next(page, i)
+                    if not result.get("ok"):
+                        await self._learn_unmapped_fields(page, i, result.get("errors") or [])
+                        # Position is handled by the next iteration's active-tab
+                        # check (recovery), never a routine top-nav jump.
                 await self._notify_progress(
                     tab=i,
                     stage="saved" if result.get("ok") else "save_failed",
@@ -289,32 +321,81 @@ class FormFiller:
                     last_completed=i if result.get("ok") else None,
                 )
 
-        # Persist tab 7 (no Save & Next on last step)
+        # Tab 7 has no Save & Next; its data persists through the Finish POST.
+        # No forced saves — blockers are reported, never bypassed.
         await self._notify_progress(tab=7, stage="final_save")
-        try:
-            if await self._force_save(page):
-                logger.info("Force-save after final tab: OK")
-            else:
-                logger.warning("Force-save after final tab: failed")
-        except Exception as e:
-            logger.warning(f"Force-save after final tab error: {e}")
 
         logger.info("All tabs filled." if fill_from <= 7 else "Edit probe: all tabs already valid.")
         self._just_filled = True
         return True
 
-    async def _click_tab(self, page: Page, tab_num: int, tab_name: str, tab_id: str) -> bool:
+    @staticmethod
+    def _pane_id(tab_id: str) -> str:
+        return tab_id.replace("tab-nav-", "tab-", 1)
+
+    async def _on_tab_pane(self, page: Page, tab_id: str) -> bool:
+        """True when the tab's CONTENT PANE is the active one.
+
+        The top-nav strip is inert on the portal edit wizard (clicking a nav
+        link does not switch panes), so the pane — not the nav highlight — is
+        the ground truth for where the bot actually is.
+        """
+        pane = self._pane_id(tab_id)
         try:
-            tab_loc = page.locator(f"#{tab_id}").first
-            if await tab_loc.count() > 0:
-                await tab_loc.click(timeout=5000)
-            else:
-                await page.get_by_role("tab", name=tab_name).click(timeout=5000)
-            await asyncio.sleep(1)
+            return bool(
+                await page.evaluate(
+                    """(ids) => {
+                        const [paneId, navId] = ids;
+                        const p = document.getElementById(paneId);
+                        if (p) {
+                            return p.classList.contains('active')
+                                || p.classList.contains('show')
+                                || p.offsetParent !== null;
+                        }
+                        const nav = document.querySelector(
+                            '.nav-link.active, .nav-item .active, [role="tab"].active, .active.show'
+                        );
+                        return nav ? (nav.id === navId) : false;
+                    }""",
+                    [pane, tab_id],
+                )
+            )
+        except Exception:
+            return True  # cannot verify — proceed with the fill
+
+    async def _advance_to_tab(self, page: Page, target: int) -> bool:
+        """Reach tab `target` using ONLY Save & Next (top-nav is inert here).
+
+        Every Save & Next moves the wizard exactly one tab forward when it
+        succeeds; failed saves leave the wizard in place. Returns True when
+        the target pane is active.
+        """
+        target_tab_id = TAB_IDS[target - 1][1]
+        if await self._on_tab_pane(page, target_tab_id):
             return True
-        except Exception as e:
-            logger.warning(f"Tab click failed: {e}")
-            return False
+        pane_ids = [self._pane_id(tid) for _, tid in TAB_IDS]
+        for _ in range(7):
+            try:
+                active_pane = await page.evaluate(
+                    """() => {
+                        const p = document.querySelector(
+                            '.tab-pane.active, .tab-pane.show, [role="tabpanel"].active'
+                        );
+                        return p ? (p.id || '') : '';
+                    }"""
+                )
+            except Exception:
+                return False
+            if active_pane in pane_ids:
+                cur = pane_ids.index(active_pane) + 1
+            else:
+                return False  # unknown position — cannot traverse safely
+            if cur >= target:
+                return False  # overshot; going backward needs the audit nav
+            await self._save_next(page, cur)
+            if await self._on_tab_pane(page, target_tab_id):
+                return True
+        return await self._on_tab_pane(page, target_tab_id)
 
     async def _probe_incomplete_tab(self, page: Page) -> int:
         """In edit mode, Save & Next each tab without filling.
@@ -325,11 +406,12 @@ class FormFiller:
         for i, (tab_name, tab_id) in enumerate(TAB_IDS, 1):
             if i >= 7:
                 break
-            if not await self._click_tab(page, i, tab_name, tab_id):
+            # Traversal is Save & Next only — the top-nav strip does not
+            # switch panes on this wizard (clicks land silently).
+            if not await self._on_tab_pane(page, tab_id) and not await self._advance_to_tab(page, i):
+                logger.warning(f"  Probe: cannot reach tab {i} — filling from here")
                 return i
             result = await self._save_next(page, i, probe=True)
-            # Save advances the wizard — return to the tab we probed before learn/fill.
-            await self._click_tab(page, i, tab_name, tab_id)
             if result.get("ok"):
                 logger.info(f"  Probe tab {i}: OK (already filled)")
                 continue
@@ -342,6 +424,8 @@ class FormFiller:
     async def _save_next(self, page: Page, tab_num: int, probe: bool = False) -> dict:
         """Click Save & Next and return {ok, errors, advanced, api}."""
         prefix = "Probe" if probe else "Save"
+        # A leftover jconfirm/toast intercepts the Save click — clear it first.
+        await self._handle_confirm(page)
         save_btn = page.locator("#saveNextBtn, button:has-text('Save & Next')").first
         if await save_btn.count() == 0 or not await save_btn.is_visible():
             logger.warning(f"  {prefix}: Save & Next not visible on tab {tab_num}")
@@ -389,7 +473,9 @@ class FormFiller:
         if not new_api and not advanced and not probe and (real or blocked):
             ok = False
         # UI advanced or fields look filled but nothing hit the network:
-        # values will vanish on reload — treat as failure so we retry/save hard.
+        # values will vanish on reload — failure. NO forced saves: validation
+        # must pass legitimately, so report exactly which fields block it.
+        blockers: list = []
         if not new_api and not probe and (advanced or not blocked):
             logger.warning(
                 f"  {prefix} tab {tab_num}: NO network request — form did not persist "
@@ -397,23 +483,10 @@ class FormFiller:
             )
             if not probe:
                 ok = False
-                # Force the portal's own save handler / form submit once
-                forced = await self._force_save(page)
-                if forced:
-                    await asyncio.sleep(1.5)
-                    new_api = (getattr(self, "_last_api", None) or [])[before:]
-                    if new_api:
-                        logger.info(f"  Force-save produced {len(new_api)} request(s)")
-                        ok = not any(
-                            (a.get("status") or 0) >= 400 for a in new_api
-                        ) and not blocked and not real
-                    else:
-                        # fetch may not hit Playwright response listener; force_save
-                        # already confirmed HTTP success body
-                        logger.info("  Force-save confirmed saved (no listener entry)")
-                        ok = not blocked and not real
-                else:
-                    logger.warning("  Force-save failed")
+        if not ok and not probe:
+            blockers = await self._save_blockers(page)
+            if blockers:
+                logger.warning(f"  {prefix} tab {tab_num} blockers: " + "; ".join(blockers[:8]))
 
         verb = "advanced" if advanced else "stayed"
         logger.info(
@@ -430,69 +503,58 @@ class FormFiller:
             "errors": real or ([f"empty required: {empty_required[0]}"] if empty_required else []),
             "advanced": advanced,
             "api": new_api,
+            "blockers": blockers,
             "empty_required": empty_required,
         }
 
-    async def _force_save(self, page: Page) -> bool:
-        """Portal never POSTs on Save & Next (tab-only). Persist via edit update.
+    async def _save_blockers(self, page: Page) -> list:
+        """Name the client-side blockers stopping a save: field + message.
 
-        Edit form loads with inputs disabled. Enable all fields, then
-        POST multipart to form.action with Laravel _method=PUT.
-        Returns True when a non-GET request was recorded on _last_api.
+        No forced saves anywhere: every validation failure surfaces as a
+        named, actionable issue (e.g. guardian_name: Please enter only
+        capital alphabets) instead of being bypassed by a forced POST.
         """
-        before = len(getattr(self, "_last_api", []) or [])
         try:
-            result = await page.evaluate(
-                """async () => {
-                    const form = document.getElementById('studentForm') || document.querySelector('form[action*="/students/"]');
-                    if (!form) return {ok: false, err: 'no form'};
-                    form.querySelectorAll('input, select, textarea').forEach(el => {
-                        el.disabled = false;
-                        el.readOnly = false;
-                    });
-                    const action = form.action;
-                    const body = new FormData(form);
-                    if (!body.get('_method')) body.append('_method', 'PUT');
-                    if (!body.get('_token')) {
-                        const m = document.cookie.match(/(?:^|;\\s*)XSRF-TOKEN=([^;]+)/);
-                        // Laravel also accepts meta csrf-token
-                        const meta = document.querySelector('meta[name="csrf-token"]');
-                        const tok = meta ? meta.getAttribute('content') : '';
-                        if (tok) body.append('_token', tok);
-                        else if (m) body.append('_token', decodeURIComponent(m[1]));
+            return await page.evaluate("""() => {
+                const pane = document.querySelector(
+                    '.tab-pane.active, .tab-pane.show, [role="tabpanel"].active'
+                ) || document;
+                const out = [];
+                const seen = new Set();
+                const nameOf = (el) => el.name || el.id || el.getAttribute('aria-label') || el.tagName.toLowerCase();
+                const push = (nm, msg) => {
+                    msg = (msg || '').replace(/\\s+/g, ' ').trim();
+                    if (!msg || msg === '*') msg = 'invalid';
+                    const key = nm + '|' + msg;
+                    if (!seen.has(key)) { seen.add(key); out.push(nm + ': ' + msg); }
+                };
+                pane.querySelectorAll('.is-invalid, [aria-invalid="true"]').forEach(el => {
+                    const target = el.matches('input, select, textarea') ? el
+                        : (el.querySelector('input, select, textarea') || el);
+                    let msg = (el.getAttribute('title') || '').trim();
+                    if (!msg) {
+                        const scope = target.closest('.form-group, .mb-3, .row, .col') || pane;
+                        const fb = scope.querySelector(
+                            '.invalid-feedback.show, .invalid-feedback.d-block, .invalid-feedback, .text-danger'
+                        );
+                        msg = fb ? (fb.innerText || '') : '';
                     }
-                    const headers = {};
-                    const m2 = document.cookie.match(/(?:^|;\\s*)XSRF-TOKEN=([^;]+)/);
-                    if (m2) headers['X-XSRF-TOKEN'] = decodeURIComponent(m2[1]);
-                    headers['Accept'] = 'application/json';
+                    if (!msg) msg = target.validationMessage || '';
+                    push(nameOf(target), msg);
+                });
+                pane.querySelectorAll('input, select, textarea').forEach(el => {
+                    if (el.disabled) return;
+                    let msg = '';
                     try {
-                        const r = await fetch(action, {
-                            method: 'POST',
-                            body,
-                            credentials: 'same-origin',
-                            headers,
-                        });
-                        const text = await r.text();
-                        return {ok: r.ok, status: r.status, body: text.slice(0, 500), action};
-                    } catch (e) {
-                        return {ok: false, err: String(e), action};
-                    }
-                }"""
-            )
-            logger.info(
-                f"  Force-save POST {result.get('status')} :: "
-                f"{(result.get('body') or result.get('err') or '')[:300]}"
-            )
-            await asyncio.sleep(0.8)
-            got = len(getattr(self, "_last_api", []) or []) > before
-            # evaluate fetch is same-origin; Playwright may capture it as response.
-            # If listener missed it but HTTP was ok, treat as saved.
-            if result.get("ok") and "Saved successfully" in (result.get("body") or ""):
-                return True
-            return got or bool(result.get("ok"))
+                        if (!el.checkValidity()) msg = el.validationMessage || '';
+                    } catch (e) { return; }
+                    if (msg) push(nameOf(el), msg);
+                });
+                return out;
+            }""")
         except Exception as e:
-            logger.warning(f"  Force-save failed: {e}")
-            return False
+            logger.debug(f"  save blockers probe failed: {e}")
+            return []
 
     async def _count_invalid(self, page: Page) -> int:
         """Count real invalid controls on the ACTIVE pane only (ignore bare * markers)."""
@@ -1134,7 +1196,9 @@ class FormFiller:
                         || n === 'name'
                         || /name/i.test(el.placeholder || '');
                     if (!isName || !el.value) return;
-                    const up = el.value.replace(/[^A-Za-z .'-]/g, '').toUpperCase();
+                    // Portal rule: /^[A-Z ]*$/ — capital alphabets and
+                    // spaces only; periods/dots/digits are rejected.
+                    const up = el.value.replace(/[^A-Za-z ]/g, ' ').replace(/\\s+/g, ' ').trim().toUpperCase();
                     if (up && up !== el.value) {
                         const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
                         setter.call(el, up);
@@ -1150,7 +1214,8 @@ class FormFiller:
                     if (fb) fb.classList.remove('show', 'd-block');
                     el.classList.remove('is-invalid');
                 });
-                // Portal POST rejects ISO dates (500) — rewrite YYYY-MM-DD -> DD/MM/YYYY
+                // Portal POST rejects ISO dates (500) — rewrite YYYY-MM-DD -> MM/DD/YYYY
+                // (portal input parses part1 as the month; dd/mm overflows)
                 document.querySelectorAll('input').forEach(el => {
                     const v = el.value || '';
                     if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(v)) return;
@@ -1158,12 +1223,12 @@ class FormFiller:
                     if (!/date|dob|birth|admission/.test(n) && el.type !== 'date') return;
                     if (el.type === 'date') el.type = 'text';
                     const [y, m, d] = v.split('-');
-                    const dmy = `${d}/${m}/${y}`;
+                    const mdy = `${m}/${d}/${y}`;
                     const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-                    setter.call(el, dmy);
+                    setter.call(el, mdy);
                     el.dispatchEvent(new Event('input', {bubbles: true}));
                     el.dispatchEvent(new Event('change', {bubbles: true}));
-                    done.push(`${el.name || el.id}: ${v} -> ${dmy}`);
+                    done.push(`${el.name || el.id}: ${v} -> ${mdy}`);
                 });
                 return done;
             }""")
@@ -1304,10 +1369,11 @@ class FormFiller:
         if student_data and not getattr(self, "_just_filled", False):
             try:
                 for i, (tab_name, tab_id) in enumerate(TAB_IDS, 1):
-                    tab = page.locator(f"#{tab_id}").first
-                    if await tab.count() > 0 and await tab.is_visible():
-                        await tab.click(timeout=5000)
-                        await asyncio.sleep(0.8)
+                    # Save & Next traversal only — top-nav clicks are inert
+                    # on this wizard and silently leave the pane unchanged.
+                    if not await self._advance_to_tab(page, i):
+                        logger.warning(f"Re-fill: could not reach tab {i} — stopping re-fill")
+                        break
                     await self._fill_tab_fields(page, i, student_data)
                 await self._fill_default_required(page, student_data)
             except Exception as e:
@@ -1325,24 +1391,20 @@ class FormFiller:
         if student_data and await self._recover_duplicate(page, student_data):
             try:
                 for i, (tab_name, tab_id) in enumerate(TAB_IDS, 1):
-                    tab = page.locator(f"#{tab_id}").first
-                    if await tab.count() > 0:
-                        await tab.click(timeout=5000)
-                        await asyncio.sleep(0.5)
+                    if not await self._advance_to_tab(page, i):
+                        logger.warning(f"Post-switch re-fill: could not reach tab {i}")
+                        break
                     await self._fill_tab_fields(page, i, student_data)
                 await self._fill_default_required(page, student_data)
                 await self._preflight_save(page, 7)
             except Exception as e:
                 logger.warning(f"Re-fill after edit switch failed: {e}")
 
-        # Ensure we are on Digital Access (tab 7)
-        try:
-            tab = page.locator("#tab-nav-digital").first
-            if await tab.count() > 0 and await tab.is_visible():
-                await tab.click(timeout=5000)
-                await asyncio.sleep(1)
-        except Exception as e:
-            logger.warning(f"Could not click tab 7: {e}")
+        # Ensure we are on Digital Access (tab 7) — recovery only; the
+        # Save & Next traversal should already have put us here. Top-nav is
+        # inert, so traverse with Save & Next (this also saves tab 6 data).
+        if not await self._on_tab_pane(page, "tab-nav-digital") and not await self._advance_to_tab(page, 7):
+            logger.warning("Could not traverse to tab 7 via Save & Next")
 
         # Click Save & Next on final tab if visible (saves tab 7 data)
         try:
@@ -1355,18 +1417,19 @@ class FormFiller:
         except Exception as e:
             logger.warning(f"Final Save & Next failed: {e}")
 
-        # Portal never POSTs on Next — always force the edit update before Finish
-        try:
-            if await self._force_save(page):
-                logger.info("Force-save before Finish: OK")
-            else:
-                logger.warning("Force-save before Finish: failed")
-        except Exception as e:
-            logger.warning(f"Force-save before Finish error: {e}")
+        # No forced update before Finish — report client-side blockers instead
+        # so they get solved properly (Finish itself POSTs the whole form).
+        pre_blockers = await self._save_blockers(page)
+        if pre_blockers:
+            logger.warning("Pre-Finish blockers: " + "; ".join(pre_blockers[:8]))
 
         # Finish button (may become visible after last save)
         await self._notify_progress(tab=7, stage="submitting")
         finish_clicked = False
+        await self._handle_confirm(page)  # any leftover toast hides Finish
+        # Capture BEFORE the click: the redirect may complete before we start
+        # waiting, and then a same-URL comparison would never see the change.
+        pre_finish_url = (page.url or "").rstrip("/")
         try:
             finish = page.locator("#finishBtn").first
             if await finish.count() > 0 and await finish.is_visible():
@@ -1380,7 +1443,7 @@ class FormFiller:
 
         # Wait for success heading (visible) or navigation away from create
         await self._notify_progress(tab=7, stage="verifying")
-        indicator = await self._wait_for_success(page, timeout=15000)
+        indicator = await self._wait_for_success(page, timeout=15000, start=pre_finish_url)
         success = is_submission_success(finish_clicked, indicator)
 
         # Collect validation errors if any
@@ -1403,6 +1466,7 @@ class FormFiller:
             "indicator_detected": bool(indicator),
             "outcome_known": True if not finish_clicked else bool(indicator),
             "errors": list(errors or [])[:10],
+            "blockers": list(pre_blockers or []),
             "diagnostics": diag,
         }
 
@@ -1460,40 +1524,88 @@ class FormFiller:
             }""")
             if self._dialog_messages:
                 diag["dialogs"] = self._dialog_messages[-5:]
+            diag["blockers"] = await self._save_blockers(page)
             return diag
         except Exception as e:
             return {"error": str(e)}
 
     async def _handle_confirm(self, page: Page):
+        """Dismiss jconfirm popups / confirm dialogs that intercept all clicks."""
         try:
-            confirm = page.locator(
-                "button:has-text('CONFIRM'), button:has-text('Confirm'), "
-                "button:has-text('OK'), button:has-text('Yes')"
-            ).first
-            if await confirm.count() > 0 and await confirm.is_visible():
-                await confirm.click(timeout=3000)
-                await asyncio.sleep(1)
-                logger.info("Handled confirm dialog button")
+            # Record what the dialog says before erasing it — _wait_for_success
+            # checks this when the success indicator was dismissed too early.
+            jc = page.locator(".jconfirm .jconfirm-content, .jconfirm .lead, .jconfirm p")
+            if await jc.count() > 0 and await jc.first.is_visible():
+                txt = (await jc.first.inner_text(timeout=1000)).strip()
+                if txt and txt not in self._dialog_messages:
+                    self._dialog_messages.append(txt[:400])
+        except Exception:
+            pass
+        try:
+            for sel in (
+                ".jconfirm button:has-text('OK'), .jconfirm button:has-text('Confirm'), "
+                ".jconfirm button:has-text('CONFIRM'), .jconfirm button:has-text('Yes')",
+                ".jconfirm-closeIcon:visible",
+                ".jconfirm button:visible",
+                "button:has-text('CONFIRM')",
+                "button:has-text('Confirm')",
+                "button:has-text('OK')",
+                "button:has-text('Yes')",
+            ):
+                loc = page.locator(sel)
+                n = await loc.count()
+                for k in range(n):
+                    el = loc.nth(k)
+                    try:
+                        if await el.is_visible():
+                            await el.click(timeout=3000)
+                            await asyncio.sleep(0.6)
+                            logger.info(f"Handled dialog button ({sel})")
+                            return
+                    except Exception:
+                        continue
         except Exception:
             pass
 
-    async def _wait_for_success(self, page: Page, timeout: int = 15000) -> bool:
-        """True when 'Form Submitted Successfully!' is visible or URL leaves /create."""
+    async def _wait_for_success(self, page: Page, timeout: int = 15000, start: str | None = None) -> bool:
+        """True when a submit-success message is visible or the URL left the form.
+
+        `start` must be captured BEFORE the Finish click: by the time this
+        runs the portal may already have redirected, making a same-URL
+        comparison never see the change. Dialog text recorded by
+        _handle_confirm is also checked (the post-Finish dismiss erases the
+        visual indicator).
+        """
+        if start is None:
+            start = (page.url or "").rstrip("/")
         deadline = asyncio.get_event_loop().time() + timeout / 1000
         while asyncio.get_event_loop().time() < deadline:
             try:
-                if "/students/create" not in page.url and "femis.fde.gov.pk" in page.url:
-                    # navigated away from create (e.g. students list)
-                    body = await page.content()
-                    if "successfully" in body.lower() or "/students" in page.url:
-                        return True
+                if any(
+                    re.search(r"(submitted|saved|updated)\s+successfully", m, re.I)
+                    for m in (self._dialog_messages or [])[-5:]
+                ):
+                    return True
 
-                heading = page.locator("h1,h2,h3,h4,h5,h6").filter(
-                    has_text=re.compile(r"Form Submitted Successfully", re.I)
-                ).first
-                if await heading.count() > 0:
-                    # must be actually visible (heading exists hidden in DOM by default)
-                    if await heading.is_visible():
+                heading = page.locator(
+                    "h1,h2,h3,h4,h5,h6, .toast-body, .jconfirm .lead, .jconfirm .jconfirm-content, .jconfirm p"
+                )
+                text = heading.filter(
+                    has_text=re.compile(r"(submitted|saved|updated)\s+successfully", re.I)
+                )
+                if await text.count() > 0 and await text.first.is_visible():
+                    return True
+
+                cur = (page.url or "").rstrip("/")
+                if (
+                    cur
+                    and cur != start
+                    and "femis.fde.gov.pk" in cur
+                    and "/login" not in cur
+                    and "/students/create" not in cur
+                ):
+                    body = await page.content()
+                    if "successfully" in body.lower() or cur.endswith("/students"):
                         return True
             except Exception:
                 pass
@@ -1715,9 +1827,13 @@ class FormFiller:
         if field_name in ("class", "class_admitted_in") and value.isdigit():
             value = f"Class {value}"
 
-        # Portal requires capital alphabets on personal-name fields
-        if source_field in CAPITAL_NAME_SOURCES:
-            value = re.sub(r"[^A-Za-z .'-]", "", value).upper()
+        # Portal requires capital alphabets on EVERY name field
+        # ("Please enter only capital alphabets"): student, father, mother,
+        # guardian, emergency, previous school — any *_name source.
+        # Portal rule is /^[A-Z ]*$/ — letters and spaces only, no periods
+        # or other punctuation; disallowed characters become spaces.
+        if source_field in CAPITAL_NAME_SOURCES or source_field == "name" or source_field.endswith("_name"):
+            value = re.sub(r"\s+", " ", re.sub(r"[^A-Za-z ]", " ", str(value))).strip().upper()
 
         if validation and value:
             if validation == "cnic":
@@ -1813,6 +1929,16 @@ class FormFiller:
             try:
                 inp = page.locator(f'[name="{portal_name}"]').first
                 if await inp.count() > 0:
+                    # Config type can disagree with the live DOM (mapping drift):
+                    # route by the actual control tag instead of mis-filling.
+                    tag = await inp.evaluate("el => el.tagName")
+                    if tag == "SELECT":
+                        await self._fill_dropdown(page, label, value, [], portal_name)
+                        return
+                    itype = await inp.evaluate("el => (el.type || '')")
+                    if itype == "radio":
+                        await self._fill_radio(page, label, value, portal_name)
+                        return
                     await inp.scroll_into_view_if_needed(timeout=2000)
                     await inp.click(timeout=2000)
                     await inp.fill("")
@@ -1843,25 +1969,32 @@ class FormFiller:
         except Exception:
             pass
 
-        # 3. JS fallback by name (input or textarea)
+        # 3. JS fallback by name (input, textarea, or select)
         if portal_name:
-            await page.evaluate(
-                """(args) => {
-                    const [name, val] = args;
-                    const el = document.querySelector(`[name="${name}"]`);
-                    if (el) {
-                        const proto = el.tagName === 'TEXTAREA'
-                            ? window.HTMLTextAreaElement.prototype
-                            : window.HTMLInputElement.prototype;
-                        const nativeSet = Object.getOwnPropertyDescriptor(proto, 'value').set;
-                        nativeSet.call(el, val);
-                        el.dispatchEvent(new Event('input', {bubbles: true}));
-                        el.dispatchEvent(new Event('change', {bubbles: true}));
-                        if (window.jQuery) { jQuery(el).val(val).trigger('change'); }
-                    }
-                }""",
-                [portal_name, value],
-            )
+            try:
+                await page.evaluate(
+                    """(args) => {
+                        const [name, val] = args;
+                        const el = document.querySelector(`[name="${name}"]`);
+                        if (el) {
+                            const proto = el.tagName === 'TEXTAREA'
+                                ? window.HTMLTextAreaElement.prototype
+                                : el.tagName === 'SELECT'
+                                    ? window.HTMLSelectElement.prototype
+                                    : window.HTMLInputElement.prototype;
+                            const nativeSet = Object.getOwnPropertyDescriptor(proto, 'value').set;
+                            nativeSet.call(el, val);
+                            el.dispatchEvent(new Event('input', {bubbles: true}));
+                            el.dispatchEvent(new Event('change', {bubbles: true}));
+                            if (window.jQuery) { jQuery(el).val(val).trigger('change'); }
+                        }
+                    }""",
+                    [portal_name, value],
+                )
+            except Exception as e:
+                # Wrong prototype on an unexpected tag used to throw
+                # "Illegal invocation" and fail the whole field — degrade instead.
+                logger.warning(f"    JS value-set failed for name={portal_name!r}: {e}")
             return
 
         raise RuntimeError(f"No input found for label={label!r} name={portal_name!r}")
@@ -2283,13 +2416,15 @@ class FormFiller:
 
     @staticmethod
     def _iso_to_portal(iso: str) -> str:
-        """Portal POST rejects ISO; wants DD/MM/YYYY (confirmed via bisect).
+        """Portal input is mm/dd/yyyy (config placeholder + observed parser).
 
-        Display in portal datepicker may still show mm.dd.yyyy — same instant.
+        Portal POST rejects ISO (500). Sending dd/mm/yyyy makes the parser
+        read the day as the month (24 -> overflow -> Dec of a later year,
+        e.g. 24/04/2023 stored as 12/04/2024).
         """
         if re.match(r"^\d{4}-\d{2}-\d{2}$", iso or ""):
             y, m, d = iso.split("-")
-            return f"{d}/{m}/{y}"
+            return f"{m}/{d}/{y}"
         return iso
 
     async def _fill_date(self, page: Page, label: str, value: str, portal_name: str = ""):
@@ -2312,7 +2447,7 @@ class FormFiller:
                 const [iso, dmy, name] = args;
                 const input = document.querySelector(`input[name="${name}"]`) || document.querySelector('input[type="date"]');
                 if (input) {
-                    // type=date forces ISO on submit (server 500s on ISO) — switch to text + DD/MM/YYYY
+                    // type=date forces ISO on submit (server 500s on ISO) — switch to text + MM/DD/YYYY
                     if (input.type === 'date') {
                         input.type = 'text';
                     }

@@ -36,6 +36,7 @@ EXPECTED_INDEXES = ["ix_bot_jobs_lease", "ix_bot_jobs_status_created",
                     "uq_bot_jobs_open_per_student", "uq_students_b_form"]
 created_ids = []
 students_before = []
+botjobs_before = 0
 
 
 def rows(q, p=()):
@@ -66,6 +67,7 @@ def one(q, p=()):
 
 try:
     students_before = [r["id"] for r in rows("SELECT id FROM students ORDER BY id")]
+    botjobs_before = one("SELECT COUNT(*) AS n FROM bot_jobs")["n"]
 
     # ---- 1. schema-level invariant ---------------------------------------
     info = rows("PRAGMA table_info(students)")
@@ -177,8 +179,11 @@ try:
         "SELECT name FROM sqlite_master WHERE type='table'"))
     check("6d exactly 3 tables (no students_new leftover)",
           tables == ["bot_jobs", "students", "teachers"], str(tables))
-    check("6e bot_jobs still 0 rows",
-          one("SELECT COUNT(*) AS n FROM bot_jobs")["n"] == 0)
+    nb = one("SELECT COUNT(*) AS n FROM bot_jobs")["n"]
+    nulls = one("SELECT COUNT(*) AS n FROM bot_jobs WHERE created_at IS NULL")["n"]
+    check("6e bot_jobs baseline unchanged + created_at never NULL",
+          nb == botjobs_before and nulls == 0,
+          f"total={nb} baseline={botjobs_before} null_created_at={nulls}")
     n_students = len(rows("SELECT id FROM students"))
     check("6f student count = baseline + this file's live probe rows",
           n_students == len(students_before) + len(created_ids),

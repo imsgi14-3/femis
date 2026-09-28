@@ -239,7 +239,6 @@ class FEMISBot:
 
         client = JobApiClient()  # fails closed without FEMIS_BOT_TOKEN
         claimed_by = f"femis-bot-{socket.gethostname()}-{os.getpid()}"[:80]
-        create_url = self.config["portal"]["create_url"]
         logger.info(f"Job mode: claiming as {claimed_by} from {client.base_url}")
 
         async def worker(student, on_progress, should_abort):
@@ -247,7 +246,10 @@ class FEMISBot:
             self.filler.abort_check = should_abort
             self.filler.last_submit = None
             try:
-                await page.goto(create_url, wait_until="networkidle")
+                # Search the portal student list by name/CNIC first: open the
+                # existing record's edit page when found, else the create form.
+                mode = await self.filler.open_form(page, student)
+                logger.info(f"Job form mode: {mode} (open_form name/CNIC search)")
                 await self.filler.fill_student_form(page, student)
                 submitted = await self.filler.submit_form(page, student)
                 return WorkResult(

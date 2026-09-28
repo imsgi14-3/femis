@@ -186,22 +186,28 @@ with app.app_context():
         # =====================================================================
         # D. attempt history — one student, many attempts
         # =====================================================================
-        sid6 = 6  # existing student, never touched by this test beyond bot_jobs rows
-        for n in (1, 2, 3):
+        sid6 = 6  # may carry real job history — offset this run's attempts past it
+        c = raw_conn()
+        base6 = c.execute(
+            "SELECT COALESCE(MAX(attempt_number), 0) FROM bot_jobs WHERE student_id=?",
+            (sid6,),
+        ).fetchone()[0]
+        c.close()
+        for k in (1, 2, 3):
             err = insert_raw(
                 "INSERT INTO bot_jobs (student_id, attempt_number, status, created_at, claim_generation,"
                 " failure_category, outcome_known) VALUES (?, ?, 'failed', ?, 0, 'browser', 0)",
-                (sid6, n, "2026-09-26 12:00:00"),
+                (sid6, base6 + k, "2026-09-26 12:00:00"),
             )
-            check(f"D{n} failed attempt {n} insertable", err is None, str(err))
+            check(f"D{k} failed attempt {base6 + k} insertable", err is None, str(err))
         err = insert_raw(
             "INSERT INTO bot_jobs (student_id, attempt_number, status, created_at, claim_generation,"
             " outcome_known, finish_clicked, indicator_detected, prior_attempt_id)"
-            " VALUES (?, 4, 'success', ?, 0, 1, 1, 1, "
-            "(SELECT id FROM bot_jobs WHERE student_id=? AND attempt_number=3))",
-            (sid6, "2026-09-26 12:05:00", sid6),
+            " VALUES (?, ?, 'success', ?, 0, 1, 1, 1, "
+            "(SELECT id FROM bot_jobs WHERE student_id=? AND attempt_number=?))",
+            (sid6, base6 + 4, "2026-09-26 12:05:00", sid6, base6 + 3),
         )
-        check("D4 success attempt 4 with prior_attempt_id insertable", err is None, str(err))
+        check(f"D4 success attempt {base6 + 4} with prior_attempt_id insertable", err is None, str(err))
 
         _ours_sql, _ours_p = ours_where()
         _ours_j_sql, _ours_p = ours_where("j.")
@@ -213,8 +219,8 @@ with app.app_context():
         ).fetchall()
         linked = c.execute(
             "SELECT COUNT(*) FROM bot_jobs j JOIN bot_jobs p ON j.prior_attempt_id = p.id"
-            " WHERE j.student_id=? AND p.attempt_number=3" + _ours_j_sql,
-            (sid6,) + _ours_p,
+            " WHERE j.student_id=? AND p.attempt_number=?" + _ours_j_sql,
+            (sid6, base6 + 3) + _ours_p,
         ).fetchone()[0]
         c.close()
         check("D5 history rows coexist (4 attempts)", len(hist) == 4,
@@ -224,10 +230,10 @@ with app.app_context():
         # duplicate attempt_number rejected
         err = insert_raw(
             "INSERT INTO bot_jobs (student_id, attempt_number, status, created_at, claim_generation)"
-            " VALUES (?, 2, 'cancelled', ?, 0)",
-            (sid6, "2026-09-26 12:10:00"),
+            " VALUES (?, ?, 'cancelled', ?, 0)",
+            (sid6, base6 + 2, "2026-09-26 12:10:00"),
         )
-        check("D7 duplicate (student_id, attempt_number) rejected", err is not None, str(err))
+        check("D7 duplicate attempt rejected", err is not None, str(err))
 
         # =====================================================================
         # E. one open job per student (partial unique index)
@@ -261,16 +267,17 @@ with app.app_context():
         )
         check("E4 pending + running rejected (open-job constraint)", err is not None, str(err))
 
-        # open for a *different* student is fine (attempt 5 — 1..4 already used in D)
+        # open for a *different* student is fine (next attempt past D's rows)
         err = insert_raw(
             "INSERT INTO bot_jobs (student_id, attempt_number, status, created_at, claim_generation)"
-            " VALUES (?, 5, 'pending', ?, 0)",
-            (sid6, "2026-09-26 12:00:00"),
+            " VALUES (?, ?, 'pending', ?, 0)",
+            (sid6, base6 + 5, "2026-09-26 12:00:00"),
         )
         check("E5 open job for other student allowed", err is None, str(err))
         if err is None:
             # close it for later tests
-            delete_raw("bot_jobs", "student_id=? AND attempt_number=5 AND status='pending'", (sid6,))
+            delete_raw("bot_jobs", "student_id=? AND attempt_number=? AND status='pending'",
+                       (sid6, base6 + 5))
 
         # close open job for sid3 -> new open allowed (only this test's rows)
         _ours_sql, _ours_p = ours_where()
