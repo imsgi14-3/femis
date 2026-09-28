@@ -173,24 +173,25 @@ check("[8] asterisk toggler wired to mother_profession",
 check("[8] guard skips when the mother group is hidden",
       "isHiddenWithin(pane, motherProf)" in JS)
 
-# 9. date of admission — now a native calendar input (ISO, same as date_of_birth)
-has_date_format = bool(re.search(
-    r'date_of_admission.*?(\d\{2\}/\d\{2\}/\d\{4\}|MM/DD/YYYY|Date\.parse|isValidDate)',
-    JS, re.S)) and bool(re.search(r'\d\{2\}/\d\{2\}/\d\{4\}', JS))
-date_picker = re.search(r'<input type="date" class="form-control" name="date_of_admission"', HTML) is not None
+# 9. dates — flatpickr calendar with explicit MM/DD/YYYY display (PA-portal
+#    directive: calendar input in the portal's mm/dd/yyyy format to remove
+#    day/month ambiguity; storage stays ISO, the server normalizes posts)
+date_picker = all(
+    re.search(r'<input type="text" class="form-control fp-date" name="%s"' % f, HTML)
+    for f in ("date_of_birth", "date_of_admission"))
+has_date_format = bool(re.search(r'date_of_admission.*?MM/DD/YYYY', JS, re.S)) and bool(
+    re.search(r'\d{2}/\d{2}/\d{4}', JS))
 check("[9] date_of_admission is JS-mandatory (presence only)", js_mandatory("date_of_admission"))
-check("[9] date_of_admission renders as a calendar (type=date)", date_picker)
-check("[9] MM/DD/YYYY format rule absent (as diagnosed)", has_date_format is False,
-      "no format/regex validation found for date_of_admission")
-if not has_date_format:
-    if date_picker:
-        gap("9. date of admission format",
-            "client-side format enforced by the native type=date input (ISO, matches "
-            "date_of_birth and stored values); server still accepts any string")
-    else:
-        gap("9. date of admission MM/DD/YYYY",
-            "presence-only validation; any date string accepted, format never checked "
-            "in HTML (no pattern attr) or JS or server")
+check("[9] date_of_birth + date_of_admission render as flatpickr calendars",
+      date_picker, "type=text class=fp-date on both inputs")
+check("[9] MM/DD/YYYY display format configured in form.js", has_date_format,
+      "comment names date_of_admission + MM/DD/YYYY with literal example date")
+check("[9] server normalizes posted MM/DD/YYYY -> ISO on save",
+      APP.count("_normalize_date_value") >= 3, "_map_form_data + /submit")
+gap("9. dates (contract updated)",
+    "flatpickr enforces MM/DD/YYYY client-side (calendar + onClose guard); "
+    "app.py _normalize_date_value stores ISO; raw strings still pass through "
+    "when unparseable, so legacy/API callers keep working")
 
 # 9b. total siblings — number spinner like siblings_same_institution, no 01/02
 check("[9b] total_siblings is a number spinner (type=number, min 0, step 1)",

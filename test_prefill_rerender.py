@@ -65,6 +65,7 @@ FILL_JS = """
     if (el) {
         if (!el.value) {
         if (el.type === 'date') el.value = '2015-01-01';
+        else if (el.classList && el.classList.contains('fp-date')) el.value = '01/01/2015';
         else if (fname.indexOf('cnic') >= 0 || fname.indexOf('b_form') >= 0) el.value = '3520212345678';
         else if (fname.indexOf('contact') >= 0 || fname.indexOf('phone') >= 0) el.value = '03001234567';
         else if (el.type === 'email') el.value = 'probe@example.com';
@@ -239,13 +240,15 @@ def main():
                   ri.value.json().get("ok") is True, str(ri.value.json()))
             check("no validation alert on tab-1 save", not dialogs, str(dialogs))
 
-            row = q("SELECT birth_district_id, sub_sector_id, digital_device_type FROM students WHERE id=?", (sid,))
+            row = q("SELECT birth_district_id, sub_sector_id, digital_device_type, date_of_birth FROM students WHERE id=?", (sid,))
             check("F2: district preserved through save", row["birth_district_id"] == "Faisalabad",
                   repr(row["birth_district_id"]))
             check("F1: sub_sector preserved through save (no silent wipe)",
                   row["sub_sector_id"] == "I-14/3", repr(row["sub_sector_id"]))
             check("control: digital_device untouched by tab-1 save",
                   row["digital_device_type"] == "Mobile Phone,Laptop", repr(row["digital_device_type"]))
+            check("date_of_birth posted MM/DD/YYYY stored as ISO",
+                  row["date_of_birth"] == "2015-01-01", repr(row["date_of_birth"]))
 
             # --- tabs 2-6: fill + save each (auto-advance after every save) ---
             # Final submit now validates EVERY tab (§8-8.2), so each must pass

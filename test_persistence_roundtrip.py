@@ -85,7 +85,8 @@ try:
         ("father_name", "P3B11-FATHER"),
         ("guardian_name", "P3B11-GUARDIAN"),
         ("digital_device_type", "Mobile Phone"),
-        ("date_of_admission", "04/24/2023"),
+        # calendar posts MM/DD/YYYY; server normalizes to canonical ISO
+        ("date_of_admission", "2023-04-24"),
     ]:
         check(f"reload has {col}", row.get(col) == expect, f"got {row.get(col)!r}")
 

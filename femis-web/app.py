@@ -497,13 +497,46 @@ FORM_FIELD_MAP = {
 }
 
 
+_MDY_DATE = re.compile(r"^(\d{1,2})/(\d{1,2})/(\d{4})$")
+DATE_COLUMNS = ("date_of_birth", "date_of_admission")
+
+
+def _normalize_date_value(value):
+    """MM/DD/YYYY (the form's calendar display format) -> canonical ISO.
+
+    ISO strings and anything else pass through untouched: the flatpickr
+    calendar on the PA form posts MM/DD/YYYY, legacy rows already store
+    ISO (YYYY-MM-DD), and non-date strings stay as they are so existing
+    callers keep working.
+    """
+    if not isinstance(value, str):
+        return value
+    m = _MDY_DATE.match(value.strip())
+    if m:
+        month, day, year = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        if 1 <= month <= 12 and 1 <= day <= 31:
+            return f"{year:04d}-{month:02d}-{day:02d}"
+    return value
+
+
 def _map_form_data(data):
     mapped = {}
     for form_key, value in (data or {}).items():
         db_col = FORM_FIELD_MAP.get(form_key, form_key)
         if db_col and hasattr(Student, db_col):
+            if db_col in DATE_COLUMNS:
+                value = _normalize_date_value(value)
             mapped[db_col] = value
     return mapped
+
+
+@app.template_filter("mmdd")
+def _mmdd_filter(value):
+    """ISO YYYY-MM-DD -> MM/DD/YYYY for display; anything else passes through."""
+    if isinstance(value, str) and re.match(r"^\d{4}-\d{2}-\d{2}$", value):
+        y, m, d = value.split("-")
+        return f"{m}/{d}/{y}"
+    return value or ""
 
 
 def _b_form_digits(value):
@@ -536,6 +569,49 @@ def _b_form_error(holder, b_form):
     )
 
 
+def _admission_norm(value):
+    return re.sub(r"\s+", "", value or "").upper()
+
+
+def _admission_conflict(admission_number, exclude_id=None):
+    """Return the student row already holding this admission number, or None.
+
+    Compares whitespace-stripped + case-insensitive so 'adm-001 ' == 'ADM-001'.
+    Empty/None never conflicts (students without one may repeat).
+    """
+    target = _admission_norm(admission_number)
+    if not target:
+        return None
+    query = Student.query.filter(Student.admission_number.isnot(None))
+    if exclude_id:
+        query = query.filter(Student.id != exclude_id)
+    for row in query.all():
+        if _admission_norm(row.admission_number) == target:
+            return row
+    return None
+
+
+def _admission_error(holder, value):
+    return (
+        f"Admission Number {value} is already used by student '{holder.name}' "
+        f"(id {holder.id}). One admission number per student — edit that "
+        f"record instead of creating a duplicate."
+    )
+
+
+def _uniqueness_error(mapped, exclude_id=None):
+    """409 message if mapped b_form/admission_number duplicates a row, else None."""
+    if "b_form" in mapped:
+        holder = _b_form_conflict(mapped["b_form"], exclude_id=exclude_id)
+        if holder:
+            return _b_form_error(holder, mapped["b_form"])
+    if "admission_number" in mapped:
+        holder = _admission_conflict(mapped["admission_number"], exclude_id=exclude_id)
+        if holder:
+            return _admission_error(holder, mapped["admission_number"])
+    return None
+
+
 @app.route("/api/save-tab", methods=["POST"])
 def api_save_tab():
     payload = request.get_json()
@@ -553,17 +629,15 @@ def api_save_tab():
             return jsonify({"ok": False, "error": "You are not allowed to modify this record"}), 403
         if student.locked and session.get("role") not in ("teacher", "admin"):
             return jsonify({"ok": False, "error": "Record is locked by teacher"}), 403
-        if "b_form" in mapped:
-            holder = _b_form_conflict(mapped["b_form"], exclude_id=student.id)
-            if holder:
-                return jsonify({"ok": False, "error": _b_form_error(holder, mapped["b_form"])}), 409
+        err = _uniqueness_error(mapped, exclude_id=student.id)
+        if err:
+            return jsonify({"ok": False, "error": err}), 409
         for k, v in mapped.items():
             setattr(student, k, v)
     else:
-        if "b_form" in mapped:
-            holder = _b_form_conflict(mapped["b_form"])
-            if holder:
-                return jsonify({"ok": False, "error": _b_form_error(holder, mapped["b_form"])}), 409
+        err = _uniqueness_error(mapped)
+        if err:
+            return jsonify({"ok": False, "error": err}), 409
         student = Student(**mapped)
         db.session.add(student)
 
@@ -571,9 +645,9 @@ def api_save_tab():
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
-        holder = _b_form_conflict(mapped.get("b_form"))
-        if holder:
-            return jsonify({"ok": False, "error": _b_form_error(holder, mapped["b_form"])}), 409
+        err = _uniqueness_error(mapped, exclude_id=student.id if student_id else None)
+        if err:
+            return jsonify({"ok": False, "error": err}), 409
         raise
     return jsonify({"ok": True, "student_id": student.id})
 
@@ -590,10 +664,9 @@ def api_final_submit():
     if not _can_modify(student):
         return jsonify({"ok": False, "error": "You are not allowed to modify this record"}), 403
     mapped = _map_form_data(payload.get("data"))
-    if "b_form" in mapped:
-        holder = _b_form_conflict(mapped["b_form"], exclude_id=student.id)
-        if holder:
-            return jsonify({"ok": False, "error": _b_form_error(holder, mapped["b_form"])}), 409
+    err = _uniqueness_error(mapped, exclude_id=student.id)
+    if err:
+        return jsonify({"ok": False, "error": err}), 409
     for k, v in mapped.items():
         setattr(student, k, v)
     student.submitted = True
@@ -601,9 +674,9 @@ def api_final_submit():
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
-        holder = _b_form_conflict(mapped.get("b_form"), exclude_id=student.id)
-        if holder:
-            return jsonify({"ok": False, "error": _b_form_error(holder, mapped["b_form"])}), 409
+        err = _uniqueness_error(mapped, exclude_id=student.id)
+        if err:
+            return jsonify({"ok": False, "error": err}), 409
         raise
     redirect_url = ("/student-dashboard" if session.get("role") == "student"
                     else url_for("success", student_id=student.id))
@@ -638,11 +711,14 @@ def api_upload_file():
 @app.route("/submit", methods=["POST"])
 def submit():
     data = request.form.to_dict()
-    if data.get("b_form"):
-        holder = _b_form_conflict(data["b_form"])
-        if holder:
-            flash(_b_form_error(holder, data["b_form"]), "error")
-            return redirect(url_for("index"))
+    for dk in DATE_COLUMNS:
+        if dk in data:
+            data[dk] = _normalize_date_value(data[dk])
+    uniq = {k: v for k, v in data.items() if k in ("b_form", "admission_number")}
+    err = _uniqueness_error(uniq)
+    if err:
+        flash(err, "error")
+        return redirect(url_for("index"))
     student = Student(**{k: v for k, v in data.items() if hasattr(Student, k)})
     student.submitted = True
     db.session.add(student)
@@ -650,9 +726,9 @@ def submit():
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
-        holder = _b_form_conflict(data.get("b_form"))
-        if holder:
-            flash(_b_form_error(holder, data["b_form"]), "error")
+        err = _uniqueness_error(uniq)
+        if err:
+            flash(err, "error")
         else:
             raise
         return redirect(url_for("index"))

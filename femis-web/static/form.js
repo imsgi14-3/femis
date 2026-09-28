@@ -38,6 +38,53 @@ document.addEventListener("DOMContentLoaded", function () {
         el.addEventListener("input", function () { formatMobile(this); });
     });
 
+    // === Date fields (date_of_birth / date_of_admission): flatpickr calendar
+    // with an explicit MM/DD/YYYY display format (e.g. 12/31/2024), matching
+    // the FDE portal's date format. Storage stays ISO (YYYY-MM-DD): the
+    // server normalizes whatever the calendar posts.
+    function isoToMDY(v) {
+        var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(v).trim());
+        return m ? m[2] + "/" + m[3] + "/" + m[1] : v;
+    }
+
+    // The input text is the source of truth (it is what gets posted): adopt
+    // strictly-valid MM/DD/YYYY text into the picker; clear anything
+    // unparseable so junk never reaches Save.
+    function adoptOrClearDate(el) {
+        var v = el.value;
+        if (!v) {
+            if (el._flatpickr && el._flatpickr.selectedDates && el._flatpickr.selectedDates.length) {
+                try { el._flatpickr.clear(); } catch (e) {}
+            }
+            return;
+        }
+        var p = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(v);
+        if (p) {
+            var mo = +p[1], d = +p[2], y = +p[3], dt = new Date(y, mo - 1, d);
+            if (dt.getFullYear() === y && dt.getMonth() === mo - 1 && dt.getDate() === d) {
+                if (el._flatpickr) { try { el._flatpickr.setDate(v, false); } catch (e) {} }
+                return;
+            }
+        }
+        el.value = "";
+        if (el._flatpickr) { try { el._flatpickr.clear(); } catch (e) {} }
+    }
+
+    function initDatePickers() {
+        if (typeof flatpickr === "undefined") return;
+        document.querySelectorAll("input.fp-date").forEach(function (el) {
+            if (el.value) el.value = isoToMDY(el.value);
+            flatpickr(el, {
+                dateFormat: "m/d/Y",
+                allowInput: true,
+                onClose: function (dates, str, inst) {
+                    adoptOrClearDate(inst.input);
+                }
+            });
+        });
+    }
+    initDatePickers();
+
     function selectToggle(selectName, containerId, showValues) {
         var sel = document.querySelector('select[name="' + selectName + '"]');
         var container = document.getElementById(containerId);
@@ -761,6 +808,10 @@ document.addEventListener("DOMContentLoaded", function () {
     if (saveNextBtn) {
         saveNextBtn.addEventListener("click", function () {
             var isLastTab = currentTab >= 6;
+            // Guarantee only calendar-valid dates are posted: clear any
+            // unparseable fp-date text before validation reads the fields
+            // (so an empty date falls through to the required-field alert).
+            document.querySelectorAll("input.fp-date").forEach(adoptOrClearDate);
             if (isLastTab) {
                 // Final submit validates EVERY tab: FEMIS requires the full
                 // record at submit, and jumping tabs never validated the ones
@@ -986,7 +1037,12 @@ document.addEventListener("DOMContentLoaded", function () {
                     var input = document.querySelector('[name="' + formName + '"]');
                     if (input) {
                         if (input.type !== "radio" && input.type !== "checkbox") {
-                            input.value = val;
+                            var shown = (input.classList && input.classList.contains("fp-date"))
+                                ? isoToMDY(val) : val;
+                            input.value = shown;
+                            if (input._flatpickr && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(shown)) {
+                                try { input._flatpickr.setDate(shown, false); } catch (e) {}
+                            }
                         }
                         input.dispatchEvent(new Event("change"));
                     }

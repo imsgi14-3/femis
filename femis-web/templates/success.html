@@ -34,7 +34,7 @@
                     <div class="col-md-6">
                         <p><strong>Name:</strong> {{ student.name }}</p>
                         <p><strong>Gender:</strong> {{ student.gender }}</p>
-                        <p><strong>DOB:</strong> {{ student.date_of_birth }}</p>
+                        <p><strong>DOB:</strong> {{ student.date_of_birth|mmdd }}</p>
                         <p><strong>Province:</strong> {{ student.birth_province_id }}</p>
                         <p><strong>District:</strong> {{ student.birth_district_id }}</p>
                         <p><strong>Contact:</strong> {{ student.contact_number }}</p>
