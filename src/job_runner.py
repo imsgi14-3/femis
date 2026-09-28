@@ -519,7 +519,11 @@ async def run_job_loop(client, claimed_by: str, worker, heartbeat_cls=HeartbeatW
             continue
 
         if status == 404 and code == "no_pending_job":
-            logger.info("No pending jobs — queue drained.")
+            logger.info("No pending jobs - queue drained.")
+            return "idle", body
+
+        if status == 409 and code == "queue_paused":
+            logger.info("Job queue is paused by an administrator - nothing to claim.")
             return "idle", body
 
         if status == 409 and code in ("claim_conflict", "already_claimed"):

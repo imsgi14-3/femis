@@ -210,6 +210,61 @@
     </div>
   </div>
   {% endif %}
+
+  {% if role == "admin" %}
+  <h5 class="mt-4 mb-3"><i class="bi bi-robot me-2"></i>Bot Queue</h5>
+  <div class="card shadow-sm border-0" id="botQueueCard">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-secondary" id="botQueueState"><i class="bi bi-hourglass-split me-1"></i>Loading…</span>
+          <span class="text-muted small" id="botQueueTotal"></span>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          <button class="btn btn-sm btn-outline-warning" id="btnBotPause" onclick="botTogglePause()">
+            <i class="bi bi-pause-circle me-1"></i>Pause
+          </button>
+          <button class="btn btn-sm btn-outline-secondary" id="btnBotResetStale" onclick="botResetStale()"
+                  title="Requeue claimed/running jobs whose lease has expired">
+            <i class="bi bi-arrow-repeat me-1"></i>Reset Stale
+          </button>
+          <button class="btn btn-sm btn-outline-primary" onclick="botLoadJobs()">
+            <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+          </button>
+        </div>
+      </div>
+      <div class="d-flex gap-2 mb-3 flex-wrap">
+        <select class="form-select form-select-sm" id="botStudentSelect" style="max-width: 340px">
+          <option value="">Select student…</option>
+          {% for s in students %}
+          <option value="{{ s.id }}">{{ s.name or ('Student #' ~ s.id) }} (#{{ s.id }})</option>
+          {% endfor %}
+        </select>
+        <button class="btn btn-sm btn-primary" id="btnBotCreate" onclick="botCreateJob()">
+          <i class="bi bi-play-fill me-1"></i>Queue Job
+        </button>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th width="50">Job</th>
+              <th>Student</th>
+              <th width="70">Attempt</th>
+              <th width="100">Status</th>
+              <th>Result / Error</th>
+              <th width="150">Created</th>
+              <th width="120">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="botJobsBody">
+            <tr><td colspan="7" class="text-center text-muted py-4">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 {% endif %}
 
 <div class="modal fade" id="registerTeacherModal" tabindex="-1">
@@ -322,5 +377,147 @@ function submitRegisterTeacher() {
     else { alert("Error: " + (res.error || "Unknown")); }
   });
 }
+
+var botPaused = false;
+
+function botEsc(v) {
+  return String(v === null || v === undefined ? "" : v)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function botStatusBadge(status) {
+  var map = {
+    pending: "bg-secondary",
+    claimed: "bg-info",
+    running: "bg-info",
+    success: "bg-success",
+    failed: "bg-danger",
+    cancelled: "bg-warning text-dark"
+  };
+  var cls = map[status] || "bg-secondary";
+  return '<span class="badge ' + cls + '">' + botEsc(status) + "</span>";
+}
+
+function botLoadJobs() {
+  fetch("/api/admin/bot/jobs")
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (!res.ok) { alert("Error: " + (res.error || "Unknown")); return; }
+      botPaused = !!res.paused;
+      var state = document.getElementById("botQueueState");
+      var btn = document.getElementById("btnBotPause");
+      if (botPaused) {
+        state.className = "badge bg-warning text-dark";
+        state.innerHTML = '<i class="bi bi-pause-circle me-1"></i>Paused';
+        btn.className = "btn btn-sm btn-outline-success";
+        btn.innerHTML = '<i class="bi bi-play-circle me-1"></i>Resume';
+      } else {
+        state.className = "badge bg-success";
+        state.innerHTML = '<i class="bi bi-play-circle me-1"></i>Running';
+        btn.className = "btn btn-sm btn-outline-warning";
+        btn.innerHTML = '<i class="bi bi-pause-circle me-1"></i>Pause';
+      }
+      document.getElementById("botQueueTotal").textContent =
+        (res.total || 0) + " job(s) — showing " + ((res.jobs || []).length);
+      var body = document.getElementById("botJobsBody");
+      if (!res.jobs || !res.jobs.length) {
+        body.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No jobs yet.</td></tr>';
+        return;
+      }
+      var html = "";
+      res.jobs.forEach(function(j) {
+        var actions = "";
+        if (j.status === "pending") {
+          actions += '<button class="btn btn-sm btn-outline-danger me-1" title="Cancel" onclick="botCancelJob(' + j.job_id + ')"><i class="bi bi-x-circle"></i></button>';
+        }
+        if (j.status === "failed" || j.status === "cancelled") {
+          actions += '<button class="btn btn-sm btn-outline-warning" title="Retry (fresh student data)" onclick="botRetryJob(' + j.job_id + ')"><i class="bi bi-arrow-repeat"></i></button>';
+        }
+        if (!actions) actions = '<span class="text-muted small">—</span>';
+        var msg = j.error_message || "";
+        if (msg.length > 90) msg = msg.slice(0, 90) + "…";
+        var result = "";
+        if (j.bot_result_code) {
+          result += '<span class="badge bg-light text-dark border me-1">' + botEsc(j.bot_result_code) + "</span>";
+        }
+        if (msg) {
+          result += '<span class="text-muted small" title="' + botEsc(j.error_message) + '">' + botEsc(msg) + "</span>";
+        }
+        if (!result) result = '<span class="text-muted">—</span>';
+        html += "<tr>" +
+          '<td><strong>#' + j.job_id + "</strong></td>" +
+          "<td>" + botEsc(j.student_name || ("Student #" + j.student_id)) + "</td>" +
+          "<td>" + botEsc(j.attempt_number) + "</td>" +
+          "<td>" + botStatusBadge(j.status) + "</td>" +
+          "<td>" + result + "</td>" +
+          '<td class="text-muted small">' + botEsc(String(j.created_at || "").slice(0, 16)) + "</td>" +
+          "<td>" + actions + "</td>" +
+          "</tr>";
+      });
+      body.innerHTML = html;
+    });
+}
+
+function botTogglePause() {
+  var url = botPaused ? "/api/admin/bot/resume" : "/api/admin/bot/pause";
+  fetch(url, { method: "POST", headers: { "Content-Type": "application/json" } })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (res.ok) { botLoadJobs(); }
+      else { alert("Error: " + (res.error || "Unknown")); }
+    });
+}
+
+function botResetStale() {
+  if (!confirm("Requeue claimed/running jobs whose lease has expired?")) return;
+  fetch("/api/admin/bot/reset-stale", { method: "POST", headers: { "Content-Type": "application/json" } })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (res.ok) { alert("Requeued " + (res.reset_count || 0) + " stale job(s)."); botLoadJobs(); }
+      else { alert("Error: " + (res.error || "Unknown")); }
+    });
+}
+
+function botCreateJob() {
+  var sel = document.getElementById("botStudentSelect");
+  var sid = parseInt(sel.value, 10);
+  if (!sid) { alert("Select a student first."); return; }
+  fetch("/api/admin/bot/jobs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ student_id: sid })
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (res.ok) { sel.value = ""; botLoadJobs(); }
+      else { alert("Error: " + (res.error || "Unknown")); }
+    });
+}
+
+function botRetryJob(id) {
+  fetch("/api/admin/bot/jobs/" + id + "/retry", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh_snapshot: true })
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (res.ok) { botLoadJobs(); }
+      else { alert("Error: " + (res.error || "Unknown")); }
+    });
+}
+
+function botCancelJob(id) {
+  if (!confirm("Cancel this pending job?")) return;
+  fetch("/api/admin/bot/jobs/" + id + "/cancel", { method: "POST", headers: { "Content-Type": "application/json" } })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (res.ok) { botLoadJobs(); }
+      else { alert("Error: " + (res.error || "Unknown")); }
+    });
+}
+
+if (document.getElementById("botQueueCard")) { botLoadJobs(); }
 </script>
 {% endblock %}

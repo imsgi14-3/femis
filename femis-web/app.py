@@ -335,9 +335,20 @@ class BotJob(db.Model):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 
-# ---------------------------------------------------------------------------
-# Schema bootstrap / lightweight migration (runs after models are registered)
-# ---------------------------------------------------------------------------
+class AppSetting(db.Model):
+    """App-level key/value flags (admin Bot Management UI).
+
+    'bot_queue' = 'paused' | 'running'. An absent row means the default
+    state (queue running). Never holds credentials or student data.
+    """
+
+    __tablename__ = "app_settings"
+
+    key = db.Column(db.String(64), primary_key=True)
+    value = db.Column(db.String(64), nullable=False)
+    updated_at = db.Column(
+        db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
 
 with app.app_context():
     db.create_all()
@@ -396,7 +407,17 @@ with app.app_context():
 # Phase 3B.4 — bot-job API blueprint (store/lifecycle only; no auto-create)
 # ---------------------------------------------------------------------------
 
-from job_api import bp as job_api_bp  # noqa: E402
+from job_api import (  # noqa: E402
+    _as_int,
+    _operator_identity,
+    bp as job_api_bp,
+    queue_paused,
+    set_queue_paused,
+    svc_cancel,
+    svc_create,
+    svc_list,
+    svc_retry,
+)
 
 app.register_blueprint(job_api_bp)
 
@@ -1062,6 +1083,136 @@ def api_admin_export():
                      mimetype="application/octet-stream")
     resp.call_on_close(lambda: snapshot.unlink(missing_ok=True))
     return resp
+
+
+# ---------------------------------------------------------------------------
+# Admin — bot queue management (Bot Management dashboard UI)
+# ---------------------------------------------------------------------------
+# The dashboard calls these with its own admin session only — no operator or
+# bot token is ever held by a browser. Handlers delegate to the job_api
+# service layer (svc_*), so behavior is identical to POST /api/jobs et al.
+
+def _bot_admin_guard():
+    if not session.get("role"):
+        return jsonify(
+            {"ok": False, "error": "Authentication required.",
+             "error_code": "authentication_required"}
+        ), 401
+    if session.get("role") != "admin":
+        return jsonify(
+            {"ok": False, "error": "Admin only.", "error_code": "forbidden_role"}
+        ), 403
+    return None
+
+
+@app.route("/api/admin/bot/jobs", methods=["GET", "POST"])
+def api_admin_bot_jobs():
+    guard = _bot_admin_guard()
+    if guard:
+        return guard
+
+    if request.method == "GET":
+        data, status = svc_list(request.args)
+        if status == 200:
+            jobs = data.get("jobs") or []
+            ids = {j.get("student_id") for j in jobs if j.get("student_id") is not None}
+            names = {}
+            if ids:
+                for s in Student.query.filter(Student.id.in_(sorted(ids))).all():
+                    names[s.id] = s.name or ""
+            for j in jobs:
+                j["student_name"] = names.get(j.get("student_id")) or (
+                    f"Student #{j.get('student_id')}"
+                )
+            data["paused"] = queue_paused()
+        return jsonify(data), status
+
+    payload = dict(request.get_json(silent=True) or {})
+    student_id = _as_int(payload.get("student_id"))
+    if student_id is not None and "student_data_version" not in payload:
+        # Server stamps the current version — the UI never holds version tokens.
+        student = db.session.get(Student, student_id)
+        if student is not None and student.updated_at is not None:
+            payload["student_data_version"] = student.updated_at.isoformat(
+                sep=" ", timespec="microseconds"
+            )
+    data, status = svc_create(payload, _operator_identity())
+    return jsonify(data), status
+
+
+@app.route("/api/admin/bot/jobs/<int:job_id>/retry", methods=["POST"])
+def api_admin_bot_retry(job_id):
+    guard = _bot_admin_guard()
+    if guard:
+        return guard
+    payload = request.get_json(silent=True) or {}
+    data, status = svc_retry(job_id, payload, _operator_identity())
+    return jsonify(data), status
+
+
+@app.route("/api/admin/bot/jobs/<int:job_id>/cancel", methods=["POST"])
+def api_admin_bot_cancel(job_id):
+    guard = _bot_admin_guard()
+    if guard:
+        return guard
+    data, status = svc_cancel(job_id)
+    return jsonify(data), status
+
+
+@app.route("/api/admin/bot/pause", methods=["POST"])
+def api_admin_bot_pause():
+    """Stop new claims (bot gets 409 queue_paused); already-claimed jobs finish."""
+    guard = _bot_admin_guard()
+    if guard:
+        return guard
+    set_queue_paused(True)
+    return jsonify(
+        {
+            "ok": True,
+            "paused": True,
+            "detail": "New claims are refused; running jobs finish normally.",
+        }
+    )
+
+
+@app.route("/api/admin/bot/resume", methods=["POST"])
+def api_admin_bot_resume():
+    guard = _bot_admin_guard()
+    if guard:
+        return guard
+    set_queue_paused(False)
+    return jsonify({"ok": True, "paused": False})
+
+
+@app.route("/api/admin/bot/reset-stale", methods=["POST"])
+def api_admin_bot_reset_stale():
+    """Requeue claimed/running jobs whose lease expired (fencing stays intact)."""
+    guard = _bot_admin_guard()
+    if guard:
+        return guard
+    now = datetime.utcnow()
+    stale = BotJob.query.filter(
+        BotJob.status.in_(("claimed", "running")),
+        db.or_(
+            BotJob.lease_expires_at.is_(None),
+            BotJob.lease_expires_at <= now,
+        ),
+    ).all()
+    ids = []
+    for job in stale:
+        job.status = "pending"
+        job.claimed_by = None
+        job.lease_expires_at = None
+        job.last_heartbeat_at = None
+        # Bump fencing so a zombie worker with the old generation is refused.
+        job.claim_generation = (job.claim_generation or 0) + 1
+        note = "Requeued by admin: stale claim (lease expired)."
+        job.error_message = (
+            f"{job.error_message} || {note}" if job.error_message else note
+        )
+        ids.append(job.id)
+    db.session.commit()
+    return jsonify({"ok": True, "reset_count": len(ids), "job_ids": ids})
 
 
 # ---------------------------------------------------------------------------

@@ -32,6 +32,7 @@ PROBE_NAME = "P3B10 INTEGRITY PROBE"
 EXPECTED_STUDENT_IDS = [3, 4, 6, 8, 9, 10]
 EXPECTED_INDEXES = ["ix_bot_jobs_lease", "ix_bot_jobs_status_created",
                     "ix_bot_jobs_student_created", "ix_bot_jobs_student_id",
+                    "sqlite_autoindex_app_settings_1",
                     "sqlite_autoindex_bot_jobs_1", "sqlite_autoindex_bot_jobs_2",
                     "uq_bot_jobs_open_per_student", "uq_students_b_form"]
 created_ids = []
@@ -177,8 +178,8 @@ try:
               ("students", "student_id", "id", "CASCADE")], str(fks))
     tables = sorted(r["name"] for r in rows(
         "SELECT name FROM sqlite_master WHERE type='table'"))
-    check("6d exactly 3 tables (no students_new leftover)",
-          tables == ["bot_jobs", "students", "teachers"], str(tables))
+    check("6d exactly 4 tables (no students_new leftover)",
+          tables == ["app_settings", "bot_jobs", "students", "teachers"], str(tables))
     nb = one("SELECT COUNT(*) AS n FROM bot_jobs")["n"]
     nulls = one("SELECT COUNT(*) AS n FROM bot_jobs WHERE created_at IS NULL")["n"]
     check("6e bot_jobs baseline unchanged + created_at never NULL",

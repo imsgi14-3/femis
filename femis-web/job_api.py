@@ -81,6 +81,11 @@ def _err(message, code, http):
     return jsonify({"ok": False, "error": message, "error_code": code}), http
 
 
+def _fail(message, code, http):
+    """Service-layer result form: plain (payload, status) for wrapper jsonify."""
+    return {"ok": False, "error": message, "error_code": code}, http
+
+
 def _payload():
     return request.get_json(silent=True) or {}
 
@@ -143,6 +148,42 @@ def _require_bot():
 
 def _operator_identity():
     return _sanitize(session.get("user_name") or "operator", 100) or "operator"
+
+
+# ---------------------------------------------------------------------------
+# Queue pause state (admin Bot Management; stored in app_settings)
+# ---------------------------------------------------------------------------
+
+BOT_QUEUE_KEY = "bot_queue"
+
+
+def queue_paused():
+    """True when an administrator paused the claim queue (app_settings row)."""
+    core = _core()
+    AppSetting = getattr(core, "AppSetting", None)
+    if AppSetting is None:  # pragma: no cover - app.py always defines the model
+        return False
+    db = core.db
+    try:
+        row = db.session.get(AppSetting, BOT_QUEUE_KEY)
+    except Exception:
+        db.session.rollback()
+        return False
+    return bool(row is not None and row.value == "paused")
+
+
+def set_queue_paused(paused):
+    """Persist queue pause state ('paused' | 'running'); returns the stored value."""
+    core = _core()
+    db, AppSetting = core.db, core.AppSetting
+    value = "paused" if paused else "running"
+    row = db.session.get(AppSetting, BOT_QUEUE_KEY)
+    if row is None:
+        db.session.add(AppSetting(key=BOT_QUEUE_KEY, value=value))
+    else:
+        row.value = value
+    db.session.commit()
+    return value
 
 
 # ---------------------------------------------------------------------------
@@ -232,46 +273,44 @@ def _job_dict(job):
 
 
 # ---------------------------------------------------------------------------
-# Human/admin endpoints
+# Service layer (shared by the HTTP endpoints below and the admin Bot Queue)
 # ---------------------------------------------------------------------------
+# Every svc_* returns a plain (payload, http_status) tuple so both endpoint
+# wrappers (jsonify) and in-process admin callers (app.py) use one code path.
 
-@bp.route("/api/jobs", methods=["POST"])
-def create_job():
-    guard = _require_operator()
-    if guard:
-        return guard
+def svc_create(payload, identity):
+    """Create a pending submit-mode job for one student."""
     core = _core()
     db, Student, BotJob = core.db, core.Student, core.BotJob
 
-    payload = _payload()
     mode = payload.get("mode")
     if mode not in (None, "submit"):
-        return _err("Only submit-mode jobs are supported in v1.", "unsupported_mode", 400)
+        return _fail("Only submit-mode jobs are supported in v1.", "unsupported_mode", 400)
 
     student_id = _as_int(payload.get("student_id"))
     if student_id is None:
-        return _err("student_id is required and must be an integer.", "validation_error", 422)
+        return _fail("student_id is required and must be an integer.", "validation_error", 422)
 
     student = db.session.get(Student, student_id)
     if student is None:
-        return _err("Student not found.", "student_not_found", 404)
+        return _fail("Student not found.", "student_not_found", 404)
 
     token_dt, exact = _parse_version_token(payload.get("student_data_version"))
     if token_dt is None:
-        return _err(
+        return _fail(
             "student_data_version is required (ISO-8601 or HTTP-date).",
             "validation_error",
             422,
         )
     current = student.updated_at
     if current is None:
-        return _err(
+        return _fail(
             "Student record has no version (updated_at) yet.",
             "student_version_unavailable",
             422,
         )
     if not _version_matches(token_dt, exact, current):
-        return _err(
+        return _fail(
             "student_data_version does not match the current student record.",
             "version_mismatch",
             422,
@@ -285,13 +324,7 @@ def create_job():
     if idempotency_key:
         existing = BotJob.query.filter_by(idempotency_key=idempotency_key).first()
         if existing:
-            return jsonify(
-                {
-                    "ok": True,
-                    "job": _job_dict(existing),
-                    "idempotent": True,
-                }
-            )
+            return {"ok": True, "job": _job_dict(existing), "idempotent": True}, 200
 
     open_job = BotJob.query.filter(
         BotJob.student_id == student_id,
@@ -299,14 +332,12 @@ def create_job():
     ).first()
     if open_job is not None:
         return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": "An open job already exists for this student.",
-                    "error_code": "open_job_exists",
-                    "existing_job": _job_dict(open_job),
-                }
-            ),
+            {
+                "ok": False,
+                "error": "An open job already exists for this student.",
+                "error_code": "open_job_exists",
+                "existing_job": _job_dict(open_job),
+            },
             409,
         )
 
@@ -321,7 +352,7 @@ def create_job():
         status="pending",
         student_data_version=current,  # exact expected version (decision A/K)
         requested_at=_now(),
-        created_by=_operator_identity(),
+        created_by=_sanitize(identity, 100) or "operator",
         idempotency_key=idempotency_key,
     )
     db.session.add(job)
@@ -333,28 +364,91 @@ def create_job():
         if idempotency_key:
             existing = BotJob.query.filter_by(idempotency_key=idempotency_key).first()
             if existing:
-                return jsonify(
-                    {"ok": True, "job": _job_dict(existing), "idempotent": True}
-                )
+                return {"ok": True, "job": _job_dict(existing), "idempotent": True}, 200
         open_job = BotJob.query.filter(
             BotJob.student_id == student_id,
             BotJob.status.in_(core.BOT_JOB_OPEN_STATUSES),
         ).first()
         if open_job is not None:
             return (
-                jsonify(
-                    {
-                        "ok": False,
-                        "error": "An open job already exists for this student.",
-                        "error_code": "open_job_exists",
-                        "existing_job": _job_dict(open_job),
-                    }
-                ),
+                {
+                    "ok": False,
+                    "error": "An open job already exists for this student.",
+                    "error_code": "open_job_exists",
+                    "existing_job": _job_dict(open_job),
+                },
                 409,
             )
-        return _err("Job could not be created due to a concurrent update.", "create_conflict", 409)
+        return _fail("Job could not be created due to a concurrent update.", "create_conflict", 409)
 
-    return jsonify({"ok": True, "job": _job_dict(job)})
+    return {"ok": True, "job": _job_dict(job)}, 200
+
+
+@bp.route("/api/jobs", methods=["POST"])
+def create_job():
+    guard = _require_operator()
+    if guard:
+        return guard
+    data, status = svc_create(_payload(), _operator_identity())
+    return jsonify(data), status
+
+
+def svc_list(args):
+    """List jobs with optional filters/paging (args: request.args-like mapping)."""
+    core = _core()
+    BotJob = core.BotJob
+
+    query = BotJob.query
+
+    student_id = args.get("student_id")
+    if student_id is not None:
+        sid = _as_int(student_id)
+        if sid is None:
+            return _fail("student_id filter must be an integer.", "validation_error", 422)
+        query = query.filter(BotJob.student_id == sid)
+
+    status_filter = args.get("status")
+    if status_filter is not None:
+        if status_filter not in core.BOT_JOB_STATUSES:
+            return _fail("Unknown status filter.", "validation_error", 422)
+        query = query.filter(BotJob.status == status_filter)
+
+    order = (args.get("order") or "desc").lower()
+    if order not in ("asc", "desc"):
+        return _fail("order must be 'asc' or 'desc'.", "validation_error", 422)
+
+    limit_raw = args.get("limit")
+    limit = _as_int(limit_raw) if limit_raw is not None else None
+    if limit_raw is not None and limit is None:
+        return _fail("limit must be an integer.", "validation_error", 422)
+    if limit is None:
+        limit = 50
+    if not (1 <= limit <= 200):
+        return _fail("limit must be between 1 and 200.", "validation_error", 422)
+    offset_raw = args.get("offset")
+    offset = _as_int(offset_raw) if offset_raw is not None else None
+    if offset_raw is not None and offset is None:
+        return _fail("offset must be an integer.", "validation_error", 422)
+    if offset is None:
+        offset = 0
+    if offset < 0:
+        return _fail("offset must be >= 0.", "validation_error", 422)
+
+    total = query.count()
+    direction = BotJob.created_at.asc() if order == "asc" else BotJob.created_at.desc()
+    jobs = (
+        query.order_by(direction, BotJob.id.desc()).offset(offset).limit(limit).all()
+    )
+    return (
+        {
+            "ok": True,
+            "jobs": [_job_dict(j) for j in jobs],
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+        },
+        200,
+    )
 
 
 @bp.route("/api/jobs", methods=["GET"])
@@ -362,59 +456,8 @@ def list_jobs():
     guard = _require_operator()
     if guard:
         return guard
-    core = _core()
-    BotJob = core.BotJob
-
-    query = BotJob.query
-
-    student_id = request.args.get("student_id")
-    if student_id is not None:
-        sid = _as_int(student_id)
-        if sid is None:
-            return _err("student_id filter must be an integer.", "validation_error", 422)
-        query = query.filter(BotJob.student_id == sid)
-
-    status_filter = request.args.get("status")
-    if status_filter is not None:
-        if status_filter not in core.BOT_JOB_STATUSES:
-            return _err("Unknown status filter.", "validation_error", 422)
-        query = query.filter(BotJob.status == status_filter)
-
-    order = (request.args.get("order") or "desc").lower()
-    if order not in ("asc", "desc"):
-        return _err("order must be 'asc' or 'desc'.", "validation_error", 422)
-
-    limit_raw = request.args.get("limit")
-    limit = _as_int(limit_raw) if limit_raw is not None else None
-    if limit_raw is not None and limit is None:
-        return _err("limit must be an integer.", "validation_error", 422)
-    if limit is None:
-        limit = 50
-    if not (1 <= limit <= 200):
-        return _err("limit must be between 1 and 200.", "validation_error", 422)
-    offset_raw = request.args.get("offset")
-    offset = _as_int(offset_raw) if offset_raw is not None else None
-    if offset_raw is not None and offset is None:
-        return _err("offset must be an integer.", "validation_error", 422)
-    if offset is None:
-        offset = 0
-    if offset < 0:
-        return _err("offset must be >= 0.", "validation_error", 422)
-
-    total = query.count()
-    direction = BotJob.created_at.asc() if order == "asc" else BotJob.created_at.desc()
-    jobs = (
-        query.order_by(direction, BotJob.id.desc()).offset(offset).limit(limit).all()
-    )
-    return jsonify(
-        {
-            "ok": True,
-            "jobs": [_job_dict(j) for j in jobs],
-            "total": total,
-            "limit": limit,
-            "offset": offset,
-        }
-    )
+    data, status = svc_list(request.args)
+    return jsonify(data), status
 
 
 @bp.route("/api/jobs/<int:job_id>", methods=["GET"])
@@ -429,34 +472,29 @@ def get_job(job_id):
     return jsonify({"ok": True, "job": _job_dict(job)})
 
 
-@bp.route("/api/jobs/<int:job_id>/retry", methods=["POST"])
-def retry_job(job_id):
+def svc_retry(job_id, payload, identity):
     """Explicit operator retry: appends a NEW attempt, never overwrites history."""
-    guard = _require_operator()
-    if guard:
-        return guard
     core = _core()
     db, BotJob, Student = core.db, core.BotJob, core.Student
 
     job = db.session.get(BotJob, job_id)
     if job is None:
-        return _err("Job not found.", "job_not_found", 404)
+        return _fail("Job not found.", "job_not_found", 404)
     if job.status not in ("failed", "cancelled"):
-        return _err(
+        return _fail(
             "Retry is only allowed for failed or cancelled attempts.",
             "invalid_transition",
             409,
         )
 
-    payload = _payload()
     refresh_snapshot = bool(payload.get("refresh_snapshot", False))
 
     student = db.session.get(Student, job.student_id)
     if refresh_snapshot:
         if student is None:
-            return _err("Student not found.", "student_not_found", 404)
+            return _fail("Student not found.", "student_not_found", 404)
         if student.updated_at is None:
-            return _err(
+            return _fail(
                 "Student record has no version (updated_at) yet.",
                 "student_version_unavailable",
                 422,
@@ -473,14 +511,12 @@ def retry_job(job_id):
     ).first()
     if other_open is not None:
         return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": "An open job already exists for this student.",
-                    "error_code": "open_job_exists",
-                    "existing_job": _job_dict(other_open),
-                }
-            ),
+            {
+                "ok": False,
+                "error": "An open job already exists for this student.",
+                "error_code": "open_job_exists",
+                "existing_job": _job_dict(other_open),
+            },
             409,
         )
 
@@ -496,7 +532,7 @@ def retry_job(job_id):
         student_data_version=new_version,
         requested_at=_now(),
         retry_requested_at=_now(),
-        created_by=_operator_identity(),
+        created_by=_sanitize(identity, 100) or "operator",
         prior_attempt_id=job.id,
     )
     db.session.add(new_job)
@@ -504,30 +540,36 @@ def retry_job(job_id):
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
-        return _err("Concurrent retry conflict.", "retry_conflict", 409)
+        return _fail("Concurrent retry conflict.", "retry_conflict", 409)
 
-    return jsonify(
+    return (
         {
             "ok": True,
             "job": _job_dict(new_job),
             "prior_attempt": _job_dict(job),
             "refresh_snapshot": refresh_snapshot,
-        }
+        },
+        200,
     )
 
 
-@bp.route("/api/jobs/<int:job_id>/cancel", methods=["POST"])
-def cancel_job(job_id):
-    """v1 cancellation: pending -> cancelled only (CAS)."""
+@bp.route("/api/jobs/<int:job_id>/retry", methods=["POST"])
+def retry_job(job_id):
     guard = _require_operator()
     if guard:
         return guard
+    data, status = svc_retry(job_id, _payload(), _operator_identity())
+    return jsonify(data), status
+
+
+def svc_cancel(job_id):
+    """v1 cancellation: pending -> cancelled only (CAS)."""
     core = _core()
     db, BotJob = core.db, core.BotJob
 
     job = db.session.get(BotJob, job_id)
     if job is None:
-        return _err("Job not found.", "job_not_found", 404)
+        return _fail("Job not found.", "job_not_found", 404)
 
     now = _now()
     updated = BotJob.query.filter(
@@ -546,15 +588,24 @@ def cancel_job(job_id):
         db.session.rollback()
         db.session.refresh(job)
         if job.status in core.BOT_JOB_OPEN_STATUSES:
-            return _err(
+            return _fail(
                 "Job is no longer pending (claim may have won the race).",
                 "cancel_conflict",
                 409,
             )
-        return _err("Job is already terminal.", "invalid_transition", 409)
+        return _fail("Job is already terminal.", "invalid_transition", 409)
     db.session.commit()
     db.session.refresh(job)
-    return jsonify({"ok": True, "job": _job_dict(job)})
+    return {"ok": True, "job": _job_dict(job)}, 200
+
+
+@bp.route("/api/jobs/<int:job_id>/cancel", methods=["POST"])
+def cancel_job(job_id):
+    guard = _require_operator()
+    if guard:
+        return guard
+    data, status = svc_cancel(job_id)
+    return jsonify(data), status
 
 
 # ---------------------------------------------------------------------------
@@ -571,6 +622,12 @@ def claim_job():
     guard = _require_bot()
     if guard:
         return guard
+    if queue_paused():
+        return _err(
+            "Job queue is paused by an administrator.",
+            "queue_paused",
+            409,
+        )
     core = _core()
     db, BotJob, Student = core.db, core.BotJob, core.Student
 
