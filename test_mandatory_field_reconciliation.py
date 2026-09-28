@@ -18,6 +18,7 @@ ROOT = Path(__file__).parent
 HTML = (ROOT / "femis-web" / "templates" / "form.html").read_text(encoding="utf-8")
 JS = (ROOT / "femis-web" / "static" / "form.js").read_text(encoding="utf-8")
 APP = (ROOT / "femis-web" / "app.py").read_text(encoding="utf-8")
+MAPPING = (ROOT / "config" / "field_mapping.yaml").read_text(encoding="utf-8")
 
 results = []
 discrepancies = []
@@ -98,6 +99,9 @@ check("[1] b_form JS-mandatory (tab0, visibility-gated)", js_mandatory("b_form")
 check("[1] present_* address trio JS-mandatory (tab0, visibility-gated)",
       all(js_mandatory(f) for f in
           ("present_address_type", "present_sector_id", "present_sub_sector_id")))
+check("[1] sub-sector group gated on address type = Sector (temp + present)",
+      JS.count('if (subSectorDiv) subSectorDiv.style.display = val === "Sector" ? "block" : "none";') == 2,
+      "both address_type toggles show #sub_sector_group / #present_sub_sector_group for Sector")
 check("[1] shift JS-mandatory (tab2)", js_mandatory("shift"))
 check("[1] validateTab skips hidden fields",
       "isHiddenWithin" in JS and "isHiddenWithin(pane, ctl.els[0])" in JS,
@@ -253,6 +257,19 @@ check("[24d] domicile gated on nationality=Pakistani",
 check("[24d] is_hafiz gated on religion=Muslim",
       'id="hafiz_group"' in HTML and
       'selectToggle("religion", "hafiz_group", ["Muslim"])' in JS)
+
+# 24e. is_hafiz is NOT mandatory (portal required=false in every capture)
+_hafiz_req = []
+for _hm in re.finditer(r"(?m)^(\s*)is_hafiz:\s*$", MAPPING):
+    _req = [l.strip() for l in MAPPING[_hm.end():].splitlines()[:8] if "required" in l]
+    _hafiz_req.append(_req)
+check("[24e] is_hafiz NOT JS-mandatory and no conditional rule",
+      js_mandatory("is_hafiz") is False and cond_rule("is_hafiz") is None,
+      str(cond_rule("is_hafiz")))
+check("[24e] is_hafiz has no HTML required attr", html_required("is_hafiz") is False)
+check("[24e] mapping marks is_hafiz required:false in every entry",
+      len(_hafiz_req) >= 9 and all(r == ["required: false"] for r in _hafiz_req),
+      str(_hafiz_req))
 
 # 25-27. walking / listening / aids
 check("[25] difficulty_listening JS-mandatory (tab5)", js_mandatory("difficulty_listening"))

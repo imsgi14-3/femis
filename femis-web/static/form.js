@@ -200,7 +200,7 @@ document.addEventListener("DOMContentLoaded", function () {
             var val = sel.value;
             var isOther = val === "Other";
             if (sectorDiv) sectorDiv.style.display = val === "Sector" ? "block" : "none";
-            if (subSectorDiv) subSectorDiv.style.display = "none";
+            if (subSectorDiv) subSectorDiv.style.display = val === "Sector" ? "block" : "none";
             if (villageDiv) villageDiv.style.display = val === "Village" ? "block" : "none";
             if (hsDiv) hsDiv.style.display = val === "Housing Society" ? "block" : "none";
             if (otherDiv) otherDiv.style.display = isOther ? "block" : "none";
@@ -227,7 +227,7 @@ document.addEventListener("DOMContentLoaded", function () {
             var val = sel.value;
             var isOther = val === "Other";
             if (sectorDiv) sectorDiv.style.display = val === "Sector" ? "block" : "none";
-            if (subSectorDiv) subSectorDiv.style.display = "none";
+            if (subSectorDiv) subSectorDiv.style.display = val === "Sector" ? "block" : "none";
             if (villageDiv) villageDiv.style.display = val === "Village" ? "block" : "none";
             if (hsDiv) hsDiv.style.display = val === "Housing Society" ? "block" : "none";
             if (otherDiv) otherDiv.style.display = isOther ? "block" : "none";

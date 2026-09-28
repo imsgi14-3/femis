@@ -1,6 +1,6 @@
 # FEMIS Portal vs FemisBot Form — Mandatory & Conditional Misalignment Report
 
-**Date:** 2026-09-28 (rev. 2 — adds over-enforcement inventory + Mother's-Income Housewife rule analysis; rev.2 corrections: `is_bform_available`, `mode_of_study`, `idp_status_id`, `is_registered_refugee`, `disability_types[]`, `mental_disability_type` reclassified as **correctly enforced** — §7a; **rev.2a — §6 fix list APPLIED to `form.js`/`form.html`**, verified 480/480 tests, see §6/§8 status columns)
+**Date:** 2026-09-28 (rev. 2 — adds over-enforcement inventory + Mother's-Income Housewife rule analysis; rev.2 corrections: `is_bform_available`, `mode_of_study`, `idp_status_id`, `is_registered_refugee`, `disability_types[]`, `mental_disability_type` reclassified as **correctly enforced** — §7a; **rev.2a — §6 fix list APPLIED to `form.js`/`form.html`**, verified 480/480 tests, see §6/§8 status columns; **rev.2b — sub-sector group now gated on Address Type = Sector** (temp + present — `#sub_sector_group`/`#present_sub_sector_group` shown iff type = `Sector`, so `sub_sector_id`/`present_sub_sector_id` are mandatory exactly when the portal requires them, clearing sooner doesn't unrequire `sector_id`; cascade still hides the group if the chosen sector has zero sub-sectors) **and `is_hafiz` confirmed NOT mandatory** — `required: false` in every portal capture and every `field_mapping.yaml` entry, absent from `mandatoryByTab`/`conditionalRequired`/HTML `required`, locked by test `[24e]`)
 **Audit mode:** READ-ONLY live portal inspection (Ayat Mubeen, existing record — edit page). No CNIC typed, no field values edited, no Save/Submit clicked, no record created or modified. Browser: headed Chromium this one time (Edge channel `msedge` is the standing rule for future runs; session saved to `data/logs/femis_session.json`).
 
 **Evidence sources**
@@ -33,8 +33,8 @@ Ours JS enforced (13): `name, is_bform_available, gender, date_of_birth, birth_p
 | # | Field | Portal | Ours | Sev | Note |
 |---|---|---|---|---|---|
 | 1.1 | `b_form` | required | HTML-only (inert); NOT in `mandatoryByTab[0]` | **H** | Portal rejects empty CNIC; we never block |
-| 1.2 | `sector_id`, `sub_sector_id` | required (Address Type = Sector — Ayat state) | never required | **H** | Sector is the common case |
-| 1.3 | `present_address_type`, `present_sector_id`, `present_sub_sector_id` | required | never required | **H** | Permanent trio unenforced |
+| 1.2 | `sector_id`, `sub_sector_id` | required (Address Type = Sector — Ayat state); create-capture without type selected: `required=false` | ✅ required, visibility-gated — in `mandatoryByTab[0]`; sub-sector group shown iff `address_type=Sector` (rev.2b) | ✅ | Sector is the common case |
+| 1.3 | `present_address_type`, `present_sector_id`, `present_sub_sector_id` | required | ✅ required, visibility-gated — present sub-sector group shown iff `present_address_type=Sector` (rev.2b) | ✅ | Permanent trio aligned |
 | 1.4 | `is_bform_available` | **required** (mapping primary L8 `is_cnic_form_b_available: required: true`; user first-hand confirmed) | required (`mandatoryByTab[0]`) | ✅ | Aligned — rev.2 correction (earlier cited an auto-discovered duplicate that says `false`, see §7a) |
 | 1.5 | `email` | live: NOT required; create-capture + `field_mapping.yaml:608` say required | required | M | **Ambiguous — §4** |
 | 1.6 | `house`, `street` (+ `present_house/present_street`) | create-capture: required; live: visible but NOT required | HTML-only + attr-flip (`form.js:208-209`) → not enforced by `validateTab` | M | §4 |
@@ -159,7 +159,7 @@ JS-only (enforced, not HTML-required): `father_qualification, father_profession,
 ## 6. Priority fix list — **APPLIED** (all items implemented; see per-item status)
 
 **P1 — portal will reject / Save cannot succeed (under-enforcement):**
-1. ✅ **APPLIED** — added to `mandatoryByTab[0]` (visibility-gated): `b_form`, `sector_id`, `sub_sector_id`, `present_address_type`, `present_sector_id`, `present_sub_sector_id`.
+1. ✅ **APPLIED** — added to `mandatoryByTab[0]` (visibility-gated): `b_form`, `sector_id`, `sub_sector_id`, `present_address_type`, `present_sector_id`, `present_sub_sector_id`. *(rev.2b)*: `#sub_sector_group` / `#present_sub_sector_group` are also shown directly by the address-type toggle (they were previously shown only by the sector→sub-sector cascade, leaving `sub_sector_id` unenforced until options loaded); cascade keeps hiding the group when the selected sector has zero sub-sectors.
 2. ✅ **APPLIED** — `shift` added to `mandatoryByTab[2]`.
 3. ✅ **APPLIED** — `validateTab` now skips hidden fields via `isHiddenWithin()` (ancestor `display:none` walk scoped to the tab pane; fixes phantom blocks §1.2.2). Field lookups are pane-scoped (`fieldControl`/`controlValue`/`fieldLabel` helpers).
 4. ✅ **APPLIED** — `uses_hearing_aid` → unconditional mandatory (`mandatoryByTab[5]`) + `#hearing_aid_group` always visible (HTML `display:none` removed, JS gate removed); `hearing_aid_details` trigger repointed to `has_hearing_difficulties=1`.
