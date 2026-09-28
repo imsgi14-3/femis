@@ -32,6 +32,10 @@
                 <input class="form-check-input" type="radio" name="role" id="role_teacher" value="teacher">
                 <label class="form-check-label" for="role_teacher">Teacher</label>
               </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="role" id="role_admin" value="admin">
+                <label class="form-check-label" for="role_admin">Admin</label>
+              </div>
             </div>
           </div>
 
@@ -86,13 +90,15 @@
           </div>
         </form>
 
+        {% if not admin_exists %}
         <div id="setup-section" class="mt-4" style="display:none;">
           <hr>
-          <p class="text-muted text-center small">First time? Register as a teacher:</p>
+          <p class="text-muted text-center small">First time? Set up the Admin account:</p>
           <button class="btn btn-outline-primary btn-sm w-100" onclick="showSetup()">
-            <i class="bi bi-person-plus me-1"></i>Register First Teacher
+            <i class="bi bi-person-plus me-1"></i>Setup Admin
           </button>
         </div>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -102,7 +108,7 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title">Register Teacher</h5>
+        <h5 class="modal-title">Setup Admin</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
@@ -114,32 +120,10 @@
           <label class="form-label fw-bold">Password <span class="text-danger">*</span></label>
           <input type="password" class="form-control" id="setup-password" required>
         </div>
-        <div class="mb-3">
-          <label class="form-label fw-bold">Your Class <span class="text-danger">*</span></label>
-          <select class="form-select" id="setup-class" required>
-            <option value="">Select Class</option>
-            <option value="Nursery">Nursery</option>
-            <option value="KG">KG</option>
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-            <option value="6">6</option>
-            <option value="7">7</option>
-            <option value="8">8</option>
-            <option value="9">9</option>
-            <option value="10">10</option>
-          </select>
-        </div>
-        <div class="mb-3">
-          <label class="form-label fw-bold">Your Section <span class="text-danger">*</span></label>
-          <input type="text" class="form-control" id="setup-section-input" required placeholder="e.g. A, B, C">
-        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-primary" onclick="submitSetup()">Register</button>
+        <button type="button" class="btn btn-primary" onclick="submitSetup()">Create Admin</button>
       </div>
     </div>
   </div>
@@ -151,19 +135,33 @@ roleRadios.forEach(function(radio) {
   radio.addEventListener("change", function() {
     var sf = document.getElementById("student-fields");
     var tf = document.getElementById("teacher-fields");
+    var cf = document.getElementById("common-fields");
     var setup = document.getElementById("setup-section");
-    if (this.value === "teacher") {
-      sf.style.display = "none";
-      tf.style.display = "block";
-      setup.style.display = "block";
-      sf.querySelectorAll("input").forEach(function(i) { i.required = false; });
-      tf.querySelectorAll("input").forEach(function(i) { i.required = true; });
-    } else {
+    var v = this.value;
+    if (v === "student") {
       sf.style.display = "block";
       tf.style.display = "none";
-      setup.style.display = "none";
+      cf.style.display = "block";
+      if (setup) setup.style.display = "none";
       sf.querySelectorAll("input").forEach(function(i) { i.required = true; });
       tf.querySelectorAll("input").forEach(function(i) { i.required = false; });
+      cf.querySelectorAll("input, select").forEach(function(i) { i.required = true; });
+    } else if (v === "admin") {
+      sf.style.display = "none";
+      tf.style.display = "block";
+      cf.style.display = "none";
+      if (setup) setup.style.display = "block";
+      sf.querySelectorAll("input").forEach(function(i) { i.required = false; });
+      tf.querySelectorAll("input").forEach(function(i) { i.required = true; });
+      cf.querySelectorAll("input, select").forEach(function(i) { i.required = false; });
+    } else {
+      sf.style.display = "none";
+      tf.style.display = "block";
+      cf.style.display = "block";
+      if (setup) setup.style.display = "block";
+      sf.querySelectorAll("input").forEach(function(i) { i.required = false; });
+      tf.querySelectorAll("input").forEach(function(i) { i.required = true; });
+      cf.querySelectorAll("input, select").forEach(function(i) { i.required = true; });
     }
   });
 });
@@ -175,11 +173,9 @@ function showSetup() {
 function submitSetup() {
   var payload = {
     name: document.getElementById("setup-name").value,
-    password: document.getElementById("setup-password").value,
-    class_id: document.getElementById("setup-class").value,
-    section: document.getElementById("setup-section-input").value
+    password: document.getElementById("setup-password").value
   };
-  fetch("/api/setup-teacher", {
+  fetch("/api/setup-admin", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify(payload)

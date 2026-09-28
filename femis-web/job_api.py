@@ -100,17 +100,16 @@ def _as_int(value):
 # ---------------------------------------------------------------------------
 
 def _require_operator():
-    """Human/admin gate: portal session (role=teacher) + operator token.
+    """Human/admin gate: portal session (role=teacher or admin) + operator token.
 
-    The portal has no admin role (decision E records this as an implementation
-    dependency). The narrowest approved boundary: an authenticated portal
-    session that is NOT a student, PLUS the focal-person operator token from
-    the environment. Fails closed when the token is not configured.
+    The narrowest approved boundary: an authenticated portal session that is
+    a teacher or admin, PLUS the focal-person operator token from the
+    environment. Fails closed when the token is not configured.
     """
     configured = (os.environ.get("FEMIS_OPERATOR_TOKEN") or "").strip()
     if not session.get("role"):
         return _err("Authentication required.", "authentication_required", 401)
-    if session.get("role") != "teacher":
+    if session.get("role") not in ("teacher", "admin"):
         return _err(
             "Job administration is restricted to the portal operator.",
             "forbidden_role",

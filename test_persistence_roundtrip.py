@@ -62,6 +62,8 @@ try:
         db.session.commit()
 
     client = app.test_client()
+    with client.session_transaction() as s:
+        s["role"] = "admin"
 
     # ---- 1. create ----
     r = client.post("/api/save-tab", json={"tab": 3, "student_id": None, "data": CREATE_DATA})

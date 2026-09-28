@@ -20,6 +20,8 @@ def check(name, ok, detail=""):
 
 with app.app_context():
     client = app.test_client()
+    with client.session_transaction() as s:
+        s["role"] = "admin"
     created_ids = []
 
     # --- create student (Tab 1) ---

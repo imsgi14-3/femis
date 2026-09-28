@@ -123,7 +123,10 @@ def create_student(name):
 
 def edit_student(sid, name):
     time.sleep(0.05)
-    r = app.test_client().post(
+    c = app.test_client()
+    with c.session_transaction() as s:
+        s["role"] = "admin"
+    r = c.post(
         "/api/save-tab",
         json={"tab": 1, "student_id": sid, "data": {"name": name}},
     )

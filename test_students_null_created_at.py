@@ -87,6 +87,8 @@ try:
               s.created_at is not None, str(s.created_at))
 
         client = app.test_client()
+        with client.session_transaction() as s:
+            s["role"] = "admin"
 
         # --- GET /students still renders a valid created_at record ---------
         r = client.get("/students")

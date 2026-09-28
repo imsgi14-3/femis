@@ -104,6 +104,8 @@ with app.app_context():
         # B. updated_at — set on create, bumped on modify (API path)
         # =====================================================================
         client = app.test_client()
+        with client.session_transaction() as s:
+            s["role"] = "admin"
         resp = client.post(
             "/api/save-tab",
             json={"tab": 1, "student_id": None, "data": {"name": "P3B3 SCHEMA TEST"}},

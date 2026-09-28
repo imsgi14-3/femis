@@ -10,6 +10,12 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.exc import IntegrityError
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "femis-web-dev-key-change-in-prod")
 _basedir = os.path.abspath(os.path.dirname(__file__))
@@ -204,6 +210,7 @@ class Teacher(db.Model):
     password_hash = db.Column(db.String(300), nullable=False)
     class_id = db.Column(db.String(50), nullable=False)
     section_id = db.Column(db.String(20), nullable=False)
+    role = db.Column(db.String(20), nullable=False, default="teacher")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def set_password(self, password):
@@ -358,9 +365,30 @@ with app.app_context():
                 "replace(replace(replace(b_form, '-', ''), ' ', ''), '.', '')) "
                 "WHERE b_form IS NOT NULL AND b_form <> ''"
             ))
+            # RBAC: teachers.role ('admin' | 'teacher') — additive + idempotent,
+            # preserves existing rows (defaulted to 'teacher').
+            tcols = {r[1] for r in conn.execute(text("PRAGMA table_info(teachers)"))}
+            if "role" not in tcols:
+                conn.execute(text(
+                    "ALTER TABLE teachers ADD COLUMN role VARCHAR(20) "
+                    "NOT NULL DEFAULT 'teacher'"
+                ))
             conn.commit()
     except Exception as e:
         print(f"schema migration warning: {e}", flush=True)
+
+    # First-boot admin seed — env-driven (FEMIS_ADMIN_NAME / FEMIS_ADMIN_PASSWORD),
+    # never overwrites an existing admin. Values live in .env (local) or the
+    # PythonAnywhere Web-tab environment, never in the repo.
+    _admin_name = (os.environ.get("FEMIS_ADMIN_NAME") or "").strip()
+    _admin_pass = (os.environ.get("FEMIS_ADMIN_PASSWORD") or "").strip()
+    if (_admin_name and _admin_pass
+            and Teacher.query.filter(Teacher.role == "admin").count() == 0):
+        _seed_admin = Teacher(name=_admin_name, class_id="-", section_id="-", role="admin")
+        _seed_admin.set_password(_admin_pass)
+        db.session.add(_seed_admin)
+        db.session.commit()
+        print(f"seeded admin account: {_admin_name}", flush=True)
 
 
 # ---------------------------------------------------------------------------
@@ -383,6 +411,32 @@ def seed_options():
 
 
 # ---------------------------------------------------------------------------
+# RBAC helpers
+# ---------------------------------------------------------------------------
+
+def _teacher_owns(student):
+    """Ownership = exact class + section match (case-insensitive)."""
+    tc = session.get("teacher_class")
+    ts = session.get("teacher_section")
+    if not (tc and ts and student.class_id and student.section_id):
+        return False
+    return (student.class_id.lower() == tc.lower()
+            and student.section_id.lower() == ts.lower())
+
+
+def _can_modify(student):
+    """admin -> all; teacher -> own class+section; student -> own record."""
+    role = session.get("role")
+    if role == "admin":
+        return True
+    if role == "teacher":
+        return _teacher_owns(student)
+    if role == "student":
+        return session.get("student_id") == student.id
+    return False
+
+
+# ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
 
@@ -391,7 +445,7 @@ def index():
     role = session.get("role")
     if not role:
         return redirect(url_for("login"))
-    if role == "teacher":
+    if role in ("teacher", "admin"):
         return redirect(url_for("teacher_dashboard"))
     return redirect(url_for("student_dashboard"))
 
@@ -404,8 +458,10 @@ def edit_form(student_id):
     student = Student.query.get_or_404(student_id)
     if session.get("role") == "student" and session.get("student_id") != student_id:
         return redirect(url_for("student_dashboard"))
+    if not _can_modify(student):
+        return ("Forbidden", 403)
     return render_template("form.html", opts=opts, edit_id=student_id, student=student,
-                           is_locked=student.locked and session.get("role") != "teacher")
+                           is_locked=student.locked and session.get("role") not in ("teacher", "admin"))
 
 
 # ---------------------------------------------------------------------------
@@ -480,16 +536,9 @@ def api_save_tab():
         student = Student.query.get(student_id)
         if not student:
             return jsonify({"ok": False, "error": "Student not found"}), 404
-        role = session.get("role")
-        teacher_class = session.get("teacher_class")
-        teacher_section = session.get("teacher_section")
-        if role == "teacher" and not (
-            student.class_id and teacher_class and
-            student.class_id.ilike(teacher_class) if hasattr(student.class_id, "ilike") else
-            (student.class_id == teacher_class and student.section_id == teacher_section)
-        ):
-            return jsonify({"ok": False, "error": "Student does not belong to your class"}), 403
-        if student.locked and role != "teacher":
+        if not _can_modify(student):
+            return jsonify({"ok": False, "error": "You are not allowed to modify this record"}), 403
+        if student.locked and session.get("role") not in ("teacher", "admin"):
             return jsonify({"ok": False, "error": "Record is locked by teacher"}), 403
         if "b_form" in mapped:
             holder = _b_form_conflict(mapped["b_form"], exclude_id=student.id)
@@ -525,6 +574,8 @@ def api_final_submit():
     student = Student.query.get(student_id)
     if not student:
         return jsonify({"ok": False, "error": "Student not found"}), 404
+    if not _can_modify(student):
+        return jsonify({"ok": False, "error": "You are not allowed to modify this record"}), 403
     mapped = _map_form_data(payload.get("data"))
     if "b_form" in mapped:
         holder = _b_form_conflict(mapped["b_form"], exclude_id=student.id)
@@ -553,6 +604,8 @@ def api_upload_file():
     student = Student.query.get(student_id)
     if not student:
         return jsonify({"ok": False, "error": "Student not found"}), 404
+    if not _can_modify(student):
+        return jsonify({"ok": False, "error": "You are not allowed to modify this record"}), 403
     if field_name not in request.files:
         return jsonify({"ok": False, "error": "No file provided"}), 400
     f = request.files[field_name]
@@ -600,13 +653,26 @@ def success(student_id):
 
 @app.route("/students")
 def list_students():
-    students = Student.query.order_by(Student.created_at.desc()).all()
+    role = session.get("role")
+    if not role:
+        return redirect(url_for("login"))
+    q = Student.query
+    if role == "teacher":
+        q = q.filter(Student.class_id.ilike(session.get("teacher_class") or ""),
+                     Student.section_id.ilike(session.get("teacher_section") or ""))
+    elif role == "student":
+        q = q.filter(Student.id == session.get("student_id"))
+    students = q.order_by(Student.created_at.desc()).all()
     return render_template("list.html", students=students)
 
 
 @app.route("/students/<int:student_id>/json")
 def student_json(student_id):
     student = Student.query.get_or_404(student_id)
+    if not session.get("role"):
+        return jsonify({"ok": False, "error": "Authentication required"}), 401
+    if not _can_modify(student):
+        return jsonify({"ok": False, "error": "Not allowed"}), 403
     return jsonify(student.to_dict())
 
 
@@ -621,6 +687,22 @@ def login():
         name = request.form.get("name", "").strip()
         session["role"] = role
         session["user_name"] = name
+        if role == "admin":
+            password = request.form.get("password", "")
+            if not (name and password):
+                flash("Please fill Name and Password.", "danger")
+                return redirect(url_for("login"))
+            admin = Teacher.query.filter(
+                Teacher.role == "admin", Teacher.name.ilike(name)
+            ).first()
+            if not admin or not admin.check_password(password):
+                flash("Invalid admin credentials.", "danger")
+                return redirect(url_for("login"))
+            session["role"] = "admin"
+            session["teacher_id"] = admin.id
+            session["teacher_class"] = admin.class_id
+            session["teacher_section"] = admin.section_id
+            return redirect(url_for("teacher_dashboard"))
         if role == "teacher":
             password = request.form.get("password", "")
             class_id = request.form.get("class_id", "").strip()
@@ -639,6 +721,8 @@ def login():
             session["teacher_id"] = teacher.id
             session["teacher_class"] = class_id
             session["teacher_section"] = section
+            if teacher.role == "admin":
+                session["role"] = "admin"
             return redirect(url_for("teacher_dashboard"))
         class_id = request.form.get("class_id", "").strip()
         section = request.form.get("section", "").strip()
@@ -669,7 +753,10 @@ def login():
         db.session.commit()
         session["student_id"] = student.id
         return redirect(url_for("student_dashboard"))
-    return render_template("login.html")
+    return render_template(
+        "login.html",
+        admin_exists=Teacher.query.filter(Teacher.role == "admin").count() > 0,
+    )
 
 
 @app.route("/student-dashboard")
@@ -713,8 +800,8 @@ def logout():
 
 @app.route("/api/register-teacher", methods=["POST"])
 def api_register_teacher():
-    if session.get("role") != "teacher":
-        return jsonify({"ok": False, "error": "Teachers only"}), 403
+    if session.get("role") != "admin":
+        return jsonify({"ok": False, "error": "Only the admin can create teachers"}), 403
     data = request.get_json()
     name = data.get("name", "").strip()
     password = data.get("password", "")
@@ -736,36 +823,41 @@ def api_register_teacher():
     return jsonify({"ok": True, "teacher_id": teacher.id})
 
 
-@app.route("/api/setup-teacher", methods=["POST"])
-def api_setup_teacher():
-    if Teacher.query.count() > 0:
-        return jsonify({"ok": False, "error": "Teachers already exist. Use register-teacher instead."}), 400
+@app.route("/api/setup-admin", methods=["POST"])
+def api_setup_admin():
+    if Teacher.query.filter(Teacher.role == "admin").count() > 0:
+        return jsonify({"ok": False, "error": "Admin already exists."}), 400
     data = request.get_json()
     name = data.get("name", "").strip()
     password = data.get("password", "")
-    class_id = data.get("class_id", "").strip()
-    section = data.get("section", "").strip()
-    if not (name and password and class_id and section):
-        return jsonify({"ok": False, "error": "All fields required"}), 400
-    teacher = Teacher(name=name, class_id=class_id, section_id=section)
+    if not (name and password):
+        return jsonify({"ok": False, "error": "Name and password required"}), 400
+    teacher = Teacher(
+        name=name,
+        class_id=data.get("class_id") or "-",
+        section_id=data.get("section") or "-",
+        role="admin",
+    )
     teacher.set_password(password)
     db.session.add(teacher)
     db.session.commit()
-    session["role"] = "teacher"
+    session["role"] = "admin"
     session["user_name"] = name
     session["teacher_id"] = teacher.id
-    session["teacher_class"] = class_id
-    session["teacher_section"] = section
+    session["teacher_class"] = teacher.class_id
+    session["teacher_section"] = teacher.section_id
     return jsonify({"ok": True, "teacher_id": teacher.id})
 
 
 @app.route("/api/lock/<int:student_id>", methods=["POST"])
 def api_lock_student(student_id):
-    if session.get("role") != "teacher":
+    if session.get("role") not in ("teacher", "admin"):
         return jsonify({"ok": False, "error": "Teachers only"}), 403
     student = Student.query.get(student_id)
     if not student:
         return jsonify({"ok": False, "error": "Not found"}), 404
+    if session.get("role") == "teacher" and not _teacher_owns(student):
+        return jsonify({"ok": False, "error": "Not your class/section"}), 403
     student.locked = True
     db.session.commit()
     return jsonify({"ok": True, "locked": True})
@@ -773,11 +865,13 @@ def api_lock_student(student_id):
 
 @app.route("/api/unlock/<int:student_id>", methods=["POST"])
 def api_unlock_student(student_id):
-    if session.get("role") != "teacher":
+    if session.get("role") not in ("teacher", "admin"):
         return jsonify({"ok": False, "error": "Teachers only"}), 403
     student = Student.query.get(student_id)
     if not student:
         return jsonify({"ok": False, "error": "Not found"}), 404
+    if session.get("role") == "teacher" and not _teacher_owns(student):
+        return jsonify({"ok": False, "error": "Not your class/section"}), 403
     student.locked = False
     db.session.commit()
     return jsonify({"ok": True, "locked": False})

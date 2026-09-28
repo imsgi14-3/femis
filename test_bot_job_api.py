@@ -126,6 +126,14 @@ def bot():
     return new_client()
 
 
+def _admin_client():
+    """Internal test client with an admin session (auth covered by test_rbac)."""
+    c = app.test_client()
+    with c.session_transaction() as s:
+        s["role"] = "admin"
+    return c
+
+
 def create_student(name):
     r = app.test_client().post(
         "/api/save-tab",
@@ -140,7 +148,7 @@ def create_student(name):
 
 def edit_student(sid, name):
     time.sleep(0.05)
-    r = app.test_client().post(
+    r = _admin_client().post(
         "/api/save-tab",
         json={"tab": 1, "student_id": sid, "data": {"name": name}},
     )
@@ -311,7 +319,7 @@ try:
             and j["student_data_version"] == raw_updated(S4),
             str(j and j["student_data_version"]),
         )
-        rjs = app.test_client().get(f"/students/{S2}/json").get_json()
+        rjs = _admin_client().get(f"/students/{S2}/json").get_json()
         r, b = cap(op_c.post("/api/jobs", json={"student_id": S2, "student_data_version": rjs.get("updated_at")}, headers=OP_H))
         s2_job = b.get("job", {}).get("job_id")
         check("B11 create with RFC-822 version token (portal JSON) ok", r == 200 and b.get("ok"), str(b))
@@ -784,7 +792,7 @@ try:
         # L. regression guards
         # =================================================================
         n_before = one("SELECT COUNT(*) AS n FROM bot_jobs")["n"]
-        r, b = cap(app.test_client().post("/api/final-submit", json={"student_id": SFS, "data": {"digital_device_at_home": "1"}}))
+        r, b = cap(_admin_client().post("/api/final-submit", json={"student_id": SFS, "data": {"digital_device_at_home": "1"}}))
         n_after = one("SELECT COUNT(*) AS n FROM bot_jobs")["n"]
         check(
             "L1 final-submit creates NO job",
