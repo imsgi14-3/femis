@@ -216,11 +216,16 @@
   <div class="card shadow-sm border-0" id="botQueueCard">
     <div class="card-body">
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
           <span class="badge bg-secondary" id="botQueueState"><i class="bi bi-hourglass-split me-1"></i>Loading…</span>
+          <span class="badge bg-dark" id="botAgentState" title="PC agent heartbeat"><i class="bi bi-pc-display me-1"></i>Agent …</span>
           <span class="text-muted small" id="botQueueTotal"></span>
+          <span class="badge bg-warning text-dark d-none" id="botRunRequested"><i class="bi bi-clock-history me-1"></i>Run requested — waiting for agent…</span>
         </div>
         <div class="d-flex gap-2 flex-wrap">
+          <button class="btn btn-sm btn-success" id="btnBotRunNow" onclick="botRunNow()">
+            <i class="bi bi-play-fill me-1"></i>Run Bot Now
+          </button>
           <button class="btn btn-sm btn-outline-warning" id="btnBotPause" onclick="botTogglePause()">
             <i class="bi bi-pause-circle me-1"></i>Pause
           </button>
@@ -244,6 +249,27 @@
           <i class="bi bi-play-fill me-1"></i>Queue Job
         </button>
       </div>
+      <div class="d-flex gap-3 mb-3 flex-wrap align-items-center border-top pt-3">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="botSchedEnabled">
+          <label class="form-check-label small" for="botSchedEnabled">Daily run</label>
+        </div>
+        <input type="time" class="form-control form-control-sm" id="botSchedTime" style="width: auto;" value="02:00">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="botSchedSync">
+          <label class="form-check-label small" for="botSchedSync"
+                 title="Pull the PA database onto the bot PC before the run">Sync DB first</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="botSchedEnqueue" checked>
+          <label class="form-check-label small" for="botSchedEnqueue"
+                 title="Auto-queue locked+submitted (final) records when a run starts">Enqueue locked finals</label>
+        </div>
+        <button class="btn btn-sm btn-outline-primary" onclick="botSaveSchedule()">
+          <i class="bi bi-calendar-check me-1"></i>Save Schedule
+        </button>
+        <span class="text-muted small" id="botSchedStatus">Schedule uses the agent PC's local time.</span>
+      </div>
       <div class="table-responsive">
         <table class="table table-sm table-hover align-middle mb-0">
           <thead class="table-light">
@@ -262,6 +288,7 @@
           </tbody>
         </table>
       </div>
+      <div class="mt-3" id="botRunHistory"></div>
     </div>
   </div>
   {% endif %}
@@ -420,6 +447,48 @@ function botLoadJobs() {
       }
       document.getElementById("botQueueTotal").textContent =
         (res.total || 0) + " job(s) — showing " + ((res.jobs || []).length);
+
+      var ag = res.agent || {};
+      var agEl = document.getElementById("botAgentState");
+      if (ag.online) {
+        agEl.className = "badge bg-primary";
+        agEl.innerHTML = '<i class="bi bi-pc-display me-1"></i>Agent online';
+        agEl.title = "PC agent heartbeat: " + (ag.last_seen || "");
+      } else {
+        agEl.className = "badge bg-dark text-secondary";
+        agEl.innerHTML = '<i class="bi bi-pc-display me-1"></i>Agent offline';
+        agEl.title = "No agent heartbeat since: " + (ag.last_seen || "never — start it with: python -m src.main --agent");
+      }
+      document.getElementById("botRunRequested").classList.toggle("d-none", !res.run_requested);
+
+      var sc = res.schedule;
+      document.getElementById("botSchedEnabled").checked = !!(sc && sc.enabled);
+      if (sc && sc.time) { document.getElementById("botSchedTime").value = sc.time; }
+      document.getElementById("botSchedSync").checked = !!(sc && sc.sync_db);
+      document.getElementById("botSchedEnqueue").checked = sc ? !!sc.enqueue_locked : true;
+      document.getElementById("botSchedStatus").textContent = (sc && sc.enabled)
+        ? ("Daily at " + sc.time + " (PC time)" + (sc.last_fired_date ? " — last run " + sc.last_fired_date : ""))
+        : "Schedule uses the agent PC's local time.";
+
+      var histEl = document.getElementById("botRunHistory");
+      var hist = res.run_history || [];
+      if (!hist.length) {
+        histEl.innerHTML = "";
+      } else {
+        var h = '<div class="small text-muted mb-1"><i class="bi bi-clock-history me-1"></i>Run history</div>';
+        hist.forEach(function(r) {
+          h += '<div class="small border-bottom py-1">' +
+            botEsc(String(r.finished_at || "").slice(0, 16)) +
+            ' — <span class="badge bg-light text-dark border">' + botEsc(r.trigger || "?") + "</span> " +
+            botEsc(r.submitted || 0) + " submitted, " + botEsc(r.failed || 0) + " failed" +
+            (r.total ? " (" + botEsc(r.total) + " jobs)" : "") +
+            " — sync: " + botEsc(r.sync || "skipped") +
+            (r.enqueued ? ", +" + botEsc(r.enqueued) + " enqueued" : "") +
+            "</div>";
+        });
+        histEl.innerHTML = h;
+      }
+
       var body = document.getElementById("botJobsBody");
       if (!res.jobs || !res.jobs.length) {
         body.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No jobs yet.</td></tr>';
@@ -456,6 +525,42 @@ function botLoadJobs() {
           "</tr>";
       });
       body.innerHTML = html;
+    });
+}
+
+function botRunNow() {
+  var agEl = document.getElementById("botAgentState");
+  if (agEl && agEl.textContent.indexOf("offline") >= 0) {
+    if (!confirm("The PC agent looks offline — the run will wait until it comes online. Request it anyway?")) return;
+  }
+  fetch("/api/admin/bot/run", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ enqueue_locked: true })
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (res.ok) { botLoadJobs(); }
+      else { alert("Error: " + (res.error || "Unknown")); }
+    });
+}
+
+function botSaveSchedule() {
+  var payload = {
+    enabled: document.getElementById("botSchedEnabled").checked,
+    time: document.getElementById("botSchedTime").value,
+    sync_db: document.getElementById("botSchedSync").checked,
+    enqueue_locked: document.getElementById("botSchedEnqueue").checked
+  };
+  fetch("/api/admin/bot/schedule", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (res.ok) { botLoadJobs(); }
+      else { alert("Error: " + (res.error || "Unknown")); }
     });
 }
 

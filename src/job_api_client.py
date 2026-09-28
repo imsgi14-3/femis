@@ -110,3 +110,21 @@ class JobApiClient:
         payload["claimed_by"] = claimed_by
         payload["claim_generation"] = claim_generation
         return self._post(f"/api/jobs/{job_id}/complete", payload)
+
+    # --- agent control plane (src/main.py --agent mode) ---
+
+    def agent_heartbeat(self) -> tuple[int, dict]:
+        """Liveness stamp for the dashboard 'Agent online' badge."""
+        return self._post("/api/bot/agent/heartbeat", {})
+
+    def agent_poll(self, local_time: str) -> tuple[int, dict]:
+        """Ask the portal whether a manual/scheduled run should start now.
+
+        Consumes a pending manual request at dispatch; schedules fire once per
+        agent-local day (server compares wall clock HH:MM, agent sends local time).
+        """
+        return self._post("/api/bot/agent/poll", {"local_time": local_time})
+
+    def agent_run_complete(self, summary: dict) -> tuple[int, dict]:
+        """Report run results into the dashboard run history (last 10)."""
+        return self._post("/api/bot/agent/run-complete", summary)

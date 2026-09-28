@@ -410,6 +410,7 @@ with app.app_context():
 from job_api import (  # noqa: E402
     _as_int,
     _operator_identity,
+    _require_bot,
     bp as job_api_bp,
     queue_paused,
     set_queue_paused,
@@ -1105,6 +1106,161 @@ def _bot_admin_guard():
     return None
 
 
+def _get_setting(key):
+    row = db.session.get(AppSetting, key)
+    return row.value if row is not None else None
+
+
+def _put_setting(key, value):
+    row = db.session.get(AppSetting, key)
+    if row is None:
+        db.session.add(AppSetting(key=key, value=value))
+    else:
+        row.value = value
+    db.session.commit()
+
+
+def _del_setting(key):
+    row = db.session.get(AppSetting, key)
+    if row is not None:
+        db.session.delete(row)
+        db.session.commit()
+
+
+def _get_setting_json(key):
+    raw = _get_setting(key)
+    if not raw:
+        return None
+    try:
+        return json.loads(raw)
+    except ValueError:
+        return None
+
+
+def _put_setting_json(key, obj):
+    _put_setting(key, json.dumps(obj, ensure_ascii=False))
+
+
+def _stamp_agent_seen():
+    _put_setting(
+        "agent_last_seen",
+        datetime.utcnow().isoformat(sep=" ", timespec="seconds"),
+    )
+
+
+def _agent_state():
+    seen = _get_setting("agent_last_seen")
+    online = False
+    if seen:
+        try:
+            online = (
+                datetime.utcnow() - datetime.fromisoformat(seen)
+            ).total_seconds() <= 90
+        except ValueError:
+            online = False
+    return {"last_seen": seen, "online": online}
+
+
+def _enqueue_final_jobs(identity):
+    """Create pending jobs for locked+submitted (final) records.
+
+    Skips records with an open job, not-yet-final records, and records whose
+    current version was already filled successfully. Returns (created, skipped).
+    """
+    candidates = Student.query.filter(
+        Student.locked.is_(True),
+        Student.submitted.is_(True),
+    ).all()
+    created = skipped = 0
+    for st in candidates:
+        if st.updated_at is None:
+            skipped += 1
+            continue
+        has_open = BotJob.query.filter(
+            BotJob.student_id == st.id,
+            BotJob.status.in_(BOT_JOB_OPEN_STATUSES),
+        ).first()
+        if has_open is not None:
+            skipped += 1
+            continue
+        done_at_version = BotJob.query.filter(
+            BotJob.student_id == st.id,
+            BotJob.status == "success",
+            BotJob.student_data_version == st.updated_at,
+        ).first()
+        if done_at_version is not None:
+            skipped += 1
+            continue
+        data, status = svc_create(
+            {
+                "student_id": st.id,
+                "student_data_version": st.updated_at.isoformat(
+                    sep=" ", timespec="microseconds"
+                ),
+            },
+            identity,
+        )
+        if status == 200 and data.get("ok"):
+            created += 1
+        else:
+            skipped += 1
+    return created, skipped
+
+
+@app.route("/api/admin/bot/run", methods=["POST"])
+def api_admin_bot_run():
+    """Request a bot run: picked up by the PC agent on its next poll."""
+    guard = _bot_admin_guard()
+    if guard:
+        return guard
+    existing = _get_setting_json("run_request")
+    if existing:
+        return jsonify({"ok": True, "already_requested": True, "request": existing})
+    data = request.get_json(silent=True) or {}
+    req = {
+        "requested_at": datetime.utcnow().isoformat(sep=" ", timespec="seconds"),
+        "requested_by": str(session.get("user_name") or "admin")[:100],
+        "sync_db": bool(data.get("sync_db", False)),
+        "enqueue_locked": bool(data.get("enqueue_locked", True)),
+    }
+    _put_setting_json("run_request", req)
+    return jsonify({"ok": True, "requested": True, "request": req})
+
+
+@app.route("/api/admin/bot/schedule", methods=["POST"])
+def api_admin_bot_schedule():
+    """Set/clear the daily run schedule (times are the agent PC's wall clock)."""
+    guard = _bot_admin_guard()
+    if guard:
+        return guard
+    data = request.get_json(silent=True) or {}
+    if not data.get("enabled"):
+        _del_setting("bot_schedule")
+        return jsonify({"ok": True, "schedule": None})
+    t = str(data.get("time") or "").strip()
+    if not re.fullmatch(r"([01]?\d|2[0-3]):[0-5]\d", t):
+        return jsonify(
+            {"ok": False, "error": "Schedule time must be HH:MM (24-hour).",
+             "error_code": "validation_error"}
+        ), 422
+    hh, mm = t.split(":")
+    t = f"{int(hh):02d}:{mm}"
+    existing = _get_setting_json("bot_schedule") or {}
+    sched = {
+        "enabled": True,
+        "time": t,
+        "sync_db": bool(data.get("sync_db", False)),
+        "enqueue_locked": bool(data.get("enqueue_locked", True)),
+        "last_fired_date": (
+            existing.get("last_fired_date")
+            if existing.get("time") == t else None
+        ),
+        "updated_at": datetime.utcnow().isoformat(sep=" ", timespec="seconds"),
+    }
+    _put_setting_json("bot_schedule", sched)
+    return jsonify({"ok": True, "schedule": sched})
+
+
 @app.route("/api/admin/bot/jobs", methods=["GET", "POST"])
 def api_admin_bot_jobs():
     guard = _bot_admin_guard()
@@ -1125,6 +1281,10 @@ def api_admin_bot_jobs():
                     f"Student #{j.get('student_id')}"
                 )
             data["paused"] = queue_paused()
+            data["agent"] = _agent_state()
+            data["run_requested"] = _get_setting_json("run_request")
+            data["schedule"] = _get_setting_json("bot_schedule")
+            data["run_history"] = _get_setting_json("run_history") or []
         return jsonify(data), status
 
     payload = dict(request.get_json(silent=True) or {})
@@ -1213,6 +1373,116 @@ def api_admin_bot_reset_stale():
         ids.append(job.id)
     db.session.commit()
     return jsonify({"ok": True, "reset_count": len(ids), "job_ids": ids})
+
+
+# ---------------------------------------------------------------------------
+# Bot agent (PC-side daemon): heartbeat, run poll/consume, run reporting
+# ---------------------------------------------------------------------------
+# The agent polls; the portal decides. Manual run requests are consumed at
+# dispatch; schedules fire at most once per agent-local day (wall-clock HH:MM).
+
+@app.route("/api/bot/agent/heartbeat", methods=["POST"])
+def api_bot_agent_heartbeat():
+    guard = _require_bot()
+    if guard:
+        return guard
+    _stamp_agent_seen()
+    return jsonify(
+        {
+            "ok": True,
+            "server_time": datetime.utcnow().isoformat(sep=" ", timespec="seconds"),
+        }
+    )
+
+
+@app.route("/api/bot/agent/poll", methods=["POST"])
+def api_bot_agent_poll():
+    """Agent liveness + trigger dispatch: manual request first, then schedule."""
+    guard = _require_bot()
+    if guard:
+        return guard
+    data = request.get_json(silent=True) or {}
+    _stamp_agent_seen()
+
+    raw = str(data.get("local_time") or "").strip()
+    local_dt = None
+    try:
+        if raw:
+            local_dt = datetime.fromisoformat(raw.replace("T", " "))
+    except ValueError:
+        local_dt = None
+    used_fallback = local_dt is None
+    if local_dt is None:
+        local_dt = datetime.utcnow()
+
+    trigger = None
+    req = _get_setting_json("run_request")
+    if req:
+        trigger = dict(req)
+        trigger["reason"] = "manual"
+        _del_setting("run_request")
+    else:
+        sched = _get_setting_json("bot_schedule")
+        if sched and sched.get("enabled"):
+            want = str(sched.get("time") or "")
+            wall = local_dt.strftime("%H:%M")
+            today = local_dt.date().isoformat()
+            if want and wall >= want and sched.get("last_fired_date") != today:
+                sched["last_fired_date"] = today
+                _put_setting_json("bot_schedule", sched)
+                trigger = {
+                    "reason": "schedule",
+                    "sync_db": bool(sched.get("sync_db")),
+                    "enqueue_locked": bool(sched.get("enqueue_locked")),
+                    "requested_by": "scheduler",
+                }
+
+    if not trigger:
+        return jsonify(
+            {"ok": True, "should_run": False, "server_time_fallback": used_fallback}
+        )
+
+    enqueued = skipped = 0
+    if trigger.get("enqueue_locked"):
+        enqueued, skipped = _enqueue_final_jobs(
+            str(trigger.get("requested_by") or "scheduler")[:100]
+        )
+    return jsonify(
+        {
+            "ok": True,
+            "should_run": True,
+            "reason": trigger.get("reason"),
+            "sync_db": bool(trigger.get("sync_db")),
+            "enqueue_locked": bool(trigger.get("enqueue_locked")),
+            "requested_by": trigger.get("requested_by"),
+            "enqueued": enqueued,
+            "enqueued_skipped": skipped,
+        }
+    )
+
+
+@app.route("/api/bot/agent/run-complete", methods=["POST"])
+def api_bot_agent_run_complete():
+    """Append a run summary to the dashboard history (last 10 kept)."""
+    guard = _require_bot()
+    if guard:
+        return guard
+    data = request.get_json(silent=True) or {}
+    entry = {
+        "finished_at": datetime.utcnow().isoformat(sep=" ", timespec="seconds"),
+        "trigger": str(data.get("trigger") or "")[:40],
+        "sync": str(data.get("sync") or "skipped")[:20],
+        "enqueued": _as_int(data.get("enqueued")) or 0,
+        "total": _as_int(data.get("total")) or 0,
+        "submitted": _as_int(data.get("submitted")) or 0,
+        "failed": _as_int(data.get("failed")) or 0,
+    }
+    hist = _get_setting_json("run_history") or []
+    hist.insert(0, entry)
+    hist = hist[:10]
+    _put_setting_json("run_history", hist)
+    _stamp_agent_seen()
+    return jsonify({"ok": True, "entries": len(hist)})
 
 
 # ---------------------------------------------------------------------------

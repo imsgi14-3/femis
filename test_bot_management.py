@@ -161,12 +161,17 @@ ADMIN_ROUTES = [
     ("POST", "/api/admin/bot/pause", {}),
     ("POST", "/api/admin/bot/resume", {}),
     ("POST", "/api/admin/bot/reset-stale", {}),
+    ("POST", "/api/admin/bot/run", {}),
+    ("POST", "/api/admin/bot/schedule", {"enabled": True, "time": "02:00"}),
 ]
 
+
+settings_snapshotted = False
 
 try:
     baseline_jobs = all_rows(BASELINE_Q)
     baseline_settings = all_rows("SELECT * FROM app_settings ORDER BY key")
+    settings_snapshotted = True
 
     # Never start (or be left) paused for other suites — restored at cleanup.
     cap(admin().post("/api/admin/bot/resume"))
@@ -495,7 +500,184 @@ try:
     )
 
     # =================================================================
-    # I. cleanup (only rows created by this run — scoped by student)
+    # I. agent control plane (heartbeat, manual run, schedule, enqueue)
+    # =================================================================
+    r1, b1 = cap(app.test_client().post("/api/bot/agent/poll", json={}))
+    r2, b2 = cap(app.test_client().post("/api/bot/agent/heartbeat", json={}))
+    r3, b3 = cap(app.test_client().post("/api/bot/agent/run-complete", json={}))
+    check(
+        "I1 agent endpoints reject missing bot token (401)",
+        r1 == 401 and r2 == 401 and r3 == 401
+        and (b1 or {}).get("error_code") == "invalid_bot_token",
+        f"{r1},{r2},{r3}",
+    )
+
+    r, b = cap(bot().post("/api/bot/agent/heartbeat", headers=BOT_H))
+    _, adm = cap(admin().get("/api/admin/bot/jobs"))
+    check(
+        "I2 heartbeat -> agent online in admin list",
+        r == 200 and b.get("ok") is True
+        and (adm.get("agent") or {}).get("online") is True
+        and bool((adm.get("agent") or {}).get("last_seen")),
+        f"r={r} agent={adm and adm.get('agent')}",
+    )
+
+    # One eligible final + three that must be skipped by auto-enqueue.
+    sid_final = create_student("Bot Mgmt Final")
+    sid_done = create_student("Bot Mgmt Done")
+    sid_locked_only = create_student("Bot Mgmt LockedOnly")
+    sid_sub_only = create_student("Bot Mgmt SubOnly")
+    sql("UPDATE students SET locked=1, submitted=1 WHERE id=?", (sid_final,))
+    sql("UPDATE students SET locked=1, submitted=1 WHERE id=?", (sid_done,))
+    sql("UPDATE students SET locked=1 WHERE id=?", (sid_locked_only,))
+    sql("UPDATE students SET submitted=1 WHERE id=?", (sid_sub_only,))
+    with app.app_context():
+        st_done = db.session.get(Student, sid_done)
+        db.session.add(BotJob(
+            student_id=sid_done, attempt_number=1, status="success",
+            student_data_version=st_done.updated_at,
+            requested_at=datetime.utcnow(), completed_at=datetime.utcnow(),
+            created_by="fixture", outcome_known=True, finish_clicked=True,
+            indicator_detected=True, bot_result_code="success",
+        ))
+        db.session.commit()
+
+    r, b = cap(admin().post("/api/admin/bot/run", json={}))
+    req1 = b.get("request") or {}
+    check(
+        "I3 Run Bot Now stores a manual request (admin identity, enqueue on)",
+        r == 200 and b.get("requested") is True
+        and req1.get("requested_by") == "BotMgmt Admin"
+        and req1.get("enqueue_locked") is True,
+        f"r={r} req={req1}",
+    )
+    _, adm = cap(admin().get("/api/admin/bot/jobs"))
+    check(
+        "I4 manual request visible in admin list",
+        (adm.get("run_requested") or {}).get("requested_by") == "BotMgmt Admin",
+        str(adm.get("run_requested")),
+    )
+
+    r, b = cap(admin().post("/api/admin/bot/run", json={}))
+    check(
+        "I5 duplicate Run Bot Now -> already_requested (single pending)",
+        r == 200 and b.get("already_requested") is True
+        and (b.get("request") or {}).get("requested_at") == req1.get("requested_at"),
+        f"r={r} keys={sorted(b) if b else None}",
+    )
+
+    r, b = cap(bot().post("/api/bot/agent/poll",
+                          json={"local_time": "2026-01-01 03:00:00"}, headers=BOT_H))
+    check(
+        "I6 poll dispatches the manual run, enqueues exactly 1 final",
+        r == 200 and b.get("should_run") is True and b.get("reason") == "manual"
+        and b.get("enqueued") == 1,
+        f"r={r} body={b}",
+    )
+    final_job = one(
+        "SELECT status, created_by FROM bot_jobs WHERE student_id=? "
+        "ORDER BY id DESC LIMIT 1", (sid_final,))
+    check(
+        "I7 eligible final got a pending job stamped with the requester",
+        bool(final_job) and final_job["status"] == "pending"
+        and final_job["created_by"] == "BotMgmt Admin",
+        str(final_job),
+    )
+    other_jobs = all_rows(
+        "SELECT student_id, status FROM bot_jobs WHERE student_id IN (?, ?, ?)",
+        (sid_done, sid_locked_only, sid_sub_only))
+    open_others = [j for j in other_jobs if j["status"] in ("pending", "claimed", "running")]
+    check(
+        "I8 skips: already-filled-at-current-version / not-locked / not-submitted",
+        open_others == []
+        and sum(1 for j in other_jobs if j["status"] == "success") == 1,
+        str(other_jobs),
+    )
+
+    r, b = cap(bot().post("/api/bot/agent/poll",
+                          json={"local_time": "2026-01-01 03:00:10"}, headers=BOT_H))
+    check(
+        "I9 second poll -> should_run false (manual consumed)",
+        r == 200 and b.get("should_run") is False,
+        f"r={r} {b}",
+    )
+
+    r, b = cap(admin().post(
+        "/api/admin/bot/schedule",
+        json={"enabled": True, "time": "02:00",
+              "sync_db": True, "enqueue_locked": False},
+    ))
+    check(
+        "I10 schedule saved and echoed",
+        r == 200 and (b.get("schedule") or {}).get("enabled") is True
+        and (b.get("schedule") or {}).get("time") == "02:00"
+        and (b.get("schedule") or {}).get("sync_db") is True
+        and (b.get("schedule") or {}).get("enqueue_locked") is False,
+        f"r={r} sched={b and b.get('schedule')}",
+    )
+    r, b = cap(admin().post("/api/admin/bot/schedule",
+                            json={"enabled": True, "time": "99:99"}))
+    _, adm = cap(admin().get("/api/admin/bot/jobs"))
+    check(
+        "I11 invalid schedule time -> 422, previous schedule intact",
+        r == 422 and (b or {}).get("error_code") == "validation_error"
+        and (adm.get("schedule") or {}).get("time") == "02:00",
+        f"r={r} sched={adm.get('schedule')}",
+    )
+
+    r, b = cap(bot().post("/api/bot/agent/poll",
+                          json={"local_time": "2026-01-01 03:00:20"}, headers=BOT_H))
+    check(
+        "I12 schedule fires once (reason=schedule, options honored)",
+        r == 200 and b.get("should_run") is True and b.get("reason") == "schedule"
+        and b.get("sync_db") is True and b.get("enqueue_locked") is False
+        and b.get("enqueued") == 0,
+        f"body={b}",
+    )
+    r, b = cap(bot().post("/api/bot/agent/poll",
+                          json={"local_time": "2026-01-01 03:00:50"}, headers=BOT_H))
+    check(
+        "I13 schedule does not fire twice on the same agent-day",
+        r == 200 and b.get("should_run") is False,
+        str(b),
+    )
+
+    r, b = cap(bot().post(
+        "/api/bot/agent/run-complete",
+        json={"trigger": "schedule", "sync": "ok", "enqueued": 0,
+              "total": 3, "submitted": 2, "failed": 1},
+        headers=BOT_H,
+    ))
+    _, adm = cap(admin().get("/api/admin/bot/jobs"))
+    hist0 = (adm.get("run_history") or [{}])[0]
+    check(
+        "I14 run-complete appends summary visible to admin",
+        r == 200 and hist0.get("trigger") == "schedule" and hist0.get("sync") == "ok"
+        and hist0.get("submitted") == 2 and hist0.get("failed") == 1
+        and hist0.get("total") == 3 and bool(hist0.get("finished_at")),
+        f"r={r} hist0={hist0}",
+    )
+    for _ in range(11):
+        cap(bot().post("/api/bot/agent/run-complete",
+                       json={"trigger": "manual", "total": 1, "submitted": 1},
+                       headers=BOT_H))
+    _, adm = cap(admin().get("/api/admin/bot/jobs"))
+    check(
+        "I15 run history capped at 10 entries",
+        len(adm.get("run_history") or []) == 10,
+        str(len(adm.get("run_history") or [])),
+    )
+
+    r, b = cap(admin().post("/api/admin/bot/schedule", json={"enabled": False}))
+    _, adm = cap(admin().get("/api/admin/bot/jobs"))
+    check(
+        "I16 schedule disable clears it from state",
+        r == 200 and b.get("schedule") is None and adm.get("schedule") is None,
+        f"r={r}",
+    )
+
+    # =================================================================
+    # J. cleanup (only rows created by this run — scoped by student)
     # =================================================================
     if created_students:
         q = ",".join("?" * len(created_students))
@@ -503,16 +685,22 @@ try:
                   tuple(created_students))
     else:
         err = None
-    check("I1 test jobs deleted (scoped to this run's students)", err is None, str(err))
+    # Safety net: remove any other rows this run created (e.g. auto-enqueue
+    # jobs for baseline students) so pre-existing rows survive byte-identical.
+    if baseline_jobs:
+        base_ids = sorted(r["id"] for r in baseline_jobs)
+        ids_q = ",".join("?" * len(base_ids))
+        sql(f"DELETE FROM bot_jobs WHERE id NOT IN ({ids_q})", tuple(base_ids))
+    check("J1 test jobs deleted (scoped to this run's students)", err is None, str(err))
     n = one("SELECT COUNT(*) AS n FROM bot_jobs")["n"]
     check(
-        "I2 bot_jobs back to baseline (no test rows remain)",
+        "J2 bot_jobs back to baseline (no test rows remain)",
         n == len(baseline_jobs),
         f"rows={n} baseline={len(baseline_jobs)}",
     )
     after_rows = all_rows(BASELINE_Q)
     check(
-        "I3 pre-existing bot_jobs rows untouched (byte-identical)",
+        "J3 pre-existing bot_jobs rows untouched (byte-identical)",
         after_rows == baseline_jobs,
         f"before={len(baseline_jobs)} after={len(after_rows)}",
     )
@@ -526,11 +714,11 @@ try:
         )
     after_settings = all_rows("SELECT * FROM app_settings ORDER BY key")
     check(
-        "I4 app_settings restored byte-identical (queue unpaused for others)",
+        "J4 app_settings restored byte-identical (queue unpaused for others)",
         after_settings == baseline_settings
         and not any(s["key"] == "bot_queue" and s["value"] == "paused"
                     for s in after_settings),
-        f"before={baseline_settings} after={after_settings}",
+        f"before={len(baseline_settings)} after={len(after_settings)}",
     )
 
     with app.app_context():
@@ -541,7 +729,7 @@ try:
         db.session.commit()
         gone = [sid for sid in created_students
                 if db.session.get(Student, sid) is not None]
-    check("I5 test students deleted", not gone, str(gone))
+    check("J5 test students deleted", not gone, str(gone))
 
 finally:
     try:
@@ -550,9 +738,15 @@ finally:
             q = ",".join("?" * len(created_students))
             c.execute(f"DELETE FROM bot_jobs WHERE student_id IN ({q})", created_students)
             c.execute(f"DELETE FROM students WHERE id IN ({q})", created_students)
-        c.execute("DELETE FROM app_settings WHERE key = 'bot_queue'")
-        for row in baseline_settings:
-            if row["key"] == "bot_queue":
+        if baseline_jobs:
+            base_ids = sorted(r["id"] for r in baseline_jobs)
+            c.execute(
+                f"DELETE FROM bot_jobs WHERE id NOT IN ({','.join('?' * len(base_ids))})",
+                base_ids,
+            )
+        if settings_snapshotted:
+            c.execute("DELETE FROM app_settings")
+            for row in baseline_settings:
                 c.execute(
                     "INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, ?)",
                     (row["key"], row["value"], row["updated_at"]),

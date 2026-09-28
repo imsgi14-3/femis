@@ -289,6 +289,136 @@ class FEMISBot:
         reason, _detail = await run_job_loop(client, claimed_by, worker, on_result=record)
         logger.info(f"Job loop finished ({reason}).")
 
+    def _sync_db_from_portal(self) -> str:
+        """Best-effort local DB pull (tools/sync_from_portal.py). Never blocks a run."""
+        import subprocess
+        import sys
+
+        root = Path(__file__).resolve().parents[1]
+        script = root / "tools" / "sync_from_portal.py"
+        if not script.exists():
+            logger.warning(f"Sync script not found: {script}")
+            return "failed"
+        try:
+            r = subprocess.run(
+                [sys.executable, str(script)],
+                cwd=str(root),
+                capture_output=True,
+                text=True,
+                timeout=600,
+            )
+        except Exception as e:
+            logger.warning(f"DB sync failed to launch: {e}")
+            return "failed"
+        if r.returncode == 0:
+            logger.info("DB sync from portal OK.")
+            return "ok"
+        tail = (r.stderr or r.stdout or "").strip()[-400:]
+        logger.warning(f"DB sync failed (rc={r.returncode}): {tail}")
+        return "failed"
+
+    def _summarize_run(self, trigger: str, sync_result: str, enqueued: int) -> dict:
+        submitted = failed = 0
+        for r in self.results:
+            status = r.get("status")
+            if status == STATUS_SUCCESS:
+                submitted += 1
+            elif status in (STATUS_SUBMIT_FAILED, STATUS_ERROR):
+                failed += 1
+        return {
+            "trigger": trigger,
+            "sync": sync_result,
+            "enqueued": int(enqueued or 0),
+            "total": len(self.results),
+            "submitted": submitted,
+            "failed": failed,
+        }
+
+    async def run_agent(self, poll_interval: float | None = None):
+        """PC-side daemon (--agent): heartbeat the portal, poll for triggers, drain.
+
+        Pull model: the portal only ANSWERS "should I run?" — a web button on
+        PythonAnywhere can never start a process on this machine. The loop asks
+        every poll_interval seconds; manual requests are consumed at dispatch,
+        schedules fire once per agent-local day (wall clock HH:MM).
+        """
+        import socket
+        import threading
+
+        from src.job_api_client import JobApiClient
+
+        if poll_interval is None:
+            try:
+                poll_interval = float(os.environ.get("FEMIS_AGENT_POLL_SECONDS") or 20.0)
+            except (TypeError, ValueError):
+                poll_interval = 20.0
+        client = JobApiClient()  # fails closed without FEMIS_BOT_TOKEN
+        identity = f"femis-agent-{socket.gethostname()}"[:80]
+        logger.info(
+            f"Agent mode: polling {client.base_url} every {poll_interval:.0f}s as {identity}"
+        )
+
+        stop = threading.Event()
+
+        def _beat():
+            while not stop.is_set():
+                try:
+                    client.agent_heartbeat()
+                except Exception as e:  # pragma: no cover - transport is fail-safe
+                    logger.warning(f"Agent heartbeat failed: {e}")
+                stop.wait(20.0)
+
+        threading.Thread(target=_beat, daemon=True).start()
+
+        try:
+            while True:
+                now_local = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                status, state = client.agent_poll(now_local)
+                if status == 200 and state.get("should_run"):
+                    reason = str(state.get("reason") or "manual")
+                    logger.info(
+                        f"Run dispatched ({reason}): sync={state.get('sync_db')} "
+                        f"enqueue_locked={state.get('enqueue_locked')} "
+                        f"enqueued={state.get('enqueued')}"
+                    )
+                    sync_result = "skipped"
+                    if state.get("sync_db"):
+                        sync_result = await asyncio.to_thread(self._sync_db_from_portal)
+                    try:
+                        await self.run(None, source_type="auto", dry_run=False,
+                                       submit=True, jobs=True)
+                    except Exception as e:
+                        logger.exception(f"Agent run crashed: {e}")
+                        self.results.append(
+                            {"student": "run", "status": STATUS_ERROR, "reason": str(e)}
+                        )
+                    summary = self._summarize_run(
+                        reason, sync_result, int(state.get("enqueued") or 0)
+                    )
+                    try:
+                        client.agent_run_complete(summary)
+                    except Exception as e:  # pragma: no cover - transport is fail-safe
+                        logger.warning(f"Run report failed: {e}")
+                    logger.info(
+                        f"Run finished: {summary['submitted']} submitted, "
+                        f"{summary['failed']} failed, {summary['total']} total"
+                    )
+                    self.results = []
+                elif status == 200:
+                    pass  # idle — no trigger pending
+                elif status == 0:
+                    logger.warning("Agent poll: portal unreachable; retrying...")
+                elif status in (401, 403):
+                    logger.error(
+                        f"Agent poll rejected ({status}): {state.get('error')} — "
+                        "check FEMIS_BOT_TOKEN / FEMIS_JOB_API_URL"
+                    )
+                else:
+                    logger.warning(f"Agent poll HTTP {status}: {state.get('error')}")
+                await asyncio.sleep(poll_interval)
+        finally:
+            stop.set()
+
     def _save_report(self):
         """Save a summary report of all processed students."""
         report_path = Path(self.config["output"]["directory"])
@@ -327,13 +457,18 @@ async def main():
     parser.add_argument("--submit", action="store_true", help="Submit each form after filling")
     parser.add_argument("--jobs", action="store_true",
                         help="Claim work from the bot-job API instead of a data source (Phase 3B.5)")
+    parser.add_argument("--agent", action="store_true",
+                        help="PC daemon: poll the portal for manual/scheduled runs and drain the queue")
     parser.add_argument("--config", default="config/settings.yaml", help="Config file path")
     args = parser.parse_args()
 
-    if not args.jobs and not args.source:
-        parser.error("source is required unless --jobs is given")
+    if not args.jobs and not args.agent and not args.source:
+        parser.error("source is required unless --jobs or --agent is given")
 
     bot = FEMISBot(config_path=args.config)
+    if args.agent:
+        await bot.run_agent()
+        return
     await bot.run(args.source, source_type=args.type, dry_run=args.dry_run,
                   submit=args.submit, jobs=args.jobs)
 
