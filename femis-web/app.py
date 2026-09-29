@@ -634,6 +634,36 @@ def _uniqueness_error(mapped, exclude_id=None):
     return None
 
 
+CNIC_FIELDS = ("b_form", "father_cnic", "mother_cnic", "guardian_cnic")
+CNIC_LABELS = {
+    "b_form": "B-Form/CNIC",
+    "father_cnic": "Father CNIC",
+    "mother_cnic": "Mother CNIC",
+    "guardian_cnic": "Guardian CNIC",
+}
+
+
+def _cnic_length_error(mapped):
+    """First mapped CNIC field whose digits are not exactly 13, else None.
+
+    A Pakistani CNIC / B-Form is 13 digits (dashes and spaces are display
+    formatting only — compare digits-only). Empty/absent values pass here;
+    required-ness is enforced by the form, this gate is about length alone.
+    """
+    for key in CNIC_FIELDS:
+        if key not in mapped:
+            continue
+        raw = (mapped.get(key) or "").strip()
+        if not raw:
+            continue
+        if len(re.sub(r"\D", "", raw)) != 13:
+            return (
+                f"{CNIC_LABELS[key]} must be exactly 13 digits without dashes "
+                f"(e.g. 12345-1234567-1): got '{raw}'"
+            )
+    return None
+
+
 @app.route("/api/save-tab", methods=["POST"])
 def api_save_tab():
     payload = request.get_json()
@@ -642,6 +672,9 @@ def api_save_tab():
     data = payload.get("data", {})
 
     mapped = _map_form_data(data)
+    cnic_err = _cnic_length_error(mapped)
+    if cnic_err:
+        return jsonify({"ok": False, "error": cnic_err}), 400
 
     if student_id:
         student = Student.query.get(student_id)
@@ -686,6 +719,13 @@ def api_final_submit():
     if not _can_modify(student):
         return jsonify({"ok": False, "error": "You are not allowed to modify this record"}), 403
     mapped = _map_form_data(payload.get("data"))
+    # CNIC gate over both what the payload writes and what is already stored:
+    # final-submit may carry a record created before this validation existed.
+    merged_cnic = {k: getattr(student, k) for k in CNIC_FIELDS}
+    merged_cnic.update({k: mapped[k] for k in CNIC_FIELDS if k in mapped})
+    cnic_err = _cnic_length_error(merged_cnic)
+    if cnic_err:
+        return jsonify({"ok": False, "error": cnic_err}), 400
     err = _uniqueness_error(mapped, exclude_id=student.id)
     if err:
         return jsonify({"ok": False, "error": err}), 409
@@ -736,6 +776,10 @@ def submit():
     for dk in DATE_COLUMNS:
         if dk in data:
             data[dk] = _normalize_date_value(data[dk])
+    cnic_err = _cnic_length_error(data)
+    if cnic_err:
+        flash(cnic_err, "error")
+        return redirect(url_for("index"))
     uniq = {k: v for k, v in data.items() if k in ("b_form", "admission_number")}
     err = _uniqueness_error(uniq)
     if err:

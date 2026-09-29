@@ -795,6 +795,23 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
 
+        // CNIC / B-Form: exactly 13 digits (dashes/spaces are display only).
+        // Empty stays legal here — required-ness is enforced above; this only
+        // rejects partial values like 5 or 12 digits.
+        ["b_form", "father_cnic", "mother_cnic", "guardian_cnic"].forEach(function (fname) {
+            var ctl = fieldControl(pane, fname);
+            if (!ctl) return;
+            if (isHiddenWithin(pane, ctl.els[0])) return;
+            var raw = controlValue(ctl);
+            if (!raw) return;
+            if (raw.replace(/[^0-9]/g, "").length !== 13) {
+                missing.push(
+                    fieldLabel(pane, fname) +
+                    " (must be exactly 13 digits, e.g. 12345-1234567-1)"
+                );
+            }
+        });
+
         if (missing.length > 0) {
             alert("Tab " + (tabIndex + 1) + " — please fill the following mandatory fields:\n\n• " + missing.join("\n• "));
             return false;
