@@ -522,8 +522,9 @@ try:
         f"r={r} agent={adm and adm.get('agent')}",
     )
 
-    # One eligible final, one duplicate-conflict final, and three that must
-    # be skipped by auto-enqueue.
+    # Two eligible finals (submitted — a teacher lock is not required), one
+    # duplicate-conflict final, and two that must be skipped by auto-enqueue
+    # (already filled at current version / not submitted).
     sid_final = create_student("Bot Mgmt Final")
     sid_done = create_student("Bot Mgmt Done")
     sid_locked_only = create_student("Bot Mgmt LockedOnly")
@@ -583,9 +584,9 @@ try:
     r, b = cap(bot().post("/api/bot/agent/poll",
                           json={"local_time": "2026-01-01 03:00:00"}, headers=BOT_H))
     check(
-        "I6 poll dispatches the manual run, enqueues exactly 1 final",
+        "I6 poll dispatches the manual run, enqueues exactly 2 finals",
         r == 200 and b.get("should_run") is True and b.get("reason") == "manual"
-        and b.get("enqueued") == 1,
+        and b.get("enqueued") == 2,
         f"r={r} body={b}",
     )
     final_job = one(
@@ -598,14 +599,22 @@ try:
         str(final_job),
     )
     other_jobs = all_rows(
-        "SELECT student_id, status FROM bot_jobs WHERE student_id IN (?, ?, ?)",
-        (sid_done, sid_locked_only, sid_sub_only))
+        "SELECT student_id, status FROM bot_jobs WHERE student_id IN (?, ?)",
+        (sid_done, sid_locked_only))
     open_others = [j for j in other_jobs if j["status"] in ("pending", "claimed", "running")]
     check(
-        "I8 skips: already-filled-at-current-version / not-locked / not-submitted",
+        "I8 skips: already-filled-at-current-version / not-submitted (locked-only)",
         open_others == []
         and sum(1 for j in other_jobs if j["status"] == "success") == 1,
         str(other_jobs),
+    )
+    sub_job = one(
+        "SELECT status FROM bot_jobs WHERE student_id=? "
+        "ORDER BY id DESC LIMIT 1", (sid_sub_only,))
+    check(
+        "I8b submitted record queues without a lock (submitted-only rule)",
+        (sub_job or {}).get("status") == "pending",
+        str(sub_job),
     )
 
     r, b = cap(bot().post("/api/bot/agent/poll",

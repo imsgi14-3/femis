@@ -96,9 +96,18 @@ try:
         c = app.test_client()
         r = c.post("/login", data={"role": "admin", "name": admin_name,
                                    "password": "wrong-password"}, follow_redirects=False)
-        check("A5 wrong admin password -> bounced to /login",
-              r.status_code == 302 and "/login" in (r.headers.get("Location") or ""),
-              r.headers.get("Location"))
+        with c.session_transaction() as s:
+            bad_role = s.get("role")
+        check("A5 wrong admin password -> bounced to /login, no role granted",
+              r.status_code == 302 and "/login" in (r.headers.get("Location") or "")
+              and bad_role != "admin",
+              f"loc={r.headers.get('Location')} role={bad_role}")
+        r = c.get("/api/admin/bot/jobs")
+        b = r.get_json() or {}
+        check("A5b failed login cannot reach admin endpoints (401)",
+              r.status_code == 401
+              and b.get("error_code") == "authentication_required",
+              f"{r.status_code} {b}")
 
         r = app.test_client().post("/api/setup-admin", json={"name": "X", "password": "y"})
         check("A6 setup-admin refuses when admin exists", r.status_code == 400, r.status_code)

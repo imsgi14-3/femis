@@ -842,8 +842,6 @@ def login():
     if request.method == "POST":
         role = request.form.get("role", "student")
         name = request.form.get("name", "").strip()
-        session["role"] = role
-        session["user_name"] = name
         if role == "admin":
             password = request.form.get("password", "")
             if not (name and password):
@@ -856,6 +854,7 @@ def login():
                 flash("Invalid admin credentials.", "danger")
                 return redirect(url_for("login"))
             session["role"] = "admin"
+            session["user_name"] = name
             session["teacher_id"] = admin.id
             session["teacher_class"] = admin.class_id
             session["teacher_section"] = admin.section_id
@@ -875,12 +874,16 @@ def login():
             if not teacher or not teacher.check_password(password):
                 flash("Invalid credentials. Check name, password, class, section.", "danger")
                 return redirect(url_for("login"))
+            session["role"] = "teacher"
+            session["user_name"] = name
             session["teacher_id"] = teacher.id
             session["teacher_class"] = class_id
             session["teacher_section"] = section
             if teacher.role == "admin":
                 session["role"] = "admin"
             return redirect(url_for("teacher_dashboard"))
+        session["role"] = role
+        session["user_name"] = name
         class_id = request.form.get("class_id", "").strip()
         section = request.form.get("section", "").strip()
         roll_no = request.form.get("roll_no", "").strip()
@@ -1206,16 +1209,16 @@ def _agent_state():
 
 
 def _enqueue_final_jobs(identity):
-    """Create pending jobs for locked+submitted (final) records.
+    """Create pending jobs for submitted (final) records.
 
-    Skips records with an open job, not-yet-final records, records whose
-    current version was already filled successfully, and records whose last
-    attempt died on a portal duplicate conflict (CNIC / admission no.) —
-    those need a human fix on the portal and a manual Queue Job, so auto
-    runs must not loop on them. Returns (created, skipped).
+    Submission is the only eligibility gate (the teacher's lock is not
+    required). Skips records with an open job, records whose current version
+    was already filled successfully, and records whose last attempt died on a
+    portal duplicate conflict (CNIC / admission no.) — those need a human fix
+    on the portal and a manual Queue Job, so auto runs must not loop on them.
+    Returns (created, skipped).
     """
     candidates = Student.query.filter(
-        Student.locked.is_(True),
         Student.submitted.is_(True),
     ).all()
     created = skipped = 0
