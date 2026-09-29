@@ -435,6 +435,9 @@ try:
         f"r={r} lease={job_row(job3)['lease_expires_at']}",
     )
 
+    # Edit sid1 BEFORE the reset so the requeue must re-stamp the new version.
+    STALE_VER = datetime(2026, 5, 1, 8, 30, 45, 123456)
+    sql("UPDATE students SET updated_at=? WHERE id=?", (iso(STALE_VER), sid1))
     r, b = cap(admin().post("/api/admin/bot/reset-stale", json={}))
     raw2, raw3 = job_row(job2), job_row(job3)
     check(
@@ -443,6 +446,14 @@ try:
         and raw2["status"] == "pending" and raw2["claimed_by"] is None
         and raw2["lease_expires_at"] is None,
         f"r={r} ids={b and b.get('job_ids')} status={raw2['status']}",
+    )
+    check(
+        "G2b reset-stale re-stamps the edited student version "
+        "+ refreshed_count",
+        raw2["student_data_version"] == iso(STALE_VER)
+        and b.get("refreshed_count") == 1 and b.get("reset_count") == 1,
+        f"job={raw2['student_data_version']} refreshed="
+        f"{b and b.get('refreshed_count')} reset={b and b.get('reset_count')}",
     )
     check(
         "G3 active-lease job3 untouched by reset-stale",
@@ -477,6 +488,34 @@ try:
         r == 200 and job3 in (b.get("job_ids") or [])
         and job_row(job3)["status"] == "pending",
         f"r={r} ids={b and b.get('job_ids')} status={job_row(job3)['status']}",
+    )
+
+    # =================================================================
+    # G7. retry default: refresh_snapshot defaults to True and re-stamps
+    # =================================================================
+    r, b = cap(admin().post(f"/api/admin/bot/jobs/{job2}/cancel", json={}))
+    check(
+        "G7 close pending job2 for the retry-default check",
+        r == 200 and b.get("job", {}).get("status") == "cancelled",
+        f"r={r} {b}",
+    )
+    RETRY_VER = datetime(2026, 6, 2, 9, 15, 30, 654321)
+    sql("UPDATE students SET updated_at=? WHERE id=?", (iso(RETRY_VER), sid1))
+    r, b = cap(admin().post(f"/api/admin/bot/jobs/{job2}/retry", json={}))
+    job2r = b.get("job", {}).get("job_id")
+    raw2r = job_row(job2r) if job2r else None
+    check(
+        "G8 retry with no refresh flag -> refresh_snapshot defaults true",
+        r == 200 and b.get("refresh_snapshot") is True
+        and b.get("job", {}).get("attempt_number") == 3,
+        f"r={r} refresh={b and b.get('refresh_snapshot')} attempt="
+        f"{b and b.get('job', {}).get('attempt_number')}",
+    )
+    check(
+        "G9 default retry re-stamps the current (edited) student version",
+        raw2r is not None
+        and raw2r["student_data_version"] == iso(RETRY_VER),
+        f"job={raw2r and raw2r['student_data_version']} want={iso(RETRY_VER)}",
     )
 
     # =================================================================

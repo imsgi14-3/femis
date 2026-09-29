@@ -669,12 +669,36 @@ class FormFiller:
         t = (label or "").strip().lower()
         if not t or len(t) < 2:
             return True
-        return t in {
+        if t in {
             "yes", "no", "ok", "empty", "select", "none", "null", "true", "false",
             "required", "field", "value", "option", "choose", "please select",
             "morning", "evening", "institution bus", "walk", "day scholar",
             "other", "others", "specify", "please specify",
-        }
+        }:
+            return True
+        # Validation-message phrases, not field labels (see 2026-09-29
+        # field_mapping corruption): 'This field is required', 'Please enter
+        # a valid number/email address', 'Please fill out this field'.
+        if t in {
+            "this field", "valid number", "a valid number",
+            "a valid email address", "valid email address",
+            "a valid b-form number", "only capital alphabets",
+            "please fill out this field", "please select an item in the list",
+            "a date before today",
+        } or t.startswith("a valid b-form number"):
+            return True
+        # Message-shaped labels: any sentence with validation/UX phrasing —
+        # 'The Date of Birth field must be a date before today',
+        # 'Enter your name', 'Required field', 'must be 03XX-XXXXXXX'.
+        if re.search(r"\b(must be|is required|required field|before today|"
+                     r"enter your|please (?:fill|enter|select)|fill out)\b", t):
+            return True
+        # Consecutive duplicate word ('Below Matric Matric'): a real field
+        # label never repeats a word back to back; the learner has produced
+        # these via label concatenation.
+        if re.search(r"\b(\w+)\s+\1\b", t):
+            return True
+        return False
 
     async def _empty_required_on_tab(self, page: Page) -> list[str]:
         """Labels of required controls empty on the ACTIVE pane only."""
@@ -1065,8 +1089,11 @@ class FormFiller:
                         if self._mark_required(tab_key, label, ""):
                             additions.append(f"required=true (from validation) :: {label}")
                     continue
-                additions.append(f"unmapped validation label :: {label!r}")
-                self._add_field_to_map(tab_key, label, "", "text", required=True)
+                # NEVER create a new field entry from validation-message text:
+                # it has no control name, so source_field would be a fake key
+                # that never matches data — last night's 'This field' /
+                # 'valid number' junk came from here. Validation text may only
+                # mark an EXISTING mapped field required (branch above).
 
             if additions:
                 logger.warning(f"  Updated field_mapping for tab {tab_num}: {additions}")
@@ -1256,10 +1283,54 @@ class FormFiller:
                 if isinstance(section, dict):
                     section[key] = entry
 
+    @staticmethod
+    def _deep_merge(base, overlay):
+        """Union overlay over base: dicts merge recursively, lists union in
+        order, overlay wins scalar leaves.  Disk content the saver never had
+        (other tabs, other workers' learning) is therefore preserved."""
+        if isinstance(base, dict) and isinstance(overlay, dict):
+            out = dict(base)
+            for k, v in overlay.items():
+                out[k] = FormFiller._deep_merge(base[k], v) if k in base else v
+            return out
+        if isinstance(base, list) and isinstance(overlay, list):
+            merged = list(base)
+            for x in overlay:
+                if x not in merged:
+                    merged.append(x)
+            return merged
+        return overlay
+
     def _save_field_map(self):
-        with open(FIELD_MAP_PATH, "w", encoding="utf-8") as f:
-            yaml.safe_dump(self.field_map, f, allow_unicode=True, sort_keys=False, default_flow_style=False)
-        logger.info(f"  Wrote field updates to {FIELD_MAP_PATH}")
+        # Atomic (tmp + rename) and merged over the ON-DISK copy.  Workers
+        # rewrite this file from their own memory; dumping memory directly
+        # let a stale/partial load erase curated entries (concurrent runs on
+        # 2026-09-29 wiped tabs 3-7 this way), and a non-atomic write let a
+        # reader parse a half-written file and spread the truncation.
+        tmp_path = FIELD_MAP_PATH.parent / (FIELD_MAP_PATH.name + ".tmp")
+        try:
+            disk = None
+            try:
+                with open(FIELD_MAP_PATH, "r", encoding="utf-8") as f:
+                    disk = yaml.safe_load(f)
+            except FileNotFoundError:
+                disk = None
+            except Exception as e:
+                logger.warning(f"  field_mapping disk copy unreadable, merging into memory only: {e}")
+            merged = (self._deep_merge(disk, self.field_map)
+                      if isinstance(disk, dict) else self.field_map)
+            with open(tmp_path, "w", encoding="utf-8") as f:
+                yaml.safe_dump(merged, f, allow_unicode=True, sort_keys=False,
+                               default_flow_style=False)
+            tmp_path.replace(FIELD_MAP_PATH)
+            self.field_map = merged
+            logger.info(f"  Wrote field updates to {FIELD_MAP_PATH}")
+        finally:
+            if tmp_path.exists():
+                try:
+                    tmp_path.unlink()
+                except OSError:
+                    pass
 
     async def _preflight_save(self, page: Page, tab_num: int):
         """Fix client-side blockers so Save & Next actually POSTs.

@@ -487,7 +487,12 @@ def svc_retry(job_id, payload, identity):
             409,
         )
 
-    refresh_snapshot = bool(payload.get("refresh_snapshot", False))
+    # A requeue must run on the LATEST student data (operator requirement):
+    # refresh the expected version by default so the next claim re-materializes
+    # a fresh snapshot from the current row.  Pass refresh_snapshot=false
+    # explicitly to pin an approved version instead — the claim then fails
+    # closed as DATA_STALE if the student changed since.
+    refresh_snapshot = bool(payload.get("refresh_snapshot", True))
 
     student = db.session.get(Student, job.student_id)
     if refresh_snapshot:

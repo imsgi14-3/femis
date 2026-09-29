@@ -735,6 +735,10 @@ document.addEventListener("DOMContentLoaded", function () {
             {fields: ["orphan_type"], trigger: "is_orphan", values: ["1"]},
             {fields: ["scholarship_details"], trigger: "scholarship", values: ["1"]},
             {fields: ["cocurricular_details"], trigger: "cocurricular_activities", values: ["1"]},
+            {fields: ["village_id"], trigger: "address_type", values: ["Village"]},
+            {fields: ["housing_society_id"], trigger: "address_type", values: ["Housing Society"]},
+            {fields: ["present_village_id"], trigger: "present_address_type", values: ["Village"]},
+            {fields: ["present_housing_society_id"], trigger: "present_address_type", values: ["Housing Society"]},
             {fields: ["idp_status_id"], trigger: "is_refugee", values: ["1"]},
             {fields: ["is_registered_refugee"], trigger: "is_refugee", values: ["1"]},
             {fields: ["refugee_card_number"], trigger: "is_registered_refugee", values: ["1"]},
@@ -815,15 +819,74 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
 
-        // Email: a filled value must be a real address — FEMIS's native
+        // Phones (server twin: app.py _format_error). Empty stays legal —
+        // required-ness is enforced above; this rejects wrong shape/length.
+        [
+            {fields: ["contact_number", "father_contact", "mother_contact",
+                      "guardian_contact", "emergency_contact"],
+             re: /^03\d{2}-\d{7}$/,
+             hint: "must be 03XX-XXXXXXX (11 digits), e.g. 0300-1234567"},
+            {fields: ["father_landline", "mother_landline"],
+             re: /^0\d{2}-\d{7}$/,
+             hint: "must be 0XX-XXXXXXX (10 digits), e.g. 051-1234567"},
+        ].forEach(function (pc) {
+            pc.fields.forEach(function (fname) {
+                var ctl = fieldControl(pane, fname);
+                if (!ctl) return;
+                if (isHiddenWithin(pane, ctl.els[0])) return;
+                var raw = controlValue(ctl);
+                if (!raw) return;
+                if (!pc.re.test(raw)) {
+                    missing.push(fieldLabel(pane, fname) + " (" + pc.hint + ")");
+                }
+            });
+        });
+
+        // Emails: a filled value must be a real address — FEMIS's native
         // type=email control rejects 'Nil' (missing @) at submit, and this
         // handler's preventDefault suppresses native validation, so the
         // format check has to run here. Empty stays the required-list's job.
-        var emailCtl = fieldControl(pane, "email");
-        if (emailCtl && !isHiddenWithin(pane, emailCtl.els[0])) {
-            var emailVal = controlValue(emailCtl);
-            if (emailVal && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
-                missing.push(fieldLabel(pane, "email") + " (enter a valid email address)");
+        ["email", "father_email", "mother_email", "guardian_email"].forEach(function (fname) {
+            var ctl = fieldControl(pane, fname);
+            if (!ctl) return;
+            if (isHiddenWithin(pane, ctl.els[0])) return;
+            var raw = controlValue(ctl);
+            if (!raw) return;
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)) {
+                missing.push(fieldLabel(pane, fname) + " (enter a valid email address)");
+            }
+        });
+
+        // Date of Birth: a filled value must be a real date strictly before
+        // today — FEMIS rejects today/future DOBs ("The Date of Birth field
+        // must be a date before today"). Empty is the required-list's job.
+        var dobCtl = fieldControl(pane, "date_of_birth");
+        if (dobCtl && !isHiddenWithin(pane, dobCtl.els[0])) {
+            var dobRaw = controlValue(dobCtl);
+            if (dobRaw) {
+                var dobDate = null;
+                var mdy = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(dobRaw);
+                var iso = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(dobRaw);
+                if (mdy) {
+                    dobDate = new Date(+mdy[3], +mdy[1] - 1, +mdy[2]);
+                } else if (iso) {
+                    dobDate = new Date(+iso[1], +iso[2] - 1, +iso[3]);
+                }
+                if (!dobDate || isNaN(dobDate.getTime())) {
+                    missing.push(
+                        fieldLabel(pane, "date_of_birth") +
+                        " (enter a valid date, MM/DD/YYYY)"
+                    );
+                } else {
+                    var now = new Date();
+                    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    if (dobDate >= today) {
+                        missing.push(
+                            fieldLabel(pane, "date_of_birth") +
+                            " (must be a date before today)"
+                        );
+                    }
+                }
             }
         }
 

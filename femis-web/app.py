@@ -706,6 +706,90 @@ def _cnic_length_error(mapped):
     return None
 
 
+# Format gates (server twin of form.js validateTab): phone/email/DOB shapes.
+# Empty/absent values pass — required-ness is mandatory.py's job.
+MOBILE_FIELDS = (
+    ("contact_number", "Contact Number"),
+    ("father_contact", "Father's Contact Number"),
+    ("mother_contact", "Mother's Contact Number"),
+    ("guardian_contact", "Guardian's Contact Number"),
+    ("emergency_contact", "Emergency Contact Number"),
+)
+LANDLINE_FIELDS = (
+    ("father_landline", "Father's Landline"),
+    ("mother_landline", "Mother's Landline"),
+)
+EMAIL_FIELDS = (
+    ("email", "Email"),
+    ("father_email", "Father's Email"),
+    ("mother_email", "Mother's Email"),
+    ("guardian_email", "Guardian's Email"),
+)
+FORMAT_FIELDS = (tuple(k for k, _ in MOBILE_FIELDS)
+                 + tuple(k for k, _ in LANDLINE_FIELDS)
+                 + tuple(k for k, _ in EMAIL_FIELDS)
+                 + ("date_of_birth",))
+_MOBILE_RE = re.compile(r"^03\d{2}-\d{7}$")
+_LANDLINE_RE = re.compile(r"^0\d{2}-\d{7}$")
+_EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+
+
+def _parse_date(value):
+    """ISO (YYYY-MM-DD) or form display (MM/DD/YYYY) string -> date, else None."""
+    if not isinstance(value, str):
+        return None
+    raw = value.strip()
+    for fmt in ("%Y-%m-%d", "%m/%d/%Y"):
+        try:
+            return datetime.strptime(raw, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
+def _format_error(values):
+    """First format violation among `values` (DB-column keys), else None.
+
+    Mobile must be 03XX-XXXXXXX, landline 0XX-XXXXXXX, emails a real
+    address, and date_of_birth a date strictly before today — the FEMIS
+    portal rejects today/future DOBs ("The Date of Birth field must be a
+    date before today").
+    """
+    for key, label in MOBILE_FIELDS:
+        if key not in values:
+            continue
+        raw = str(values.get(key) or "").strip()
+        if raw and not _MOBILE_RE.match(raw):
+            return (f"{label} must be 03XX-XXXXXXX (11 digits, e.g. "
+                    f"0300-1234567): got '{raw}'")
+    for key, label in LANDLINE_FIELDS:
+        if key not in values:
+            continue
+        raw = str(values.get(key) or "").strip()
+        if raw and not _LANDLINE_RE.match(raw):
+            return (f"{label} must be 0XX-XXXXXXX (10 digits, e.g. "
+                    f"051-1234567): got '{raw}'")
+    for key, label in EMAIL_FIELDS:
+        if key not in values:
+            continue
+        raw = str(values.get(key) or "").strip()
+        if raw and not _EMAIL_RE.match(raw):
+            return (f"{label} must be a valid email address "
+                    f"(e.g. name@example.com): got '{raw}'")
+    if "date_of_birth" in values:
+        raw = str(values.get("date_of_birth") or "").strip()
+        if raw:
+            dob = _parse_date(raw)
+            today = datetime.now().date()
+            if dob is None:
+                return ("Date of Birth must be a valid date "
+                        f"(YYYY-MM-DD or MM/DD/YYYY): got '{raw}'")
+            if dob >= today:
+                return ("Date of Birth must be a date before today "
+                        f"({today.isoformat()}): got '{raw}'")
+    return None
+
+
 def _mandatory_error(tab, student, mapped):
     """Rejection message when any mandatory field of `tab` is empty.
 
@@ -737,6 +821,9 @@ def api_save_tab():
     cnic_err = _cnic_length_error(mapped)
     if cnic_err:
         return jsonify({"ok": False, "error": cnic_err}), 400
+    fmt_err = _format_error(mapped)
+    if fmt_err:
+        return jsonify({"ok": False, "error": fmt_err}), 400
 
     if student_id:
         student = Student.query.get(student_id)
@@ -794,6 +881,13 @@ def api_final_submit():
     cnic_err = _cnic_length_error(merged_cnic)
     if cnic_err:
         return jsonify({"ok": False, "error": cnic_err}), 400
+    # Format gates over stored + payload: final-submit may carry a record
+    # created before this validation existed (e.g. a DOB of today).
+    merged_fmt = {k: getattr(student, k) for k in FORMAT_FIELDS}
+    merged_fmt.update({k: mapped[k] for k in FORMAT_FIELDS if k in mapped})
+    fmt_err = _format_error(merged_fmt)
+    if fmt_err:
+        return jsonify({"ok": False, "error": fmt_err}), 400
     err = _uniqueness_error(mapped, exclude_id=student.id)
     if err:
         return jsonify({"ok": False, "error": err}), 409
@@ -861,6 +955,10 @@ def submit():
         flash(err, "error")
         return redirect(url_for("index"))
     mapped = _map_form_data(data)
+    fmt_err = _format_error(mapped)
+    if fmt_err:
+        flash(fmt_err, "error")
+        return redirect(url_for("index"))
     per_tab = mandatory.missing_record_fields(mapped)
     if per_tab:
         flash(mandatory.error_message(per_tab), "error")
@@ -1616,6 +1714,7 @@ def api_admin_bot_reset_stale():
         ),
     ).all()
     ids = []
+    refreshed = 0
     for job in stale:
         job.status = "pending"
         job.claimed_by = None
@@ -1623,13 +1722,23 @@ def api_admin_bot_reset_stale():
         job.last_heartbeat_at = None
         # Bump fencing so a zombie worker with the old generation is refused.
         job.claim_generation = (job.claim_generation or 0) + 1
+        # Requeue loads the LATEST student data: re-stamp the expected version
+        # so the next claim materializes a fresh snapshot instead of failing
+        # DATA_STALE against a row edited after the original claim.
+        student = db.session.get(Student, job.student_id)
+        if student is not None and student.updated_at is not None:
+            job.student_data_version = student.updated_at
+            refreshed += 1
         note = "Requeued by admin: stale claim (lease expired)."
         job.error_message = (
             f"{job.error_message} || {note}" if job.error_message else note
         )
         ids.append(job.id)
     db.session.commit()
-    return jsonify({"ok": True, "reset_count": len(ids), "job_ids": ids})
+    return jsonify(
+        {"ok": True, "reset_count": len(ids),
+         "refreshed_count": refreshed, "job_ids": ids}
+    )
 
 
 # ---------------------------------------------------------------------------

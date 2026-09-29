@@ -1152,12 +1152,6 @@ tab_2_parents_guardian:
       options:
       - 'Yes'
       - 'No'
-    this_field:
-      label: This field
-      type: text
-      required: true
-      source_field: this_field
-      note: Auto-discovered from portal DOM (map source_field to DB column when known)
     uncle:
       label: Uncle
       type: text
@@ -1175,12 +1169,6 @@ tab_2_parents_guardian:
       type: text
       required: true
       source_field: range
-      note: Auto-discovered from portal DOM (map source_field to DB column when known)
-    only_capital_alphabets:
-      label: only capital alphabets
-      type: text
-      required: true
-      source_field: only_capital_alphabets
       note: Auto-discovered from portal DOM (map source_field to DB column when known)
   mothers_information:
     mothers_name:
@@ -2423,12 +2411,6 @@ tab_3_educational_details:
       required: true
       source_field: guardian_income
       note: Auto-discovered from portal DOM (map source_field to DB column when known)
-    this_field:
-      label: This field
-      type: text
-      required: true
-      source_field: this_field
-      note: Auto-discovered from portal DOM (map source_field to DB column when known)
     route:
       label: Route
       type: text
@@ -2862,12 +2844,6 @@ tab_4_emergency_contact:
     options:
     - 'Yes'
     - 'No'
-  this_field:
-    label: This field
-    type: text
-    required: true
-    source_field: this_field
-    note: Auto-discovered from portal DOM (map source_field to DB column when known)
   emergency_relation:
     label: Emergency relation
     type: text
