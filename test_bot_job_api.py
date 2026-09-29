@@ -135,11 +135,10 @@ def _admin_client():
 
 
 def create_student(name):
-    r = app.test_client().post(
-        "/api/save-tab",
-        json={"tab": 1, "student_id": None, "data": {"name": name}},
-    )
-    j = r.get_json()
+    # complete record: L1 final-submit validates every tab server-side
+    from form_payloads import create_full
+    r = create_full(_admin_client(), name=name)
+    j = r[1]
     sid = j.get("student_id") if j and j.get("ok") else None
     if sid:
         created_students.append(sid)

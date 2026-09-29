@@ -110,11 +110,12 @@ OP_H = {"X-Operator-Token": OP_TOKEN}
 
 
 def create_student(name):
-    r = app.test_client().post(
-        "/api/save-tab",
-        json={"tab": 1, "student_id": None, "data": {"name": name}},
-    )
-    j = r.get_json()
+    # complete record: claims materialize snapshots from every tab
+    from form_payloads import create_full
+    c = app.test_client()
+    with c.session_transaction() as s:
+        s["role"] = "admin"
+    _, j = create_full(c, name=name)
     sid = j.get("student_id") if j and j.get("ok") else None
     if sid:
         created_students.append(sid)
@@ -294,6 +295,41 @@ try:
     finally:
         WebFormHandler.read_by_id = orig_read_by_id
         WebFormHandler.read_all = orig_read_all
+
+    # =======================================================================
+    # B5b. CNIC fail-closed: incomplete CNIC data is rejected before any
+    #      FEMIS work, and the queue keeps draining past the rejected job.
+    #      (Legacy rows can hold partial CNICs — the save-path 13-digit gate
+    #      postdates them — so the runner guards the fill itself.)
+    # =======================================================================
+    sid_cnic_bad = create_student("P3B5 Student CNIC Bad")
+    sql("UPDATE students SET b_form='35202' WHERE id=?", (sid_cnic_bad,))
+    create_job(sid_cnic_bad)
+    sid_cnic_ok = create_student("P3B5 Student CNIC OK")
+    sql("UPDATE students SET b_form='12345-1234567-1' WHERE id=?", (sid_cnic_ok,))
+    create_job(sid_cnic_ok)
+    seen_cnic = []
+
+    async def cnic_worker(student, on_progress, should_abort):
+        seen_cnic.append(student.get("name"))
+        return WorkResult(submitted=True, evidence=SUCCESS_EVIDENCE)
+
+    reason_c, _ = run(run_job_loop(api(), "w-cnic", cnic_worker, claim_pause=0.05))
+    bad_row = one("SELECT * FROM bot_jobs WHERE student_id=? ORDER BY id DESC", (sid_cnic_bad,))
+    ok_row = one("SELECT * FROM bot_jobs WHERE student_id=? ORDER BY id DESC", (sid_cnic_ok,))
+    check("B5b incomplete CNIC job fails closed as validation/error",
+          reason_c == "idle" and bad_row["status"] == "failed"
+          and bad_row["failure_category"] == "validation"
+          and bad_row["bot_result_code"] == "error"
+          and bad_row["outcome_known"] == 1
+          and "Incomplete CNIC" in (bad_row["error_message"] or ""),
+          f"reason={reason_c} status={bad_row['status']} "
+          f"cat={bad_row['failure_category']} msg={bad_row['error_message']!r}")
+    check("B5b worker never received the incomplete-CNIC record",
+          "P3B5 Student CNIC Bad" not in seen_cnic, str(seen_cnic))
+    check("B5b queue continues: next job runs and succeeds after the rejection",
+          ok_row["status"] == "success" and seen_cnic == ["P3B5 Student CNIC OK"],
+          f"ok_status={ok_row['status']} seen={seen_cnic}")
 
     # =======================================================================
     # C. Heartbeat: lease extension, fencing, lease expiry
@@ -664,6 +700,65 @@ try:
         and msg_mk.startswith("Duplicate record conflict (tab 3)")
         and "already been taken" in msg_mk,
         f"{cat_dup}:{msg_dup} | {cat_mk}:{msg_mk}",
+    )
+
+    # J2d: named per-save blockers are preferred over generic errors, and
+    # the label is the field's FEMIS label (label-first naming).
+    cat_b, msg_b = classify_submit_failure(
+        {"finish_clicked": False, "indicator_detected": False,
+         "errors": ["Class is required"],
+         "blockers": ["Other Profession: This field is required."],
+         "diagnostics": None})
+    check(
+        "J2d finish blocked: named blocker preferred, label-first",
+        cat_b == "validation"
+        and msg_b == ("Finish not available: "
+                      "Other Profession: This field is required.; Class is required"),
+        f"{cat_b}:{msg_b}",
+    )
+
+    # J2e: the fill-traversal record is the last-resort source — a stalled
+    # run still names the exact field that blocked Save & Next.
+    cat_t, msg_t = classify_submit_failure(
+        {"finish_clicked": False, "indicator_detected": False,
+         "errors": [], "blockers": [], "diagnostics": None,
+         "traversal_issues": [
+             "tab 2: father_monthly_income: Please select an item in the list."]})
+    check(
+        "J2e traversal fallback names tab + field",
+        cat_t == "validation"
+        and msg_t == ("Finish not available: tab 2: "
+                      "father_monthly_income: Please select an item in the list."),
+        f"{cat_t}:{msg_t}",
+    )
+
+    # J2f: finish-time errors are label-named too (from _collect_errors).
+    cat_f, msg_f = classify_submit_failure(
+        {"finish_clicked": True, "indicator_detected": False,
+         "errors": ["Other Profession: Please fill out this field."],
+         "blockers": [], "diagnostics": None})
+    check(
+        "J2f finish failure message names the field",
+        cat_f == "validation"
+        and msg_f.startswith(
+            "Validation errors blocked submission: "
+            "Other Profession: Please fill out this field."),
+        f"{cat_f}:{msg_f}",
+    )
+
+    # J2g: diagnostics emptyRequired (DOM names) is converted to a
+    # field-named validation line when nothing else is available.
+    cat_g, msg_g = classify_submit_failure(
+        {"finish_clicked": True, "indicator_detected": False,
+         "errors": [],
+         "diagnostics": {"errorTexts": [],
+                         "emptyRequired": ["mother_income_per_month [required empty]"]}})
+    check(
+        "J2g diag emptyRequired -> named validation failure",
+        cat_g == "validation"
+        and msg_g == ("Validation errors blocked submission: "
+                      "mother_income_per_month: This field is required."),
+        f"{cat_g}:{msg_g}",
     )
     p_dup = build_complete_payload(WorkResult(evidence={
         "finish_clicked": False, "indicator_detected": False,

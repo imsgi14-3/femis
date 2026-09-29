@@ -18,6 +18,7 @@ sys.path.insert(0, str(ROOT / "femis-web"))
 sys.path.insert(0, str(ROOT))
 
 from app import app, db  # noqa: E402
+from form_payloads import form_all, tab1  # noqa: E402
 
 results = []
 
@@ -63,7 +64,7 @@ try:
         # --- A. /api/save-tab create, incl. crafted created_at: null --------
         r = client.post("/api/save-tab", json={
             "tab": 1, "student_id": None,
-            "data": {"name": P3B9, "created_at": None},
+            "data": tab1(name=P3B9, created_at=None),
         })
         b = r.get_json() or {}
         sid_a = b.get("student_id") if b.get("ok") else None
@@ -77,10 +78,9 @@ try:
                   row["created_at"] is not None, str(row["created_at"]))
 
         # --- B. legacy POST /submit create ---------------------------------
-        r = client.post("/submit", data={
-            "name": P3B9 + " LEGACY",
-            "class_id": "9", "section_id": "B",
-        })
+        # complete form payload (server mandatory twin rejects partials)
+        r = client.post("/submit", data=form_all(
+            name=P3B9 + " LEGACY", class_id="9", section_id="B"))
         loc = r.headers.get("Location", "")
         b_id = loc.rsplit("/", 1)[-1] if r.status_code == 302 and loc.rsplit("/", 1)[-1].isdigit() else None
         if b_id:
@@ -93,7 +93,8 @@ try:
                   row["created_at"] is not None, str(row["created_at"]))
 
         # crafted legacy payload: created_at="" must fail loudly, never store NULL
-        r = client.post("/submit", data={"name": P3B9 + " CRAFT", "created_at": ""})
+        r = client.post("/submit", data=form_all(
+            name=P3B9 + " CRAFT", created_at=""))
         leftover = rows("SELECT id, created_at FROM students WHERE name=?", (P3B9 + " CRAFT",))
         check("B3 crafted created_at='' rejected, no NULL row stored",
               r.status_code >= 400 and not leftover,

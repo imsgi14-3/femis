@@ -46,6 +46,53 @@ CAPITAL_NAME_SOURCES = {
     "previous_school_name",
 }
 
+# Shared in-page helper: resolve a control to the label FEMIS shows for it
+# (label[for] -> wrapping label -> group heading, radio/checkbox preferring
+# the group heading so a VALUE label like "Male" never names the field),
+# falling back to name/id/aria-label and finally the tag name.  Injected
+# into _collect_errors and _save_blockers so every job failure names the
+# offending field the way a human reads it
+# ("Other Profession: Please fill out this field.").
+_JS_FIELD_HELPERS = r"""
+const cleanT = (t) => String(t || '').replace(/\s+/g, ' ').trim();
+const cleanLab = (t) => cleanT(t).replace(/\s*\*+$/, '').replace(/:\s*$/, '');
+const labelOf = (el) => {
+    if (!el || !el.tagName) return '';
+    try {
+        const tag = el.tagName.toLowerCase();
+        const groupHead = () => {
+            const g = el.closest('[role="radiogroup"], fieldset, .form-group, .mb-3, .col, .row');
+            if (!g) return '';
+            const head = g.querySelector(':scope > legend, :scope > label, :scope > .form-label, :scope > .control-label');
+            return head ? cleanLab(head.textContent) : '';
+        };
+        if (tag === 'input' && (el.type === 'radio' || el.type === 'checkbox')) {
+            // Name the FIELD (group heading), not the selected option label.
+            const gh = groupHead();
+            if (gh) return gh;
+        }
+        if (el.id) {
+            const lab = document.querySelector('label[for="' + String(el.id).replace(/"/g, '\\"') + '"]');
+            if (lab) {
+                const t = cleanLab(lab.textContent);
+                if (t) return t;
+            }
+        }
+        const wrap = el.closest('label');
+        if (wrap) {
+            const t = cleanLab(wrap.textContent);
+            if (t) return t;
+        }
+        const gh = groupHead();
+        if (gh) return gh;
+        return cleanLab(el.name) || cleanLab(el.id)
+            || cleanLab(el.getAttribute && el.getAttribute('aria-label')) || tag;
+    } catch (e) {
+        return el.name || el.id || el.tagName.toLowerCase();
+    }
+};
+"""
+
 
 def is_submission_success(finish_clicked: bool, indicator_detected: bool) -> bool:
     """SUBMISSION_SUCCESS: official Finish action completed AND completion detected.
@@ -73,6 +120,9 @@ class FormFiller:
         self.abort_check = None            # callable() -> True means abort the run safely
         self.last_submit: dict | None = None  # evidence captured by submit_form()
         self._last_attempted_field: str | None = None
+        # Fill-traversal record: field-named save failures per tab, so a
+        # stalled run still reports WHICH field blocked it (job evidence).
+        self._traversal_issues: list[str] = []
         # Portal duplicate (CNIC/admission) that beat automatic recovery:
         # a human must resolve it on the portal before a retry can pass.
         self.duplicate_conflict: dict | None = None
@@ -256,6 +306,7 @@ class FormFiller:
         self.student_data = student_data
         self._just_filled = False
         self.duplicate_conflict = None
+        self._traversal_issues = []
 
         probe_edit = self.form_mode == "edit"
         if probe_edit:
@@ -327,6 +378,11 @@ class FormFiller:
                                 "tab": i,
                                 "errors": still_dup[:3],
                             }
+                        named = [str(x) for x in (result.get("errors") or []) if x]
+                        if named:
+                            self._traversal_issues.append(
+                                f"tab {i}: " + "; ".join(named[:3])[:300]
+                            )
                         await self._learn_unmapped_fields(page, i, result.get("errors") or [])
                         # Position is handled by the next iteration's active-tab
                         # check (recovery), never a routine top-nav jump.
@@ -516,7 +572,13 @@ class FormFiller:
             logger.warning(f"  {prefix} empty required: {empty_required[:12]}")
         return {
             "ok": ok,
-            "errors": real or ([f"empty required: {empty_required[0]}"] if empty_required else []),
+            # Field-named first: visible errors / client blockers carry the
+            # FEMIS label ("Other Profession: This field is required.");
+            # only when nothing rendered do we fall back to the measured
+            # empties (already label names from _empty_required_on_tab).
+            "errors": real or blockers or [
+                f"{lab}: This field is required." for lab in empty_required[:3]
+            ],
             "advanced": advanced,
             "api": new_api,
             "blockers": blockers,
@@ -524,25 +586,26 @@ class FormFiller:
         }
 
     async def _save_blockers(self, page: Page) -> list:
-        """Name the client-side blockers stopping a save: field + message.
+        """Name the client-side blockers stopping a save: label + message.
 
         No forced saves anywhere: every validation failure surfaces as a
-        named, actionable issue (e.g. guardian_name: Please enter only
+        named, actionable issue (e.g. Guardian Name: Please enter only
         capital alphabets) instead of being bypassed by a forced POST.
+        Label first (labelOf), DOM name only as fallback.
         """
         try:
-            return await page.evaluate("""() => {
+            return await page.evaluate(
+                "() => {\n" + _JS_FIELD_HELPERS + """
                 const pane = document.querySelector(
                     '.tab-pane.active, .tab-pane.show, [role="tabpanel"].active'
                 ) || document;
                 const out = [];
                 const seen = new Set();
-                const nameOf = (el) => el.name || el.id || el.getAttribute('aria-label') || el.tagName.toLowerCase();
                 const push = (nm, msg) => {
-                    msg = (msg || '').replace(/\\s+/g, ' ').trim();
+                    msg = cleanT(msg);
                     if (!msg || msg === '*') msg = 'invalid';
                     const key = nm + '|' + msg;
-                    if (!seen.has(key)) { seen.add(key); out.push(nm + ': ' + msg); }
+                    if (!seen.has(key)) { seen.add(key); out.push((nm || 'field') + ': ' + msg); }
                 };
                 pane.querySelectorAll('.is-invalid, [aria-invalid="true"]').forEach(el => {
                     const target = el.matches('input, select, textarea') ? el
@@ -556,7 +619,7 @@ class FormFiller:
                         msg = fb ? (fb.innerText || '') : '';
                     }
                     if (!msg) msg = target.validationMessage || '';
-                    push(nameOf(target), msg);
+                    push(labelOf(target), msg);
                 });
                 pane.querySelectorAll('input, select, textarea').forEach(el => {
                     if (el.disabled) return;
@@ -564,10 +627,11 @@ class FormFiller:
                     try {
                         if (!el.checkValidity()) msg = el.validationMessage || '';
                     } catch (e) { return; }
-                    if (msg) push(nameOf(el), msg);
+                    if (msg) push(labelOf(el), msg);
                 });
                 return out;
-            }""")
+            }"""
+            )
         except Exception as e:
             logger.debug(f"  save blockers probe failed: {e}")
             return []
@@ -1483,6 +1547,7 @@ class FormFiller:
             "outcome_known": True if not finish_clicked else bool(indicator),
             "errors": list(errors or [])[:10],
             "blockers": list(pre_blockers or []),
+            "traversal_issues": list(getattr(self, "_traversal_issues", None) or [])[:10],
             "diagnostics": diag,
         }
 
@@ -1689,16 +1754,69 @@ class FormFiller:
         page.on("response", on_response)
 
     async def _collect_errors(self, page: Page) -> list[str]:
+        """Visible validation texts, each named by its field when it has one.
+
+        Items are "Label: message" (FEMIS label first, DOM name fallback)
+        when the text belongs to a control; page-level texts (toast, alert,
+        dialog) stay bare — the portal speaking, with no field to attribute
+        them to.  Same visibility rules as before: '*', texts >= 400 chars
+        dropped, longer-than-140 field messages truncated, exact
+        duplicates removed, max 20 items.
+        """
         try:
-            errs = await page.evaluate("""() => {
+            errs = await page.evaluate(
+                "() => {\n" + _JS_FIELD_HELPERS + """
+                const out = [];
+                const seen = new Set();
+                const push = (nm, msg) => {
+                    msg = cleanT(msg);
+                    if (!msg || msg === '*') return;
+                    if (msg.length >= 400) return;
+                    if (msg.length > 140) msg = msg.slice(0, 137) + '...';
+                    const item = nm ? (nm + ': ' + msg) : msg;
+                    if (!seen.has(item)) { seen.add(item); out.push(item); }
+                };
                 const els = document.querySelectorAll(
                     '.is-invalid, .invalid-feedback.show, .text-danger, .alert-danger, .toast, .swal2-popup, .toastr-error, [class*="error"]'
                 );
-                return Array.from(els)
-                    .map(e => (e.innerText || e.textContent || '').trim())
-                    .filter(t => t && t !== '*' && t.length < 400)
-                    .slice(0, 20);
-            }""")
+                for (const e of Array.from(els)) {
+                    if (out.length >= 20) break;
+                    const msg = cleanT(e.innerText || e.textContent || '');
+                    if (!msg || msg === '*') continue;
+                    let nm = '';
+                    try {
+                        if (e.matches && e.matches('input, select, textarea')) {
+                            nm = labelOf(e);
+                        } else {
+                            // Attribute the text to its control: an explicit
+                            // aria-describedby link, then the input the block
+                            // follows (Bootstrap feedback), then the nearest
+                            // field group's control.
+                            let ctl = null;
+                            if (e.id) {
+                                ctl = document.querySelector(
+                                    '[aria-describedby~="' + String(e.id).replace(/"/g, '\\\\"') + '"]'
+                                );
+                            }
+                            if (!ctl && e.previousElementSibling
+                                && e.previousElementSibling.matches
+                                && e.previousElementSibling.matches('input, select, textarea')) {
+                                ctl = e.previousElementSibling;
+                            }
+                            if (!ctl) {
+                                const g = e.closest(
+                                    '.form-group, .mb-3, .col, .row, fieldset, [role="radiogroup"]'
+                                );
+                                ctl = g ? g.querySelector('input, select, textarea') : null;
+                            }
+                            if (ctl) nm = labelOf(ctl);
+                        }
+                    } catch (err) {}
+                    push(nm, msg);
+                }
+                return out;
+            }"""
+            )
             return errs
         except Exception:
             return []
@@ -2529,6 +2647,16 @@ class FormFiller:
         for opt in options:
             if vl == opt.lower():
                 return opt
+        # Space-insensitive equality before substring matching: legacy rows
+        # store labels whose whitespace differs from the portal's option text
+        # (e.g. PA 'Lessthan 50,000' vs FDE 'Less than 50,000'). Without this
+        # pass both the exact and substring probes miss, the select stays
+        # empty, and _verify_filled fails the field.
+        compact = re.sub(r"\s+", "", vl)
+        if compact:
+            for opt in options:
+                if compact == re.sub(r"\s+", "", str(opt).lower()):
+                    return opt
         for opt in options:
             if vl in opt.lower() or opt.lower() in vl:
                 return opt

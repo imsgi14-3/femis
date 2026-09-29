@@ -20,6 +20,7 @@ sys.path.insert(0, str(ROOT / "femis-web"))
 sys.path.insert(0, str(ROOT))
 
 from app import Student, app, db  # noqa: E402
+from form_payloads import tab3  # noqa: E402
 
 results = []
 
@@ -65,8 +66,10 @@ try:
     with client.session_transaction() as s:
         s["role"] = "admin"
 
-    # ---- 1. create ----
-    r = client.post("/api/save-tab", json={"tab": 3, "student_id": None, "data": CREATE_DATA})
+    # ---- 1. create (complete tab-3 payload: server mandatory twin) ----
+    r = client.post("/api/save-tab",
+                    json={"tab": 3, "student_id": None,
+                          "data": {**tab3(), **CREATE_DATA}})
     body = r.get_json()
     check("create returns ok", r.status_code == 200 and body.get("ok") is True, str(body))
     probe_id = body.get("student_id")

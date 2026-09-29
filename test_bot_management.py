@@ -136,11 +136,11 @@ def cap(resp):
 
 
 def create_student(name):
-    r = app.test_client().post(
-        "/api/save-tab",
-        json={"tab": 1, "student_id": None, "data": {"name": name}},
-    )
-    j = r.get_json()
+    from form_payloads import create_full
+    c = app.test_client()
+    with c.session_transaction() as s:
+        s["role"] = "admin"
+    _, j = create_full(c, name=name)
     sid = j.get("student_id") if j and j.get("ok") else None
     if sid:
         created_students.append(sid)

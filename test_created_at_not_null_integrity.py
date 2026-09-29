@@ -18,6 +18,7 @@ sys.path.insert(0, str(ROOT / "femis-web"))
 sys.path.insert(0, str(ROOT))
 
 from app import Student, app, db  # noqa: E402
+from form_payloads import tab1  # noqa: E402
 
 results = []
 
@@ -148,7 +149,7 @@ try:
         client = app.test_client()
         r = client.post("/api/save-tab", json={
             "tab": 1, "student_id": None,
-            "data": {"name": PROBE_NAME + " SAVE", "created_at": None},
+            "data": tab1(name=PROBE_NAME + " SAVE", created_at=None),
         })
         b = r.get_json() or {}
         sid = b.get("student_id") if b.get("ok") else None

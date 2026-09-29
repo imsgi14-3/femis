@@ -17,6 +17,7 @@ sys.path.insert(0, str(ROOT / "femis-web"))
 sys.path.insert(0, str(ROOT))
 
 from app import app, db, Student  # noqa: E402
+from form_payloads import create_full, tab1  # noqa: E402
 
 DB = ROOT / "femis-web" / "instance" / "femis.db"
 
@@ -48,8 +49,9 @@ def save(data, student_id=None, as_admin=False):
 
 
 def create(data):
-    base = {"name": data.get("name", "CnicGuard"), "class_id": "5",
-            "section_id": "Z", "roll_no": data.get("roll_no", "950")}
+    base = tab1(class_id="5", section_id="Z",
+                roll_no=data.get("roll_no", "950"),
+                name=data.get("name", "CnicGuard"))
     base.update(data)
     return save(base)
 
@@ -92,12 +94,22 @@ try:
           st == 200 and b.get("ok") and sid1, str(b))
 
     st, b = create({"name": "CnicGuard F", "roll_no": "956",
+                    "is_bform_available": "0",
                     "b_form": "", "father_cnic": "",
                     "mother_cnic": "", "guardian_cnic": ""})
     sid2 = b.get("student_id")
     created.append(sid2)
-    check("A6 empty CNIC fields -> 200 (length gate is presence-only)",
+    check("A6 empty CNIC fields -> 200 (length gate is presence-only; "
+          "B-Form=yes would be mandatory's business, see A7)",
           st == 200 and b.get("ok") and sid2, str(b))
+
+    st, b = create({"name": "CnicGuard H", "roll_no": "960",
+                    "b_form": ""})
+    err = b.get("error") or ""
+    check("A7 empty b_form with B-Form=yes -> 400 mandatory names b_form "
+          "(not a length message)",
+          st == 400 and "Mandatory fields missing" in err
+          and "b_form" in err and "13 digits" not in err, err)
 
     # ==================================================================
     # B. save-tab update path
@@ -112,28 +124,36 @@ try:
     check("B3 restore original b_form -> 200", st == 200 and b.get("ok"), str(b))
 
     # ==================================================================
-    # C. final-submit gates the STORED record too (legacy junk blocks)
+    # C. final-submit gates the STORED record too (legacy junk blocks).
+    #    C3 expects 200, so the carrier must be a COMPLETE record (every
+    #    tab filled) — the mandatory twin rejects incomplete finals.
     # ==================================================================
+    st, b = create_full(admin(), name="CnicGuard C2", roll_no="961")
+    sid3 = b.get("student_id")
+    created.append(sid3)
+    check("C0 full record created for the final-submit round-trip",
+          st == 200 and b.get("ok") and sid3, str(b))
+
     con = sqlite3.connect(str(DB))
     con.execute("UPDATE students SET father_cnic='1234567890' WHERE id=?",
-                (sid2,))
+                (sid3,))
     con.commit()
     con.close()
 
     ac = admin()
     r = ac.post("/api/final-submit",
-                json={"student_id": sid2, "data": {}})
+                json={"student_id": sid3, "data": {}})
     b = r.get_json() or {}
     check("C1 stored short father_cnic blocks final-submit -> 400",
           r.status_code == 400 and "Father CNIC" in (b.get("error") or ""),
           str(b))
 
-    st, b = save({"father_cnic": "35202-1234567-1"}, student_id=sid2,
+    st, b = save({"father_cnic": "35202-1234567-1"}, student_id=sid3,
                  as_admin=True)
     check("C2 fix stored CNIC via save-tab -> 200",
           st == 200 and b.get("ok"), str(b))
     r = ac.post("/api/final-submit",
-                json={"student_id": sid2, "data": {}})
+                json={"student_id": sid3, "data": {}})
     b = r.get_json() or {}
     check("C3 final-submit after fix -> 200 + redirect",
           r.status_code == 200 and b.get("ok")

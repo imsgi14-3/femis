@@ -75,11 +75,11 @@ try:
         students_before = [r["id"] for r in rows("SELECT id FROM students ORDER BY id")]
 
         # --- 1. sentinel student (owned by this file) ---------------------
-        r = app.test_client().post(
-            "/api/save-tab",
-            json={"tab": 1, "student_id": None, "data": {"name": "P3B7 ISOLATION SENTINEL"}},
-        )
-        j = r.get_json() or {}
+        from form_payloads import create_full
+        _ac = app.test_client()
+        with _ac.session_transaction() as _s:
+            _s["role"] = "admin"
+        _st, j = create_full(_ac, name="P3B7 ISOLATION SENTINEL")
         sentinel_sid = j.get("student_id") if j.get("ok") else None
         check("sentinel student created", sentinel_sid is not None, str(j))
 

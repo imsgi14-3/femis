@@ -106,13 +106,12 @@ with app.app_context():
         client = app.test_client()
         with client.session_transaction() as s:
             s["role"] = "admin"
-        resp = client.post(
-            "/api/save-tab",
-            json={"tab": 1, "student_id": None, "data": {"name": "P3B3 SCHEMA TEST"}},
-        )
-        body = resp.get_json()
+        # complete record: B3 (tab-3 save) and B4 (final-submit) both need
+        # stored tabs covered by the server mandatory twin
+        from form_payloads import create_full
+        resp_status, body = create_full(client, name="P3B3 SCHEMA TEST")
         sid = body.get("student_id") if body else None
-        check("B1 create student via API", resp.status_code == 200 and body.get("ok") and sid is not None,
+        check("B1 create student via API", resp_status == 200 and body.get("ok") and sid is not None,
               json.dumps(body))
         if sid:
             created_ids.append(sid)

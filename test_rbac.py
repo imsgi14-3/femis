@@ -18,6 +18,7 @@ sys.path.insert(0, str(ROOT / "femis-web"))
 sys.path.insert(0, str(ROOT))
 
 from app import app, db, Student, Teacher  # noqa: E402
+from form_payloads import create_full, tab1  # noqa: E402
 from sqlalchemy import text  # noqa: E402
 
 DB = ROOT / "femis-web" / "instance" / "femis.db"
@@ -47,11 +48,13 @@ def client(role=None, student_id=None, teacher_class=None, teacher_section=None,
 
 
 def create_student(name, class_id, section_id, roll):
+    # create branch stays open (anon) but must carry a complete tab-1
+    # payload — server mandatory twin rejects partial creates
     r = app.test_client().post(
         "/api/save-tab",
         json={"tab": 1, "student_id": None,
-              "data": {"name": name, "class_id": class_id,
-                       "section_id": section_id, "roll_no": roll}},
+              "data": tab1(name=name, class_id=class_id,
+                           section_id=section_id, roll_no=roll)},
     )
     b = r.get_json() or {}
     return b.get("student_id") if b.get("ok") else None
@@ -414,7 +417,11 @@ try:
               and "New Student Admission" in r.get_data(as_text=True),
               str(r.status_code))
 
-        sid_mine = create_student("RBAC Redirect Student", "9", "A", "991")
+        # L5/L6 final-submit expects 200 -> this carrier must be complete
+        st_m, body_m = create_full(client(role="admin"),
+                                   name="RBAC Redirect Student",
+                                   class_id="9", section_id="A", roll_no="991")
+        sid_mine = body_m.get("student_id") if st_m == 200 else None
         created_students.append(sid_mine)
         r = client(role="student", student_id=sid_mine).get("/form")
         check("L4 student /form -> redirect to own record",

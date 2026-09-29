@@ -225,6 +225,7 @@ tab_1_personal_details:
       - Jhelum Valley
       - Poonch
       - Sudhanoti
+      - Islamabad
     is_hafiz:
       label: is_hafiz
       type: radio
@@ -314,6 +315,11 @@ tab_1_personal_details:
       - F-6/2
       - F-6/3
       - F-6/4
+      - H-13/1
+      - H-13/2
+      - H-13/3
+      - H-13/4
+      - H-13
     village:
       label: Village
       type: dropdown
@@ -527,6 +533,11 @@ tab_1_personal_details:
       - F-6/2
       - F-6/3
       - F-6/4
+      - H-13/1
+      - H-13/2
+      - H-13/3
+      - H-13/4
+      - H-13
     village:
       label: Village
       type: dropdown
@@ -696,7 +707,7 @@ tab_2_parents_guardian:
     other_profession:
       label: Other Profession
       type: text
-      required: false
+      required: true
       source_field: father_profession_other
     income_per_month:
       label: Father's Income (per month)
@@ -704,17 +715,39 @@ tab_2_parents_guardian:
       required: true
       source_field: father_monthly_income
       options:
-      - Lessthan 50,000
+      - Less than 50,000
       - 50,001 - 100,000
       - 100,001 - 200,000
       - 200,001 - 300,000
       - Above 300,000
-      - Less than 50,000
     bps:
       label: Father's BPS
       type: dropdown
-      required: false
+      required: true
       source_field: father_bps
+      options:
+      - '01'
+      - '02'
+      - '03'
+      - '04'
+      - '05'
+      - '06'
+      - '07'
+      - 08
+      - 09
+      - '10'
+      - '11'
+      - '12'
+      - '13'
+      - '14'
+      - '15'
+      - '16'
+      - '17'
+      - '18'
+      - '19'
+      - '20'
+      - '21'
+      - '22'
     domicile_province:
       label: Father Domicile — Province
       type: dropdown
@@ -776,6 +809,7 @@ tab_2_parents_guardian:
       - Murree
       - Chakwal
       - Rawa
+      - Islamabad
     is_orphan:
       label: is_orphan
       type: radio
@@ -1219,9 +1253,15 @@ tab_2_parents_guardian:
     mother_income_per_month:
       label: Mother's Income (per month)
       type: dropdown
-      required: false
+      required: true
       source_field: mother_monthly_income
       note: Required unless mother_profession = Housewife
+      options:
+      - Less than 50,000
+      - 50,001 - 100,000
+      - 100,001 - 200,000
+      - 200,001 - 300,000
+      - Above 300,000
     bps:
       label: Mother's BPS
       type: dropdown
@@ -1306,12 +1346,11 @@ tab_2_parents_guardian:
       required: true
       source_field: guardian_income
       options:
-      - Lessthan 50,000
+      - Less than 50,000
       - 50,001 - 100,000
       - 100,001 - 200,000
       - 200,001 - 300,000
       - Above 300,000
-      - Less than 50,000
     guardian_bps:
       label: Guardian BPS
       type: dropdown
@@ -1347,6 +1386,12 @@ tab_2_parents_guardian:
       type: text
       required: true
       source_field: father_monthly_income
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    bps:
+      label: BPS
+      type: text
+      required: true
+      source_field: father_bps
       note: Auto-discovered from portal DOM (map source_field to DB column when known)
 tab_3_educational_details:
   class_section:

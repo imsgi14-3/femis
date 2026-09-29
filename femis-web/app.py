@@ -11,6 +11,8 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.exc import IntegrityError
 
+import mandatory
+
 try:
     from dotenv import load_dotenv
     load_dotenv()
@@ -664,6 +666,26 @@ def _cnic_length_error(mapped):
     return None
 
 
+def _mandatory_error(tab, student, mapped):
+    """Rejection message when any mandatory field of `tab` is empty.
+
+    Server-side twin of form.js validateTab (femis-web/mandatory.py): the
+    stored record merged with the payload must cover the tab's mandatory
+    set — a save never succeeds with an empty mandatory field.  `student`
+    is the stored row on update (None on create); `mapped` are the payload
+    values keyed by DB column, which override the stored ones.
+    """
+    values = {}
+    if student is not None:
+        values.update({c.name: getattr(student, c.name)
+                       for c in Student.__table__.columns})
+    values.update(mapped)
+    per_tab = [(tab, mandatory.missing_fields(tab, values))]
+    if not per_tab[0][1]:
+        return None
+    return mandatory.error_message(per_tab)
+
+
 @app.route("/api/save-tab", methods=["POST"])
 def api_save_tab():
     payload = request.get_json()
@@ -687,12 +709,18 @@ def api_save_tab():
         err = _uniqueness_error(mapped, exclude_id=student.id)
         if err:
             return jsonify({"ok": False, "error": err}), 409
+        err = _mandatory_error(tab, student, mapped)
+        if err:
+            return jsonify({"ok": False, "error": err}), 400
         for k, v in mapped.items():
             setattr(student, k, v)
     else:
         err = _uniqueness_error(mapped)
         if err:
             return jsonify({"ok": False, "error": err}), 409
+        err = _mandatory_error(tab, None, mapped)
+        if err:
+            return jsonify({"ok": False, "error": err}), 400
         student = Student(**mapped)
         db.session.add(student)
 
@@ -729,6 +757,13 @@ def api_final_submit():
     err = _uniqueness_error(mapped, exclude_id=student.id)
     if err:
         return jsonify({"ok": False, "error": err}), 409
+    values = {c.name: getattr(student, c.name)
+              for c in Student.__table__.columns}
+    values.update(mapped)
+    per_tab = mandatory.missing_record_fields(values)
+    if per_tab:
+        return jsonify({"ok": False,
+                        "error": mandatory.error_message(per_tab)}), 400
     for k, v in mapped.items():
         setattr(student, k, v)
     student.submitted = True
@@ -785,7 +820,12 @@ def submit():
     if err:
         flash(err, "error")
         return redirect(url_for("index"))
-    student = Student(**{k: v for k, v in data.items() if hasattr(Student, k)})
+    mapped = _map_form_data(data)
+    per_tab = mandatory.missing_record_fields(mapped)
+    if per_tab:
+        flash(mandatory.error_message(per_tab), "error")
+        return redirect(url_for("index"))
+    student = Student(**mapped)
     student.submitted = True
     db.session.add(student)
     try:

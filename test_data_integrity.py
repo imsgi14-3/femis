@@ -8,6 +8,7 @@ sys.path.insert(0, str(ROOT / "femis-web"))
 sys.path.insert(0, str(ROOT))
 
 from app import app, db, Student, FORM_FIELD_MAP  # noqa: E402
+from form_payloads import create_full  # noqa: E402
 from src.data_sources.webform_handler import WebFormHandler  # noqa: E402
 
 results = []
@@ -24,14 +25,10 @@ with app.app_context():
         s["role"] = "admin"
     created_ids = []
 
-    # --- create student (Tab 1) ---
-    resp = client.post(
-        "/api/save-tab",
-        json={"tab": 1, "student_id": None, "data": {"name": "P2 DATA INTEGRITY"}},
-    )
-    body = resp.get_json()
+    # --- create student (complete: every tab filled, server mandatory twin) ---
+    resp_st, body = create_full(client, name="P2 DATA INTEGRITY")
     sid = body.get("student_id") if body else None
-    check("create student ok", resp.status_code == 200 and body.get("ok") and sid is not None, json.dumps(body))
+    check("create student ok", resp_st == 200 and body.get("ok") and sid is not None, json.dumps(body))
     if sid:
         created_ids.append(sid)
 
@@ -60,6 +57,7 @@ with app.app_context():
             "data": {
                 "is_refugee": "1",
                 "is_registered_refugee": "1",
+                "idp_status_id": "1",
                 "refugee_card_number": "REF-998877",
             },
         },
@@ -142,12 +140,9 @@ with app.app_context():
         str(rec.get("digital_device_at_home") if rec else None),
     )
 
-    # --- legacy final-submit without data still works ---
-    resp = client.post(
-        "/api/save-tab",
-        json={"tab": 1, "student_id": None, "data": {"name": "P2 LEGACY FINAL"}},
-    )
-    sid2 = resp.get_json().get("student_id")
+    # --- legacy final-submit without data still works (complete record) ---
+    resp_st, body = create_full(client, name="P2 LEGACY FINAL")
+    sid2 = body.get("student_id")
     if sid2:
         created_ids.append(sid2)
     resp = client.post("/api/final-submit", json={"student_id": sid2})

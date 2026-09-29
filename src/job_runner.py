@@ -85,6 +85,37 @@ def snapshot_to_student(snapshot: dict) -> dict:
     return student
 
 
+# CNIC-shaped fields validated as exactly 13 digits — mirrors the server's
+# _cnic_length_error rule (femis-web/app.py). Empty values pass; the portal
+# tolerates absent CNICs, but a present one must be complete.
+CNIC_FIELDS = (
+    ("b_form", "B-Form/CNIC"),
+    ("father_cnic", "Father CNIC"),
+    ("mother_cnic", "Mother CNIC"),
+    ("guardian_cnic", "Guardian CNIC"),
+)
+
+
+def cnic_data_error(student: dict) -> str | None:
+    """First incomplete CNIC value in the snapshot, else None.
+
+    Dashes/spaces are display formatting and are stripped before the length
+    check; anything else non-digit or not exactly 13 digits is reported with
+    its field label so the error names what a human must fix.
+    """
+    for key, label in CNIC_FIELDS:
+        raw = student.get(key)
+        if raw is None:
+            continue
+        value = str(raw).strip()
+        if not value:
+            continue
+        digits = re.sub(r"[\s-]", "", value)
+        if not digits.isdigit() or len(digits) != 13:
+            return f"{label}: must be exactly 13 digits without dashes (got '{value}')"
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Evidence -> API completion payload
 # ---------------------------------------------------------------------------
@@ -129,6 +160,39 @@ def classify_exception(exc: BaseException) -> str:
     return "unknown"
 
 
+def _issue_lines(evidence: dict, errors: list[str], diag) -> list[str]:
+    """Field-named issue lines for classify messages, most specific first.
+
+    Source order: per-save blockers (label-named by _save_blockers),
+    finish-time errors (label-named by _collect_errors), diagnostics
+    blockers, empty required controls (DOM name), diagnostic texts, and
+    the fill-traversal record (which tab stalled and on what field).
+    Exact duplicates are dropped; callers cap count/length.
+    """
+    out: list[str] = []
+
+    def add(items):
+        for e in items or []:
+            e = str(e).strip()
+            if e and e not in out:
+                out.append(e)
+
+    add(evidence.get("blockers"))
+    add(errors)
+    if isinstance(diag, dict):
+        add(diag.get("blockers"))
+        for x in diag.get("emptyRequired") or []:
+            nm = re.sub(
+                r"\s*\[(?:required empty|radio required|checkbox required)\]\s*$",
+                "", str(x),
+            ).strip()
+            if nm:
+                add([f"{nm}: This field is required."])
+        add(diag.get("errorTexts"))
+    add(evidence.get("traversal_issues"))
+    return out
+
+
 def classify_submit_failure(evidence: dict | None) -> tuple[str, str]:
     """Evidence from submit_form -> (failure_category, error_message)."""
     evidence = evidence or {}
@@ -155,9 +219,11 @@ def classify_submit_failure(evidence: dict | None) -> tuple[str, str]:
         where = f" (tab {tab})" if tab else ""
         return "validation", f"Duplicate record conflict{where}: {detail}"
 
+    named = _issue_lines(evidence, errors, diag)
+
     if not finish:
-        if errors:
-            return "validation", "Finish not available: " + "; ".join(errors[:3])[:380]
+        if named:
+            return "validation", "Finish not available: " + "; ".join(named[:3])[:380]
         if indicator:
             return "femis", "Success indicator seen without a Finish click."
         return "femis", "Finish button not available/clicked; submission did not occur."
@@ -167,8 +233,8 @@ def classify_submit_failure(evidence: dict | None) -> tuple[str, str]:
         return "network", (f"Finish clicked; network error before confirmation: {text[:300]}")
     if TIMEOUT_RE.search(text):
         return "timeout", (f"Finish clicked; timed out before confirmation: {text[:300]}")
-    if errors:
-        return "validation", ("Validation errors blocked submission: " + "; ".join(errors[:3])[:380])
+    if named:
+        return "validation", ("Validation errors blocked submission: " + "; ".join(named[:3])[:380])
     return "femis", "Finish clicked but success indicator not confirmed."
 
 
@@ -404,6 +470,30 @@ async def _execute_claimed(client, claim_body: dict, claimed_by: str, worker,
             "job_id": job_id, "student_id": student_id, "student": name,
             "status": STATUS_ERROR, "submitted": None,
             "reason": f"invalid snapshot (complete {'ok' if ok else f'failed: {status}'})",
+            "complete_ok": ok,
+        }
+
+    # Incomplete CNIC/B-Form data: fail closed before any FEMIS work — the
+    # portal rejects partial CNICs mid-fill (or silently creates bad records),
+    # so a human must fix the field first. Mirrors the server's
+    # _cnic_length_error gate for legacy rows that predate it.
+    cnic_err = cnic_data_error(student)
+    if cnic_err:
+        logger.error(f"Job {job_id}: {cnic_err}")
+        payload = {
+            "outcome": "failed",
+            "failure_category": "validation",
+            "outcome_known": True,  # no FEMIS work started
+            "bot_result_code": "error",
+            "error_message": f"Incomplete CNIC — record not filled: {cnic_err}"[:1000],
+        }
+        status, resp = client.complete(job_id, claimed_by, generation, payload)
+        ok = status == 200 and bool((resp or {}).get("ok"))
+        return {
+            "job_id": job_id, "student_id": student_id, "student": name,
+            "status": STATUS_ERROR, "submitted": None,
+            "reason": payload["error_message"],
+            "failure_category": "validation",
             "complete_ok": ok,
         }
 

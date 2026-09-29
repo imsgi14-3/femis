@@ -6,7 +6,14 @@ requirements — not against any previous phase report.
 
 History: written in Phase 3B.11 as a diagnosis that locked the GAP state; updated
 alongside the misalignment-report §6 fixes (visibility-gated validateTab, guardian
-gating, hearing-aid parity, mother-income asterisk, all-tabs final submit).
+gating, hearing-aid parity, mother-income asterisk, all-tabs final submit), then
+the 2026-09-29 failed-job fixes (address family + Other-profession conditionals +
+email format validation — FEMIS blocked empty address/present_address for
+Address Type=Other, empty mother/father/guardian_profession_other for
+profession=Other, and email 'Nil' at submit while PA Save & Next let them pass).
+2026-09-29 (later): the server-side twin landed in femis-web/mandatory.py —
+[X] now locks the save/final-submit/legacy-submit wiring and the exact rule
+parity between the client lists and the server spec.
 Each requirement is evaluated as MET or GAP; further fixes must consciously
 update this file.
 """
@@ -83,10 +90,11 @@ def js_mandatory(name):
     return name in JS_MAND
 
 
-# server-side mandatory validation inside api_save_tab / api_final_submit
+# server-side twin of validateTab (femis-web/mandatory.py): wiring inside
+# api_save_tab / api_final_submit and the legacy /submit route
 save_body = APP[APP.find("def api_save_tab"):APP.find("def api_final_submit")]
 submit_body = APP[APP.find("def api_final_submit"):APP.find("def api_upload_file")]
-server_mandatory = bool(re.search(r"missing|required_fields|mandatory", save_body + submit_body))
+legacy_body = APP[APP.find("def submit("):]
 
 print("=" * 78)
 print("MANDATORY-FIELD RECONCILIATION (actual current HTML / JS / server)")
@@ -356,20 +364,87 @@ check("[34] guardian relation Other -> Other Relation mandatory + asterisk",
       'Other Relation <span class="text-danger">*</span>' in HTML,
       str(cond_rule("guardian_relation_other")))
 
+# 35. Address detail family — visibility-gated mandatory (2026-09-29 report:
+#     FEMIS blocked empty address/present_address for Address Type=Other and
+#     empty house/street otherwise while PA Save & Next let them pass)
+_addr_family = ("house", "street", "address",
+                "present_house", "present_street", "present_address")
+check("[35] address family JS-mandatory (tab0, visibility-gated)",
+      all(js_mandatory(f) for f in _addr_family),
+      f"missing: {[f for f in _addr_family if not js_mandatory(f)]}")
+check("[35] address-type toggles wire Other-textarea vs house/street (temp + present)",
+      JS.count('if (otherDiv) otherDiv.style.display = isOther ? "block" : "none";') == 2 and
+      JS.count('if (houseStreet) houseStreet.style.display = isOther ? "none" : "block";') == 2,
+      "both address_type IIFEs show #other_address_group / #house_street_group")
+check("[35] address detail labels carry red asterisks (temp + present)",
+      '<label class="form-label">Address <span class="text-danger">*</span></label>' in HTML and
+      HTML.count('<label class="form-label">House # (Permanent) <span class="text-danger">*</span></label>') == 1 and
+      HTML.count('<label class="form-label">Street # (Permanent) <span class="text-danger">*</span></label>') == 1)
+
+# 36. Other-profession specify fields required when profession = Other (FEMIS
+#     blocked empty mother_profession_other for Hajra riaz; father/guardian
+#     are the same pattern — native required attr toggled with the group)
+for _pf, _trig in (("father_profession_other", "father_profession"),
+                   ("mother_profession_other", "mother_profession"),
+                   ("guardian_profession_other", "guardian_profession")):
+    check(f"[36] {_pf} conditional on {_trig}=Other",
+          cond_rule(_pf) == (_trig, ["Other"]), str(cond_rule(_pf)))
+check("[36] profession-Other groups visibility wired + labels asterisked",
+      'id="father_profession_other_group"' in HTML and
+      'selectToggle("father_profession", "father_profession_other_group", ["Other"])' in JS and
+      'id="mother_profession_other_group"' in HTML and
+      'selectToggle("mother_profession", "mother_profession_other_group", ["Other"])' in JS and
+      'id="guardian_profession_other_group"' in HTML and
+      'selectToggle("guardian_profession", "guardian_profession_other_group", ["Other"])' in JS and
+      HTML.count('<label class="form-label">Other Profession <span class="text-danger">*</span></label>') == 3)
+
+# 37. Email format — FEMIS's native type=email rejects 'Nil' (no @) at submit;
+#     validateTab must mirror it because the JS submit handler suppresses
+#     native validation (2026-09-29: Alisha zulfiqar passed PA with email='Nil')
+check("[37] email format validated in validateTab (non-empty must be @-shaped)",
+      "/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/" in JS and "(enter a valid email address)" in JS,
+      "regex + message live next to the CNIC length guard")
+
 # ---- cross-cutting facts ----
-check("[X] no server-side mandatory validation in save/submit routes",
-      server_mandatory is False,
-      "only B-Form uniqueness is enforced server-side")
-if not server_mandatory:
-    gap("X. server-side validation",
-        "every mandatory rule is client-side only; /api/save-tab and /api/final-submit "
-        "accept arbitrary partial payloads (bot/API clients bypass HTML+JS entirely)")
+# 2026-09-29: server-side twin of validateTab (femis-web/mandatory.py).
+# A save of tab N succeeds only if tab N has no empty mandatory field, and
+# final-submit only if no tab does — for EVERY caller (browser, API,
+# script).  Scenario behaviour (branches, messages, stored-record gate) is
+# exercised by test_server_mandatory_validation.py; this section locks the
+# wiring and the exact rule parity with the client.
+sys.path.insert(0, str(ROOT / "femis-web"))
+import mandatory as server_spec  # noqa: E402
+
+server_wired = ("_mandatory_error(" in save_body
+                and "missing_record_fields" in submit_body
+                and "missing_record_fields" in legacy_body)
+check("[X] server-side mandatory validation wired in save + final-submit + /submit",
+      server_wired,
+      "femis-web/mandatory.py twin of validateTab gates all three write paths")
+
+client_fields = set(JS_MAND)
+for _cfields, _, _ in COND:
+    client_fields.update(_cfields)
+client_fields.add("mother_monthly_income")  # bespoke §8 block in validateTab
+client_groups = {f for f in client_fields if f.endswith("[]")}
+server_fields = server_spec.coverage()
+check("[X] server spec covers exactly the client-enforced field set",
+      server_fields == (client_fields - client_groups),
+      f"server-only: {sorted(server_fields - (client_fields - client_groups))}; "
+      f"client-only: {sorted((client_fields - client_groups) - server_fields)}")
+check("[X] checkbox-group exception matches the client (rendered == filled)",
+      client_groups == {"disability_types[]", "digital_device_type[]"}
+      and not (client_groups & server_fields),
+      str(sorted(client_groups)))
+check("[X] server DB renames stay inside app.FORM_FIELD_MAP",
+      all(f'"{k}": "{v}"' in APP for k, v in server_spec.DB_NAME.items()),
+      str(server_spec.DB_NAME))
 
 html_only = [n for n, r in sorted(ctrl.items())
              if r["required"] and n not in JS_MAND
              and not any(n in f for f, _, _ in COND)]
-check("[X] HTML-required-but-not-JS list captured (b_form now JS-enforced)",
-      set(html_only) >= {"house", "street"} and "b_form" not in html_only,
+check("[X] no HTML-required attribute escapes JS validation (house/street closed)",
+      html_only == [],
       f"html-only required: {html_only}")
 if html_only:
     gap("X. HTML-only required attributes",

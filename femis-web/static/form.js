@@ -642,7 +642,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // (misalignment report §6-P1.1/P1.2/P1.3).
     // ==================================================================
     var mandatoryByTab = {
-        0: ["name", "is_bform_available", "b_form", "gender", "date_of_birth", "birth_province_id", "birth_district_id", "nationality", "address_type", "sector_id", "sub_sector_id", "contact_number", "city_id", "present_address_type", "present_sector_id", "present_sub_sector_id", "religion", "language_id", "email"],
+        0: ["name", "is_bform_available", "b_form", "gender", "date_of_birth", "birth_province_id", "birth_district_id", "nationality", "address_type", "sector_id", "sub_sector_id", "house", "street", "address", "contact_number", "city_id", "present_address_type", "present_sector_id", "present_sub_sector_id", "present_house", "present_street", "present_address", "religion", "language_id", "email"],
         1: [
             "father_name", "father_cnic", "is_father_alive", "father_profession",
             "father_qualification", "father_monthly_income",
@@ -749,6 +749,9 @@ document.addEventListener("DOMContentLoaded", function () {
             {fields: ["mother_contact"], trigger: "is_mother_alive", values: ["1"]},
             {fields: ["mother_bps"], trigger: "mother_profession", values: ["Govt Employee"]},
             {fields: ["girls_stipend"], trigger: "gender", values: ["Female"]},
+            {fields: ["father_profession_other"], trigger: "father_profession", values: ["Other"]},
+            {fields: ["mother_profession_other"], trigger: "mother_profession", values: ["Other"]},
+            {fields: ["guardian_profession_other"], trigger: "guardian_profession", values: ["Other"]},
             {fields: ["guardian_name", "guardian_cnic", "guardian_relation", "guardian_contact", "guardian_profession", "guardian_income"], trigger: "is_father_alive", values: ["0"]},
         ];
         conditionalRequired.forEach(function (cr) {
@@ -811,6 +814,18 @@ document.addEventListener("DOMContentLoaded", function () {
                 );
             }
         });
+
+        // Email: a filled value must be a real address — FEMIS's native
+        // type=email control rejects 'Nil' (missing @) at submit, and this
+        // handler's preventDefault suppresses native validation, so the
+        // format check has to run here. Empty stays the required-list's job.
+        var emailCtl = fieldControl(pane, "email");
+        if (emailCtl && !isHiddenWithin(pane, emailCtl.els[0])) {
+            var emailVal = controlValue(emailCtl);
+            if (emailVal && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+                missing.push(fieldLabel(pane, "email") + " (enter a valid email address)");
+            }
+        }
 
         if (missing.length > 0) {
             alert("Tab " + (tabIndex + 1) + " — please fill the following mandatory fields:\n\n• " + missing.join("\n• "));

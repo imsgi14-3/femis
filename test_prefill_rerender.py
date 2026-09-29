@@ -140,11 +140,13 @@ CLEAR_CHECKBOXES_JS = """
 """
 
 # mandatoryByTab[0] (form.js) minus the fields prefilled from the fixture.
-# b_form + present_* are newly mandatory (misalignment report §6-P1.1); the
-# present-address sub-sector needs its own fill after the cascade resolves.
+# b_form + present_* are newly mandatory (misalignment report §6-P1.1);
+# house/street + present_house/present_street joined them 2026-09-29 (address
+# family visibility-gated); the present-address sub-sector needs its own fill
+# after the cascade resolves.
 TAB1_FILL = ["name", "is_bform_available", "b_form", "gender", "date_of_birth", "nationality",
-             "contact_number", "city_id", "religion", "language_id", "email"]
-TAB1_PRESENT = ["present_address_type", "present_sector_id"]
+             "house", "street", "contact_number", "city_id", "religion", "language_id", "email"]
+TAB1_PRESENT = ["present_address_type", "present_sector_id", "present_house", "present_street"]
 TAB1_PRESENT_SUB = ["present_sub_sector_id"]
 # Final submit validates every tab (§8-8.2) — each tab must be filled + saved.
 TAB2_FILL = ["father_name", "father_cnic", "is_father_alive", "father_contact",

@@ -18,6 +18,7 @@ sys.path.insert(0, str(ROOT / "femis-web"))
 sys.path.insert(0, str(ROOT))
 
 from app import app, db, Student  # noqa: E402
+from form_payloads import create_full, tab1  # noqa: E402
 
 DB = ROOT / "femis-web" / "instance" / "femis.db"
 BASELINE_IDS = [3, 4, 6, 8, 9, 10]
@@ -43,6 +44,9 @@ def admin():
 
 
 def save(data, student_id=None, as_admin=False):
+    if student_id is None:
+        # complete tab-1 payload (server mandatory twin); explicit keys win
+        data = {**tab1(), **data}
     c = admin() if as_admin else anon()
     r = c.post("/api/save-tab",
                json={"tab": 1, "student_id": student_id, "data": data})
@@ -72,13 +76,15 @@ try:
           st == 409 and "already used" in (b.get("error") or ""), str(b))
 
     st, b = save({"name": "DupGuard D", "class_id": "5", "section_id": "Z",
-                  "roll_no": "904"})
+                  "roll_no": "904", "b_form": "",
+                  "is_bform_available": "0"})
     sid4 = b.get("student_id")
     created.append(sid4)
     check("A4 create without b_form ok (empty never conflicts)",
           st == 200 and sid4, str(b))
     st, b = save({"name": "DupGuard E", "class_id": "5", "section_id": "Z",
-                  "roll_no": "905"})
+                  "roll_no": "905", "b_form": "",
+                  "is_bform_available": "0"})
     sid5 = b.get("student_id")
     created.append(sid5)
     check("A5 second empty b_form ok (empties may repeat)",
@@ -137,11 +143,19 @@ try:
           st == 200 and sid9, str(b))
 
     # ==================================================================
-    # D. final-submit path (admin session; data included in payload)
+    # D. final-submit path (admin session; data included in payload).
+    #    D3 expects 200, so the carrier must be a COMPLETE record (the
+    #    mandatory twin rejects incomplete finals).
     # ==================================================================
+    st, b = create_full(admin(), name="AdmGuard F", roll_no="914")
+    sid10 = b.get("student_id")
+    created.append(sid10)
+    check("D0 full record created for the final-submit round-trip",
+          st == 200 and b.get("ok") and sid10, str(b))
+
     ac = admin()
     r = ac.post("/api/final-submit",
-                json={"student_id": sid8,
+                json={"student_id": sid10,
                       "data": {"admission_number": "ADM-2026-002"}})
     b = r.get_json() or {}
     check("D1 final-submit duplicate admission -> 409",
@@ -149,7 +163,7 @@ try:
           str(b))
 
     r = ac.post("/api/final-submit",
-                json={"student_id": sid8,
+                json={"student_id": sid10,
                       "data": {"admission_number": "ADM-2026-003",
                                "b_form": "36302-9876543-2"}})
     b = r.get_json() or {}
@@ -158,7 +172,7 @@ try:
           str(b))
 
     r = ac.post("/api/final-submit",
-                json={"student_id": sid8,
+                json={"student_id": sid10,
                       "data": {"admission_number": "ADM-2026-003",
                                "b_form": "7777777777777"}})
     b = r.get_json() or {}
