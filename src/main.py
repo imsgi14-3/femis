@@ -245,6 +245,15 @@ class FEMISBot:
             self.filler.progress_callback = on_progress
             self.filler.abort_check = should_abort
             self.filler.last_submit = None
+            self.filler.duplicate_conflict = None
+
+            def _evidence():
+                ev = dict(self.filler.last_submit or {})
+                dup = self.filler.duplicate_conflict
+                if dup:
+                    ev["duplicate_conflict"] = dup
+                return ev or None
+
             try:
                 # Search the portal student list by name/CNIC first: open the
                 # existing record's edit page when found, else the create form.
@@ -254,14 +263,14 @@ class FEMISBot:
                 submitted = await self.filler.submit_form(page, student)
                 return WorkResult(
                     submitted=bool(submitted),
-                    evidence=self.filler.last_submit,
+                    evidence=_evidence(),
                     failed_field=self.filler._last_attempted_field,
                 )
             except Exception as e:
                 logger.error(f"Job worker error: {e}")
                 return WorkResult(
                     submitted=False,
-                    evidence=self.filler.last_submit,
+                    evidence=_evidence(),
                     error=e,
                     failed_field=self.filler._last_attempted_field,
                 )

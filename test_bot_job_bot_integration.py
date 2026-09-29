@@ -649,6 +649,35 @@ try:
           cat_v == "validation" and cat_n == "network" and cat_d == "femis",
           f"{cat_v}/{cat_n}/{cat_d}")
 
+    cat_dup, msg_dup = classify_submit_failure(
+        {"finish_clicked": False, "indicator_detected": False,
+         "errors": ["B-Form has already been taken"], "diagnostics": None})
+    cat_mk, msg_mk = classify_submit_failure(
+        {"finish_clicked": False, "indicator_detected": False,
+         "duplicate_conflict": {"tab": 3,
+                                "errors": ["Admission number has already been taken"]},
+         "errors": [], "diagnostics": None})
+    check(
+        "J2b duplicate conflict -> validation + stable marker prefix",
+        cat_dup == "validation" and cat_mk == "validation"
+        and msg_dup.startswith("Duplicate record conflict")
+        and msg_mk.startswith("Duplicate record conflict (tab 3)")
+        and "already been taken" in msg_mk,
+        f"{cat_dup}:{msg_dup} | {cat_mk}:{msg_mk}",
+    )
+    p_dup = build_complete_payload(WorkResult(evidence={
+        "finish_clicked": False, "indicator_detected": False,
+        "duplicate_conflict": {"tab": 2,
+                               "errors": ["B-Form has already been taken"]},
+        "errors": [], "diagnostics": None}))
+    check(
+        "J2c conflict marker survives into the complete payload",
+        p_dup["outcome"] == "failed"
+        and p_dup["failure_category"] == "validation"
+        and "duplicate record conflict" in (p_dup.get("error_message") or "").lower(),
+        str({k: p_dup.get(k) for k in ("outcome", "failure_category", "error_message")}),
+    )
+
     p_big = build_complete_payload(WorkResult(evidence={
         "finish_clicked": False, "indicator_detected": False, "outcome_known": True,
         "errors": ["x" * 500, "y" * 500, "z" * 500], "diagnostics": None}),

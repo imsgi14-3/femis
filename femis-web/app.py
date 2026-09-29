@@ -1208,8 +1208,11 @@ def _agent_state():
 def _enqueue_final_jobs(identity):
     """Create pending jobs for locked+submitted (final) records.
 
-    Skips records with an open job, not-yet-final records, and records whose
-    current version was already filled successfully. Returns (created, skipped).
+    Skips records with an open job, not-yet-final records, records whose
+    current version was already filled successfully, and records whose last
+    attempt died on a portal duplicate conflict (CNIC / admission no.) —
+    those need a human fix on the portal and a manual Queue Job, so auto
+    runs must not loop on them. Returns (created, skipped).
     """
     candidates = Student.query.filter(
         Student.locked.is_(True),
@@ -1233,6 +1236,18 @@ def _enqueue_final_jobs(identity):
             BotJob.student_data_version == st.updated_at,
         ).first()
         if done_at_version is not None:
+            skipped += 1
+            continue
+        last_attempt = BotJob.query.filter(
+            BotJob.student_id == st.id,
+            BotJob.status != "cancelled",
+        ).order_by(BotJob.id.desc()).first()
+        if (
+            last_attempt is not None
+            and last_attempt.status == "failed"
+            and "duplicate record conflict"
+            in (last_attempt.error_message or "").lower()
+        ):
             skipped += 1
             continue
         data, status = svc_create(

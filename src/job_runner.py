@@ -140,6 +140,21 @@ def classify_submit_failure(evidence: dict | None) -> tuple[str, str]:
     if isinstance(diag, dict):
         diag_text = " ".join(str(x) for x in (diag.get("errorTexts") or []))
 
+    # Human-intervention conflict: a portal duplicate (CNIC / admission no.)
+    # that beat automatic recovery. Normalized to a stable message prefix —
+    # the server's auto-queue keys on "Duplicate record conflict" to keep
+    # these records out of automatic runs until a human queues them.
+    dup = evidence.get("duplicate_conflict") or {}
+    dup_errors = [str(e) for e in (dup.get("errors") or []) if e]
+    if not dup_errors:
+        dup_errors = [e for e in errors + ([diag_text] if diag_text else [])
+                      if "already been taken" in e.lower()]
+    if dup_errors:
+        detail = "; ".join(dup_errors[:3])[:380]
+        tab = dup.get("tab")
+        where = f" (tab {tab})" if tab else ""
+        return "validation", f"Duplicate record conflict{where}: {detail}"
+
     if not finish:
         if errors:
             return "validation", "Finish not available: " + "; ".join(errors[:3])[:380]

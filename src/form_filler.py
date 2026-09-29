@@ -73,6 +73,9 @@ class FormFiller:
         self.abort_check = None            # callable() -> True means abort the run safely
         self.last_submit: dict | None = None  # evidence captured by submit_form()
         self._last_attempted_field: str | None = None
+        # Portal duplicate (CNIC/admission) that beat automatic recovery:
+        # a human must resolve it on the portal before a retry can pass.
+        self.duplicate_conflict: dict | None = None
 
     def _load_field_map(self) -> dict:
         with open(FIELD_MAP_PATH, "r", encoding="utf-8") as f:
@@ -252,6 +255,7 @@ class FormFiller:
         self._attach_save_listeners(page)
         self.student_data = student_data
         self._just_filled = False
+        self.duplicate_conflict = None
 
         probe_edit = self.form_mode == "edit"
         if probe_edit:
@@ -311,6 +315,18 @@ class FormFiller:
                         await self._fill_tab_fields(page, i, student_data)
                         result = await self._save_next(page, i)
                     if not result.get("ok"):
+                        still_dup = [
+                            str(e) for e in (result.get("errors") or [])
+                            if "already been taken" in str(e).lower()
+                        ]
+                        if still_dup:
+                            # Auto-recovery (edit-mode switch) could not make
+                            # this tab save — a human must resolve the portal
+                            # duplicate (CNIC / admission no.) before retrying.
+                            self.duplicate_conflict = {
+                                "tab": i,
+                                "errors": still_dup[:3],
+                            }
                         await self._learn_unmapped_fields(page, i, result.get("errors") or [])
                         # Position is handled by the next iteration's active-tab
                         # check (recovery), never a routine top-nav jump.

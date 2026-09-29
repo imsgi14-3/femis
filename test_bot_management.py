@@ -522,15 +522,18 @@ try:
         f"r={r} agent={adm and adm.get('agent')}",
     )
 
-    # One eligible final + three that must be skipped by auto-enqueue.
+    # One eligible final, one duplicate-conflict final, and three that must
+    # be skipped by auto-enqueue.
     sid_final = create_student("Bot Mgmt Final")
     sid_done = create_student("Bot Mgmt Done")
     sid_locked_only = create_student("Bot Mgmt LockedOnly")
     sid_sub_only = create_student("Bot Mgmt SubOnly")
+    sid_conflict = create_student("Bot Mgmt Conflict")
     sql("UPDATE students SET locked=1, submitted=1 WHERE id=?", (sid_final,))
     sql("UPDATE students SET locked=1, submitted=1 WHERE id=?", (sid_done,))
     sql("UPDATE students SET locked=1 WHERE id=?", (sid_locked_only,))
     sql("UPDATE students SET submitted=1 WHERE id=?", (sid_sub_only,))
+    sql("UPDATE students SET locked=1, submitted=1 WHERE id=?", (sid_conflict,))
     with app.app_context():
         st_done = db.session.get(Student, sid_done)
         db.session.add(BotJob(
@@ -539,6 +542,17 @@ try:
             requested_at=datetime.utcnow(), completed_at=datetime.utcnow(),
             created_by="fixture", outcome_known=True, finish_clicked=True,
             indicator_detected=True, bot_result_code="success",
+        ))
+        st_conf = db.session.get(Student, sid_conflict)
+        db.session.add(BotJob(
+            student_id=sid_conflict, attempt_number=1, status="failed",
+            student_data_version=st_conf.updated_at,
+            requested_at=datetime.utcnow(), completed_at=datetime.utcnow(),
+            created_by="fixture", outcome_known=True, finish_clicked=False,
+            indicator_detected=False, bot_result_code="submit_failed",
+            failure_category="validation",
+            error_message="Duplicate record conflict (tab 3): "
+                          "B-Form has already been taken",
         ))
         db.session.commit()
 
@@ -674,6 +688,58 @@ try:
         "I16 schedule disable clears it from state",
         r == 200 and b.get("schedule") is None and adm.get("schedule") is None,
         f"r={r}",
+    )
+
+    # Duplicate-conflict rule: auto-queue skips a record whose last attempt
+    # died on a CNIC/admission conflict; non-conflict failures still requeue;
+    # the admin can always queue the conflict record manually.
+    conf_jobs = all_rows(
+        "SELECT status, error_message FROM bot_jobs WHERE student_id=? "
+        "ORDER BY id", (sid_conflict,))
+    check(
+        "I17 duplicate-conflict failure is never auto-requeued",
+        len(conf_jobs) == 1 and conf_jobs[0]["status"] == "failed"
+        and "duplicate record conflict"
+        in (conf_jobs[0]["error_message"] or "").lower(),
+        str(conf_jobs),
+    )
+
+    sid_retry = create_student("Bot Mgmt Retry")
+    sql("UPDATE students SET locked=1, submitted=1 WHERE id=?", (sid_retry,))
+    with app.app_context():
+        st_re = db.session.get(Student, sid_retry)
+        db.session.add(BotJob(
+            student_id=sid_retry, attempt_number=1, status="failed",
+            student_data_version=st_re.updated_at,
+            requested_at=datetime.utcnow(), completed_at=datetime.utcnow(),
+            created_by="fixture", outcome_known=True, finish_clicked=False,
+            indicator_detected=False, bot_result_code="submit_failed",
+            failure_category="network",
+            error_message="Network timeout talking to FEMIS",
+        ))
+        db.session.commit()
+    cap(admin().post("/api/admin/bot/run", json={}))
+    r, b = cap(bot().post("/api/bot/agent/poll",
+                          json={"local_time": "2026-01-01 03:01:00"}, headers=BOT_H))
+    retry_job = one(
+        "SELECT status FROM bot_jobs WHERE student_id=? "
+        "ORDER BY id DESC LIMIT 1", (sid_retry,))
+    conf_jobs = all_rows("SELECT id FROM bot_jobs WHERE student_id=?", (sid_conflict,))
+    check(
+        "I18 next run requeues a non-conflict failure, conflict stays skipped",
+        r == 200 and b.get("should_run") is True and b.get("reason") == "manual"
+        and b.get("enqueued") == 1
+        and (retry_job or {}).get("status") == "pending"
+        and len(conf_jobs) == 1,
+        f"r={r} enqueued={b and b.get('enqueued')} retry={retry_job} conflict_rows={len(conf_jobs)}",
+    )
+
+    r, b = cap(admin().post("/api/admin/bot/jobs", json={"student_id": sid_conflict}))
+    check(
+        "I19 admin can manually queue the conflict record (Queue Job)",
+        r == 200 and b.get("ok") is True and (b.get("job") or {}).get("status") == "pending"
+        and (b.get("job") or {}).get("attempt_number") == 2,
+        f"r={r} job={b and b.get('job')}",
     )
 
     # =================================================================
