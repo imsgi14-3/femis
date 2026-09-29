@@ -4,13 +4,11 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h4 class="mb-0">
     <i class="bi bi-speedometer2 me-2"></i>
-    {{ "Student Dashboard" if role == "student" else ("Admin Dashboard" if role == "admin" else "Teacher Dashboard") }}
+    {{ "Student Dashboard" if role == "student" else "Teacher Dashboard" }}
   </h4>
   <div>
     <span class="text-muted me-3">Welcome, <strong>{{ user_name }}</strong></span>
-    {% if role == "admin" %}
-      <span class="badge bg-danger me-2">Admin</span>
-    {% elif role == "teacher" %}
+    {% if role == "teacher" %}
       <span class="badge bg-primary me-2">{{ session.teacher_class }} - {{ session.teacher_section }}</span>
     {% endif %}
     <a href="/logout" class="btn btn-outline-secondary btn-sm"><i class="bi bi-box-arrow-right me-1"></i>Logout</a>
@@ -86,17 +84,12 @@
     </div>
   {% endif %}
 
-{% elif role in ("teacher", "admin") %}
+{% elif role == "teacher" %}
   <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
       <span class="badge bg-primary fs-6">{{ students|length }} Students</span>
     </div>
     <div class="d-flex gap-2">
-      {% if role == "admin" %}
-      <button class="btn btn-outline-primary btn-sm" onclick="showRegisterTeacher()">
-        <i class="bi bi-person-plus me-1"></i>Add Teacher
-      </button>
-      {% endif %}
       <a href="/form" class="btn btn-primary btn-sm"><i class="bi bi-plus-circle me-1"></i>Add Student</a>
     </div>
   </div>
@@ -156,183 +149,12 @@
       {% else %}
       <div class="text-center py-5">
         <i class="bi bi-inbox display-3 text-muted"></i>
-        {% if role == "admin" %}
-        <p class="text-muted mt-2">No students yet.</p>
-        {% else %}
         <p class="text-muted mt-2">No students in {{ session.teacher_class }} - {{ session.teacher_section }} yet.</p>
-        {% endif %}
       </div>
       {% endif %}
     </div>
   </div>
-
-  {% if role == "admin" %}
-  <h5 class="mt-4 mb-3"><i class="bi bi-people me-2"></i>Teachers</h5>
-  <div class="card shadow-sm border-0">
-    <div class="card-body p-0">
-      {% if teachers %}
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="table-light">
-            <tr>
-              <th width="40">#</th>
-              <th>Name</th>
-              <th>Class</th>
-              <th>Section</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for t in teachers %}
-            <tr>
-              <td>{{ loop.index }}</td>
-              <td><strong>{{ t.name }}</strong></td>
-              <td>{{ t.class_id }}</td>
-              <td>{{ t.section_id }}</td>
-              <td>
-                <button class="btn btn-sm btn-outline-warning" onclick="resetTeacherPassword({{ t.id }})" title="Reset password">
-                  <i class="bi bi-key"></i>
-                </button>
-                <button class="btn btn-sm btn-outline-danger" onclick="deleteTeacher({{ t.id }})" title="Delete teacher">
-                  <i class="bi bi-trash"></i>
-                </button>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% else %}
-      <div class="text-center py-4">
-        <p class="text-muted mb-0">No teachers yet. Use “Add Teacher” above.</p>
-      </div>
-      {% endif %}
-    </div>
-  </div>
-  {% endif %}
-
-  {% if role == "admin" %}
-  <h5 class="mt-4 mb-3"><i class="bi bi-robot me-2"></i>Bot Queue</h5>
-  <div class="card shadow-sm border-0" id="botQueueCard">
-    <div class="card-body">
-      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-        <div class="d-flex align-items-center gap-2 flex-wrap">
-          <span class="badge bg-secondary" id="botQueueState"><i class="bi bi-hourglass-split me-1"></i>Loading…</span>
-          <span class="badge bg-dark" id="botAgentState" title="PC agent heartbeat"><i class="bi bi-pc-display me-1"></i>Agent …</span>
-          <span class="text-muted small" id="botQueueTotal"></span>
-          <span class="badge bg-warning text-dark d-none" id="botRunRequested"><i class="bi bi-clock-history me-1"></i>Run requested — waiting for agent…</span>
-        </div>
-        <div class="d-flex gap-2 flex-wrap">
-          <button class="btn btn-sm btn-success" id="btnBotRunNow" onclick="botRunNow()">
-            <i class="bi bi-play-fill me-1"></i>Run Bot Now
-          </button>
-          <button class="btn btn-sm btn-outline-warning" id="btnBotPause" onclick="botTogglePause()">
-            <i class="bi bi-pause-circle me-1"></i>Pause
-          </button>
-          <button class="btn btn-sm btn-outline-secondary" id="btnBotResetStale" onclick="botResetStale()"
-                  title="Requeue claimed/running jobs whose lease has expired">
-            <i class="bi bi-arrow-repeat me-1"></i>Reset Stale
-          </button>
-          <button class="btn btn-sm btn-outline-primary" onclick="botLoadJobs()">
-            <i class="bi bi-arrow-clockwise me-1"></i>Refresh
-          </button>
-        </div>
-      </div>
-      <div class="d-flex gap-2 mb-3 flex-wrap">
-        <select class="form-select form-select-sm" id="botStudentSelect" style="max-width: 340px">
-          <option value="">Select student…</option>
-          {% for s in students %}
-          <option value="{{ s.id }}">{{ s.name or ('Student #' ~ s.id) }} (#{{ s.id }})</option>
-          {% endfor %}
-        </select>
-        <button class="btn btn-sm btn-primary" id="btnBotCreate" onclick="botCreateJob()">
-          <i class="bi bi-play-fill me-1"></i>Queue Job
-        </button>
-      </div>
-      <div class="d-flex gap-3 mb-3 flex-wrap align-items-center border-top pt-3">
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="botSchedEnabled">
-          <label class="form-check-label small" for="botSchedEnabled">Daily run</label>
-        </div>
-        <input type="time" class="form-control form-control-sm" id="botSchedTime" style="width: auto;" value="02:00">
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="botSchedSync">
-          <label class="form-check-label small" for="botSchedSync"
-                 title="Pull the PA database onto the bot PC before the run">Sync DB first</label>
-        </div>
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="botSchedEnqueue" checked>
-          <label class="form-check-label small" for="botSchedEnqueue"
-                 title="Auto-queue submitted records when a run starts">Enqueue submitted</label>
-        </div>
-        <button class="btn btn-sm btn-outline-primary" onclick="botSaveSchedule()">
-          <i class="bi bi-calendar-check me-1"></i>Save Schedule
-        </button>
-        <span class="text-muted small" id="botSchedStatus">Schedule uses the agent PC's local time.</span>
-      </div>
-      <div class="table-responsive">
-        <table class="table table-sm table-hover align-middle mb-0">
-          <thead class="table-light">
-            <tr>
-              <th width="50">Job</th>
-              <th>Student</th>
-              <th width="70">Attempt</th>
-              <th width="100">Status</th>
-              <th>Result / Error</th>
-              <th width="150">Created</th>
-              <th width="120">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="botJobsBody">
-            <tr><td colspan="7" class="text-center text-muted py-4">Loading…</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="mt-3" id="botRunHistory"></div>
-    </div>
-  </div>
-  {% endif %}
 {% endif %}
-
-<div class="modal fade" id="registerTeacherModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title">Register New Teacher</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <div class="mb-3">
-          <label class="form-label fw-bold">Full Name <span class="text-danger">*</span></label>
-          <input type="text" class="form-control" id="reg-name" required>
-        </div>
-        <div class="mb-3">
-          <label class="form-label fw-bold">Password <span class="text-danger">*</span></label>
-          <input type="password" class="form-control" id="reg-password" required>
-        </div>
-        <div class="mb-3">
-          <label class="form-label fw-bold">Class <span class="text-danger">*</span></label>
-          <select class="form-select" id="reg-class" required>
-            <option value="">Select Class</option>
-            <option value="Nursery">Nursery</option><option value="KG">KG</option>
-            <option value="1">1</option><option value="2">2</option><option value="3">3</option>
-            <option value="4">4</option><option value="5">5</option><option value="6">6</option>
-            <option value="7">7</option><option value="8">8</option><option value="9">9</option>
-            <option value="10">10</option>
-          </select>
-        </div>
-        <div class="mb-3">
-          <label class="form-label fw-bold">Section <span class="text-danger">*</span></label>
-          <input type="text" class="form-control" id="reg-section" required placeholder="e.g. A, B, C">
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-primary" onclick="submitRegisterTeacher()">Register</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <script>
 function toggleLock(studentId, lock) {
@@ -347,10 +169,6 @@ function toggleLock(studentId, lock) {
     });
 }
 
-function showRegisterTeacher() {
-  new bootstrap.Modal(document.getElementById("registerTeacherModal")).show();
-}
-
 function deleteStudent(id) {
   if (!confirm("Delete this student record permanently? This cannot be undone.")) return;
   fetch("/api/delete/" + id, { method: "POST", headers: { "Content-Type": "application/json" } })
@@ -360,269 +178,5 @@ function deleteStudent(id) {
       else { alert("Error: " + (res.error || "Unknown")); }
     });
 }
-
-function deleteTeacher(id) {
-  if (!confirm("Delete this teacher account?")) return;
-  fetch("/api/admin/teachers/" + id + "/delete", { method: "POST", headers: { "Content-Type": "application/json" } })
-    .then(function(r) { return r.json(); })
-    .then(function(res) {
-      if (res.ok) { location.reload(); }
-      else { alert("Error: " + (res.error || "Unknown")); }
-    });
-}
-
-function resetTeacherPassword(id) {
-  var pw = prompt("Enter the new password for this teacher:");
-  if (!pw) return;
-  fetch("/api/admin/teachers/" + id + "/reset-password", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ password: pw })
-  })
-    .then(function(r) { return r.json(); })
-    .then(function(res) {
-      if (res.ok) { alert("Password updated."); }
-      else { alert("Error: " + (res.error || "Unknown")); }
-    });
-}
-
-function submitRegisterTeacher() {
-  var payload = {
-    name: document.getElementById("reg-name").value,
-    password: document.getElementById("reg-password").value,
-    class_id: document.getElementById("reg-class").value,
-    section: document.getElementById("reg-section").value
-  };
-  fetch("/api/register-teacher", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify(payload)
-  })
-  .then(function(r) { return r.json(); })
-  .then(function(res) {
-    if (res.ok) { alert("Teacher registered!"); bootstrap.Modal.getInstance(document.getElementById("registerTeacherModal")).hide(); }
-    else { alert("Error: " + (res.error || "Unknown")); }
-  });
-}
-
-var botPaused = false;
-
-function botEsc(v) {
-  return String(v === null || v === undefined ? "" : v)
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function botStatusBadge(status) {
-  var map = {
-    pending: "bg-secondary",
-    claimed: "bg-info",
-    running: "bg-info",
-    success: "bg-success",
-    failed: "bg-danger",
-    cancelled: "bg-warning text-dark"
-  };
-  var cls = map[status] || "bg-secondary";
-  return '<span class="badge ' + cls + '">' + botEsc(status) + "</span>";
-}
-
-function botLoadJobs() {
-  fetch("/api/admin/bot/jobs")
-    .then(function(r) { return r.json(); })
-    .then(function(res) {
-      if (!res.ok) { alert("Error: " + (res.error || "Unknown")); return; }
-      botPaused = !!res.paused;
-      var state = document.getElementById("botQueueState");
-      var btn = document.getElementById("btnBotPause");
-      if (botPaused) {
-        state.className = "badge bg-warning text-dark";
-        state.innerHTML = '<i class="bi bi-pause-circle me-1"></i>Paused';
-        btn.className = "btn btn-sm btn-outline-success";
-        btn.innerHTML = '<i class="bi bi-play-circle me-1"></i>Resume';
-      } else {
-        state.className = "badge bg-success";
-        state.innerHTML = '<i class="bi bi-play-circle me-1"></i>Running';
-        btn.className = "btn btn-sm btn-outline-warning";
-        btn.innerHTML = '<i class="bi bi-pause-circle me-1"></i>Pause';
-      }
-      document.getElementById("botQueueTotal").textContent =
-        (res.total || 0) + " job(s) — showing " + ((res.jobs || []).length);
-
-      var ag = res.agent || {};
-      var agEl = document.getElementById("botAgentState");
-      if (ag.online) {
-        agEl.className = "badge bg-primary";
-        agEl.innerHTML = '<i class="bi bi-pc-display me-1"></i>Agent online';
-        agEl.title = "PC agent heartbeat: " + (ag.last_seen || "");
-      } else {
-        agEl.className = "badge bg-dark text-secondary";
-        agEl.innerHTML = '<i class="bi bi-pc-display me-1"></i>Agent offline';
-        agEl.title = "No agent heartbeat since: " + (ag.last_seen || "never — start it with: python -m src.main --agent");
-      }
-      document.getElementById("botRunRequested").classList.toggle("d-none", !res.run_requested);
-
-      var sc = res.schedule;
-      document.getElementById("botSchedEnabled").checked = !!(sc && sc.enabled);
-      if (sc && sc.time) { document.getElementById("botSchedTime").value = sc.time; }
-      document.getElementById("botSchedSync").checked = !!(sc && sc.sync_db);
-      document.getElementById("botSchedEnqueue").checked = sc ? !!sc.enqueue_locked : true;
-      document.getElementById("botSchedStatus").textContent = (sc && sc.enabled)
-        ? ("Daily at " + sc.time + " (PC time)" + (sc.last_fired_date ? " — last run " + sc.last_fired_date : ""))
-        : "Schedule uses the agent PC's local time.";
-
-      var histEl = document.getElementById("botRunHistory");
-      var hist = res.run_history || [];
-      if (!hist.length) {
-        histEl.innerHTML = "";
-      } else {
-        var h = '<div class="small text-muted mb-1"><i class="bi bi-clock-history me-1"></i>Run history</div>';
-        hist.forEach(function(r) {
-          h += '<div class="small border-bottom py-1">' +
-            botEsc(String(r.finished_at || "").slice(0, 16)) +
-            ' — <span class="badge bg-light text-dark border">' + botEsc(r.trigger || "?") + "</span> " +
-            botEsc(r.submitted || 0) + " submitted, " + botEsc(r.failed || 0) + " failed" +
-            (r.total ? " (" + botEsc(r.total) + " jobs)" : "") +
-            " — sync: " + botEsc(r.sync || "skipped") +
-            (r.enqueued ? ", +" + botEsc(r.enqueued) + " enqueued" : "") +
-            "</div>";
-        });
-        histEl.innerHTML = h;
-      }
-
-      var body = document.getElementById("botJobsBody");
-      if (!res.jobs || !res.jobs.length) {
-        body.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No jobs yet.</td></tr>';
-        return;
-      }
-      var html = "";
-      res.jobs.forEach(function(j) {
-        var actions = "";
-        if (j.status === "pending") {
-          actions += '<button class="btn btn-sm btn-outline-danger me-1" title="Cancel" onclick="botCancelJob(' + j.job_id + ')"><i class="bi bi-x-circle"></i></button>';
-        }
-        if (j.status === "failed" || j.status === "cancelled") {
-          actions += '<button class="btn btn-sm btn-outline-warning" title="Retry (fresh student data)" onclick="botRetryJob(' + j.job_id + ')"><i class="bi bi-arrow-repeat"></i></button>';
-        }
-        if (!actions) actions = '<span class="text-muted small">—</span>';
-        var msg = j.error_message || "";
-        if (msg.length > 90) msg = msg.slice(0, 90) + "…";
-        var result = "";
-        if (j.bot_result_code) {
-          result += '<span class="badge bg-light text-dark border me-1">' + botEsc(j.bot_result_code) + "</span>";
-        }
-        if (msg) {
-          result += '<span class="text-muted small" title="' + botEsc(j.error_message) + '">' + botEsc(msg) + "</span>";
-        }
-        if (!result) result = '<span class="text-muted">—</span>';
-        html += "<tr>" +
-          '<td><strong>#' + j.job_id + "</strong></td>" +
-          "<td>" + botEsc(j.student_name || ("Student #" + j.student_id)) + "</td>" +
-          "<td>" + botEsc(j.attempt_number) + "</td>" +
-          "<td>" + botStatusBadge(j.status) + "</td>" +
-          "<td>" + result + "</td>" +
-          '<td class="text-muted small">' + botEsc(String(j.created_at || "").slice(0, 16)) + "</td>" +
-          "<td>" + actions + "</td>" +
-          "</tr>";
-      });
-      body.innerHTML = html;
-    });
-}
-
-function botRunNow() {
-  var agEl = document.getElementById("botAgentState");
-  if (agEl && agEl.textContent.indexOf("offline") >= 0) {
-    if (!confirm("The PC agent looks offline — the run will wait until it comes online. Request it anyway?")) return;
-  }
-  fetch("/api/admin/bot/run", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ enqueue_locked: true })
-  })
-    .then(function(r) { return r.json(); })
-    .then(function(res) {
-      if (res.ok) { botLoadJobs(); }
-      else { alert("Error: " + (res.error || "Unknown")); }
-    });
-}
-
-function botSaveSchedule() {
-  var payload = {
-    enabled: document.getElementById("botSchedEnabled").checked,
-    time: document.getElementById("botSchedTime").value,
-    sync_db: document.getElementById("botSchedSync").checked,
-    enqueue_locked: document.getElementById("botSchedEnqueue").checked
-  };
-  fetch("/api/admin/bot/schedule", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  })
-    .then(function(r) { return r.json(); })
-    .then(function(res) {
-      if (res.ok) { botLoadJobs(); }
-      else { alert("Error: " + (res.error || "Unknown")); }
-    });
-}
-
-function botTogglePause() {
-  var url = botPaused ? "/api/admin/bot/resume" : "/api/admin/bot/pause";
-  fetch(url, { method: "POST", headers: { "Content-Type": "application/json" } })
-    .then(function(r) { return r.json(); })
-    .then(function(res) {
-      if (res.ok) { botLoadJobs(); }
-      else { alert("Error: " + (res.error || "Unknown")); }
-    });
-}
-
-function botResetStale() {
-  if (!confirm("Requeue claimed/running jobs whose lease has expired?")) return;
-  fetch("/api/admin/bot/reset-stale", { method: "POST", headers: { "Content-Type": "application/json" } })
-    .then(function(r) { return r.json(); })
-    .then(function(res) {
-      if (res.ok) { alert("Requeued " + (res.reset_count || 0) + " stale job(s)."); botLoadJobs(); }
-      else { alert("Error: " + (res.error || "Unknown")); }
-    });
-}
-
-function botCreateJob() {
-  var sel = document.getElementById("botStudentSelect");
-  var sid = parseInt(sel.value, 10);
-  if (!sid) { alert("Select a student first."); return; }
-  fetch("/api/admin/bot/jobs", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ student_id: sid })
-  })
-    .then(function(r) { return r.json(); })
-    .then(function(res) {
-      if (res.ok) { sel.value = ""; botLoadJobs(); }
-      else { alert("Error: " + (res.error || "Unknown")); }
-    });
-}
-
-function botRetryJob(id) {
-  fetch("/api/admin/bot/jobs/" + id + "/retry", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refresh_snapshot: true })
-  })
-    .then(function(r) { return r.json(); })
-    .then(function(res) {
-      if (res.ok) { botLoadJobs(); }
-      else { alert("Error: " + (res.error || "Unknown")); }
-    });
-}
-
-function botCancelJob(id) {
-  if (!confirm("Cancel this pending job?")) return;
-  fetch("/api/admin/bot/jobs/" + id + "/cancel", { method: "POST", headers: { "Content-Type": "application/json" } })
-    .then(function(r) { return r.json(); })
-    .then(function(res) {
-      if (res.ok) { botLoadJobs(); }
-      else { alert("Error: " + (res.error || "Unknown")); }
-    });
-}
-
-if (document.getElementById("botQueueCard")) { botLoadJobs(); }
 </script>
 {% endblock %}

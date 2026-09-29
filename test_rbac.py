@@ -351,17 +351,55 @@ try:
 
         r = adm.get("/teacher-dashboard")
         body = r.get_data(as_text=True)
-        check("J10 admin dashboard: all students + teachers panel, admin not listed",
-              r.status_code == 200 and "RBAC Own Student" in body
-              and "RBAC Temp Teacher" in body and admin_display_name not in body,
+        check("J10 admin dashboard: summary cards + section links, no full dump",
+              r.status_code == 200 and 'href="/admin/students"' in body
+              and 'href="/admin/teachers"' in body and 'href="/admin/bot"' in body
+              and "RBAC Own Student" not in body
+              and "RBAC Temp Teacher" not in body
+              and admin_display_name not in body,
               str(r.status_code))
-        check("J11 admin dashboard has Add Teacher button", "Add Teacher" in body)
+        check("J10b admin section pages: teacher/student 403, anon 302",
+              all(t_9a.get(p).status_code == 403
+                  for p in ("/admin/students", "/admin/teachers", "/admin/bot"))
+              and client(role="student").get("/admin/students").status_code == 403
+              and client().get("/admin/students").status_code == 302,
+              t_9a.get("/admin/students").status_code)
+        r_s = adm.get("/admin/students")
+        b_s = r_s.get_data(as_text=True)
+        check("J10c /admin/students: paged table + filters + search",
+              r_s.status_code == 200 and 'data-sid=' in b_s
+              and 'name="q"' in b_s and 'name="per"' in b_s and 'name="class"' in b_s
+              and 'name="status"' in b_s,
+              str(r_s.status_code))
+        r_t = adm.get("/admin/teachers")
+        b_t = r_t.get_data(as_text=True)
+        check("J11 /admin/teachers has Add Teacher button + table",
+              r_t.status_code == 200 and "Add Teacher" in b_t
+              and 'data-tid=' in b_t, str(r_t.status_code))
+        r_b = adm.get("/admin/bot")
+        check("J11b /admin/bot renders the bot console",
+              r_b.status_code == 200
+              and 'id="botQueueCard"' in r_b.get_data(as_text=True),
+              str(r_b.status_code))
 
         r = t_9a.get("/teacher-dashboard")
         body = r.get_data(as_text=True)
         check("J12 teacher dashboard: no Add Teacher, no other-class student",
               r.status_code == 200 and "Add Teacher" not in body
               and "RBAC Other Student" not in body, str(r.status_code))
+
+        # Success-page dashboard link follows the role: admin/teacher use the
+        # shared admin-view dashboard, students their own — never a plain table.
+        html_adm = adm.get(f"/success/{sid_own}").get_data(as_text=True)
+        html_tch = t_9a.get(f"/success/{sid_own}").get_data(as_text=True)
+        html_stu = s_own.get(f"/success/{sid_own}").get_data(as_text=True)
+        check("J12b success page dashboard link is role-aware",
+              'href="/teacher-dashboard"' in html_adm
+              and 'href="/teacher-dashboard"' in html_tch
+              and 'href="/student-dashboard"' in html_stu
+              and 'href="/students"' not in html_stu,
+              f"adm={'teacher' if '/teacher-dashboard' in html_adm else '?'} "
+              f"stu={'student' if '/student-dashboard' in html_stu else '?'}")
 
         r = adm.post(f"/api/delete/{sid_other}")
         check("J13 admin deletes any student", r.status_code == 200

@@ -15,6 +15,9 @@ import sqlite3
 import sys
 import urllib.request
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from form_payloads import tab1  # noqa: E402  complete tab-1 fixture (mandatory twin)
+
 BASE = "http://127.0.0.1:5000"
 DB = pathlib.Path(__file__).resolve().parent / "femis-web" / "instance" / "femis.db"
 results = []
@@ -180,14 +183,18 @@ def main():
     from playwright.sync_api import sync_playwright
 
     dbdelete(PROBE)
+    # Create branch carries a complete tab-1 payload — the server mandatory
+    # twin (femis-web/mandatory.py) rejects partial creates with 400; the
+    # suite-specific re-render values below override the fixture defaults.
+    data = tab1(name=PROBE, class_id="9", section_id="A", roll_no="P3BP",
+                sector_id="34", sub_sector_id="I-14/3",
+                birth_district_id="Faisalabad",
+                date_of_birth="01/01/2015",
+                digital_device_type="Mobile Phone,Laptop",
+                disability_types="Visual,Hearing")
     req = urllib.request.Request(
         BASE + "/api/save-tab",
-        data=json.dumps({"tab": 1, "student_id": None, "data": {
-            "name": PROBE, "class_id": "9", "section_id": "A", "roll_no": "P3BP",
-            "birth_province_id": "1", "birth_district_id": "Faisalabad",
-            "address_type": "Sector", "sector_id": "34", "sub_sector_id": "I-14/3",
-            "digital_device_type": "Mobile Phone,Laptop",
-            "disability_types": "Visual,Hearing"}}).encode(),
+        data=json.dumps({"tab": 1, "student_id": None, "data": data}).encode(),
         headers={"Content-Type": "application/json"}, method="POST")
     sid = json.loads(urllib.request.urlopen(req, timeout=15).read().decode()).get("student_id")
     check("fixture row created", bool(sid), str(sid))

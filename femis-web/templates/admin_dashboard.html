@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard — FEMIS{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Admin Dashboard</h4>
+  <div>
+    <span class="text-muted me-3">Welcome, <strong>{{ user_name }}</strong></span>
+    <span class="badge bg-danger me-2">Admin</span>
+    <a href="/logout" class="btn btn-outline-secondary btn-sm"><i class="bi bi-box-arrow-right me-1"></i>Logout</a>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div>
+            <div class="text-muted small text-uppercase">Students</div>
+            <div class="display-6 fw-bold" id="statStudentsTotal">{{ stats.students_total }}</div>
+          </div>
+          <i class="bi bi-people-fill text-primary display-6 opacity-50"></i>
+        </div>
+        <div class="d-flex gap-2 flex-wrap mb-3">
+          <span class="badge bg-success" id="statStudentsSubmitted">{{ stats.students_submitted }} submitted</span>
+          <span class="badge bg-warning text-dark" id="statStudentsDraft">{{ stats.students_draft }} draft</span>
+          <span class="badge bg-danger" id="statStudentsLocked">{{ stats.students_locked }} locked</span>
+          <span class="badge bg-secondary" id="statClasses">{{ stats.classes_total }} classes</span>
+        </div>
+        <div class="d-flex gap-2">
+          <a href="/admin/students" class="btn btn-primary btn-sm" id="linkStudents">
+            <i class="bi bi-table me-1"></i>Manage Students
+          </a>
+          <a href="/form" class="btn btn-outline-primary btn-sm"><i class="bi bi-plus-circle me-1"></i>Add Student</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div>
+            <div class="text-muted small text-uppercase">Teachers</div>
+            <div class="display-6 fw-bold" id="statTeachersTotal">{{ stats.teachers_total }}</div>
+          </div>
+          <i class="bi bi-person-workspace text-success display-6 opacity-50"></i>
+        </div>
+        <p class="text-muted small mb-3">Teacher accounts (admin excluded). Each is bound to a class &amp; section.</p>
+        <div class="d-flex gap-2">
+          <a href="/admin/teachers" class="btn btn-success btn-sm" id="linkTeachers">
+            <i class="bi bi-table me-1"></i>Manage Teachers
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div>
+            <div class="text-muted small text-uppercase">Bot Queue</div>
+            <div class="display-6 fw-bold" id="statBotJobs">{{ bot_counts.values()|sum }}</div>
+          </div>
+          <i class="bi bi-robot text-danger display-6 opacity-50"></i>
+        </div>
+        <div class="d-flex gap-2 flex-wrap mb-3">
+          <span class="badge bg-info" id="statBotOpen">{{ (bot_counts.get('pending', 0) + bot_counts.get('claimed', 0) + bot_counts.get('running', 0)) }} open</span>
+          <span class="badge bg-success" id="statBotSuccess">{{ bot_counts.get('success', 0) }} success</span>
+          <span class="badge bg-danger" id="statBotFailed">{{ bot_counts.get('failed', 0) }} failed</span>
+          <span class="badge bg-warning text-dark" id="statBotCancelled">{{ bot_counts.get('cancelled', 0) }} cancelled</span>
+        </div>
+        <div class="d-flex gap-2">
+          <a href="/admin/bot" class="btn btn-danger btn-sm" id="linkBot">
+            <i class="bi bi-robot me-1"></i>Open Bot Console
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <span class="text-muted"><i class="bi bi-info-circle me-1"></i>Each section opens its own page with search, filters and 10/20/50 pagination.</span>
+    <div class="d-flex gap-2">
+      <a href="/admin/students" class="btn btn-outline-primary btn-sm"><i class="bi bi-people me-1"></i>Students</a>
+      <a href="/admin/teachers" class="btn btn-outline-success btn-sm"><i class="bi bi-person-workspace me-1"></i>Teachers</a>
+      <a href="/admin/bot" class="btn btn-outline-danger btn-sm"><i class="bi bi-robot me-1"></i>Bot</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

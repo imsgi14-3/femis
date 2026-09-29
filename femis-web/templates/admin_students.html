@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% block title %}Students — Admin — FEMIS{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0"><i class="bi bi-people-fill me-2"></i>Students <span class="badge bg-primary fs-6" id="totalBadge">{{ total }}</span></h4>
+  <div class="d-flex gap-2">
+    <a href="/teacher-dashboard" class="btn btn-outline-secondary btn-sm"><i class="bi bi-speedometer2 me-1"></i>Dashboard</a>
+    <a href="/form" class="btn btn-primary btn-sm"><i class="bi bi-plus-circle me-1"></i>Add Student</a>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body py-2">
+    <form method="get" action="/admin/students" id="filterForm" class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label small mb-1" for="fq">Search</label>
+        <div class="input-group input-group-sm">
+          <input type="text" class="form-control" id="fq" name="q" value="{{ f.q }}"
+                 placeholder="Name, B-Form, Roll, Father…">
+          <button class="btn btn-primary" type="submit" id="btnSearch">
+            <i class="bi bi-search me-1"></i>Search
+          </button>
+        </div>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small mb-1" for="fclass">Class</label>
+        <select class="form-select form-select-sm" id="fclass" name="class">
+          <option value="">All classes</option>
+          {% for c in classes %}
+          <option value="{{ c }}" {{ 'selected' if f['class'] == c else '' }}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small mb-1" for="fsection">Section</label>
+        <select class="form-select form-select-sm" id="fsection" name="section">
+          <option value="">All sections</option>
+          {% for s in sections %}
+          <option value="{{ s }}" {{ 'selected' if f.section == s else '' }}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small mb-1" for="fgender">Gender</label>
+        <select class="form-select form-select-sm" id="fgender" name="gender">
+          <option value="">All</option>
+          {% for g in genders %}
+          <option value="{{ g }}" {{ 'selected' if f.gender == g else '' }}>{{ g }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-1">
+        <label class="form-label small mb-1" for="fstatus">Status</label>
+        <select class="form-select form-select-sm" id="fstatus" name="status">
+          <option value="">All</option>
+          <option value="submitted" {{ 'selected' if f.status == 'submitted' else '' }}>Submitted</option>
+          <option value="draft" {{ 'selected' if f.status == 'draft' else '' }}>Draft</option>
+        </select>
+      </div>
+      <div class="col-md-1">
+        <label class="form-label small mb-1" for="flock">Lock</label>
+        <select class="form-select form-select-sm" id="flock" name="lock">
+          <option value="">All</option>
+          <option value="locked" {{ 'selected' if f.lock == 'locked' else '' }}>Locked</option>
+          <option value="unlocked" {{ 'selected' if f.lock == 'unlocked' else '' }}>Unlocked</option>
+        </select>
+      </div>
+      <div class="col-md-1">
+        <label class="form-label small mb-1" for="fper">Per page</label>
+        <select class="form-select form-select-sm" id="fper" name="per" onchange="this.form.submit()">
+          {% for p in (10, 20, 50) %}
+          <option value="{{ p }}" {{ 'selected' if per == p else '' }}>{{ p }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+  <span class="text-muted small" id="rangeInfo">
+    {% if total %}
+      Showing {{ (page - 1) * per + 1 }}–{{ [page * per, total]|min }} of {{ total }} student(s)
+    {% else %}
+      No students match
+    {% endif %}
+  </span>
+  <a href="/admin/students" class="btn btn-outline-secondary btn-sm" id="btnClear"><i class="bi bi-x-circle me-1"></i>Clear filters</a>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body p-0">
+    {% if students %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th width="50">ID</th>
+            <th>Name</th>
+            <th width="100">Class</th>
+            <th width="80">Section</th>
+            <th width="80">Roll</th>
+            <th width="90">Gender</th>
+            <th width="140">B-Form</th>
+            <th width="100">Status</th>
+            <th width="90">Lock</th>
+            <th width="150">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in students %}
+          <tr data-sid="{{ s.id }}">
+            <td>{{ s.id }}</td>
+            <td><strong>{{ s.name or '—' }}</strong></td>
+            <td>{{ s.class_id or '—' }}</td>
+            <td>{{ s.section_id or '—' }}</td>
+            <td>{{ s.roll_no or '—' }}</td>
+            <td>{{ s.gender or '—' }}</td>
+            <td class="small">{{ s.b_form or '—' }}</td>
+            <td>
+              {% if s.submitted %}
+                <span class="badge bg-success">Submitted</span>
+              {% else %}
+                <span class="badge bg-warning text-dark">Draft</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if s.locked %}
+                <button class="btn btn-sm btn-outline-danger" onclick="toggleLock({{ s.id }}, false)" title="Unlock">
+                  <i class="bi bi-lock-fill"></i>
+                </button>
+              {% else %}
+                <button class="btn btn-sm btn-outline-success" onclick="toggleLock({{ s.id }}, true)" title="Lock">
+                  <i class="bi bi-unlock"></i>
+                </button>
+              {% endif %}
+            </td>
+            <td>
+              <a href="/form/{{ s.id }}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
+              <a href="/students/{{ s.id }}/json" class="btn btn-sm btn-outline-secondary" title="JSON" target="_blank"><i class="bi bi-code-slash"></i></a>
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteStudent({{ s.id }})" title="Delete">
+                <i class="bi bi-trash"></i>
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+      <i class="bi bi-inbox display-3 text-muted"></i>
+      <p class="text-muted mt-2">No students match the current filters.</p>
+      <a href="/admin/students" class="btn btn-outline-primary btn-sm">Clear filters</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if pages > 1 %}
+<nav aria-label="Students pagination" class="mt-3">
+  <ul class="pagination pagination-sm justify-content-end mb-0">
+    <li class="page-item {{ 'disabled' if page <= 1 }}">
+      <a class="page-link" href="{{ qs }}page={{ page - 1 }}">&laquo;</a>
+    </li>
+    {% for p in range(1, pages + 1) %}
+      {% if p == 1 or p == pages or (p >= page - 2 and p <= page + 2) %}
+      <li class="page-item {{ 'active' if p == page }}">
+        <a class="page-link" href="{{ qs }}page={{ p }}" {{ 'aria-current="page"' if p == page }}>{{ p }}</a>
+      </li>
+      {% elif p == page - 3 or p == page + 3 %}
+      <li class="page-item disabled"><span class="page-link">…</span></li>
+      {% endif %}
+    {% endfor %}
+    <li class="page-item {{ 'disabled' if page >= pages }}">
+      <a class="page-link" href="{{ qs }}page={{ page + 1 }}">&raquo;</a>
+    </li>
+  </ul>
+</nav>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleLock(studentId, lock) {
+  var action = lock ? "LOCK" : "UNLOCK";
+  if (!confirm("Are you sure you want to " + action + " this student's record?")) return;
+  var endpoint = lock ? "/api/lock/" + studentId : "/api/unlock/" + studentId;
+  fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" } })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (res.ok) { location.reload(); }
+      else { alert("Error: " + (res.error || "Unknown")); }
+    });
+}
+
+function deleteStudent(id) {
+  if (!confirm("Delete this student record permanently? This cannot be undone.")) return;
+  fetch("/api/delete/" + id, { method: "POST", headers: { "Content-Type": "application/json" } })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (res.ok) { location.reload(); }
+      else { alert("Error: " + (res.error || "Unknown")); }
+    });
+}
+</script>
+{% endblock %}

@@ -2,10 +2,11 @@
 Flask app replicating the FEMIS portal's 7-tab student form.
 Parents/teachers fill this; the bot reads from the DB and fills the real portal.
 """
-import json, os, re, sqlite3
+import json, os, re, sqlite3, math
 from pathlib import Path
+from urllib.parse import urlencode
 from flask import (Flask, render_template, request, jsonify, redirect, url_for,
-                   flash, session, send_file)
+                   flash, session, send_file, abort)
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -461,6 +462,45 @@ def _can_modify(student):
     return False
 
 
+def _admin_page():
+    """HTML /admin/* section guard: anon -> login, non-admin -> 403."""
+    role = session.get("role")
+    if not role:
+        return redirect(url_for("login"))
+    if role != "admin":
+        abort(403)
+    return None
+
+
+def _int_arg(name, default):
+    try:
+        return int(request.args.get(name, default))
+    except (TypeError, ValueError):
+        return default
+
+
+def _page_window(total, page, per, radius=2):
+    """(page, pages) clamped to a valid range + (prev, next) URLs querystring."""
+    pages = max(1, math.ceil(total / per)) if total else 1
+    page = min(max(1, page), pages)
+    params = request.args.to_dict()
+    params.pop("page", None)
+    qs = ("?" + urlencode(params) + "&") if params else "?"
+    return page, pages, qs
+
+
+def _paged(query, page, per):
+    """Order-less count + offset slice for a filtered query."""
+    total = query.count()
+    page, pages, qs = _page_window(total, page, per)
+    items = query.offset((page - 1) * per).limit(per).all()
+    return items, total, page, pages, qs
+
+
+def _distinct(column):
+    return sorted({v for (v,) in db.session.query(column).distinct() if v})
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
@@ -845,7 +885,9 @@ def submit():
 @app.route("/success/<int:student_id>")
 def success(student_id):
     student = Student.query.get_or_404(student_id)
-    return render_template("success.html", student=student)
+    dash = (url_for("student_dashboard") if session.get("role") == "student"
+            else url_for("teacher_dashboard"))
+    return render_template("success.html", student=student, dash_url=dash)
 
 
 @app.route("/students")
@@ -980,22 +1022,135 @@ def teacher_dashboard():
     role = session.get("role", "teacher")
     if not name:
         return redirect(url_for("login"))
+    if role == "admin":
+        # Overview page: summary cards -> /admin/students, /admin/teachers,
+        # /admin/bot. The full tables live on their own sections.
+        s_total = Student.query.count()
+        s_submitted = Student.query.filter(Student.submitted.is_(True)).count()
+        s_locked = Student.query.filter(Student.locked.is_(True)).count()
+        t_total = Teacher.query.filter(Teacher.role != "admin").count()
+        classes = len({c for (c,) in db.session.query(Student.class_id).distinct() if c})
+        bot_counts = dict(
+            db.session.query(BotJob.status, db.func.count(BotJob.id))
+            .group_by(BotJob.status).all()
+        )
+        stats = {
+            "students_total": s_total,
+            "students_submitted": s_submitted,
+            "students_draft": s_total - s_submitted,
+            "students_locked": s_locked,
+            "teachers_total": t_total,
+            "classes_total": classes,
+        }
+        return render_template("admin_dashboard.html", role=role, user_name=name,
+                               stats=stats, bot_counts=bot_counts)
     teacher_class = session.get("teacher_class")
     teacher_section = session.get("teacher_section")
-    teachers = []
-    if role == "admin":
-        students = Student.query.order_by(Student.created_at.desc()).all()
-        teachers = (Teacher.query.filter(Teacher.role != "admin")
-                    .order_by(Teacher.created_at.desc()).all())
-    elif teacher_class and teacher_section:
+    students = []
+    if teacher_class and teacher_section:
         students = Student.query.filter(
             Student.class_id.ilike(teacher_class),
             Student.section_id.ilike(teacher_section),
         ).order_by(Student.created_at.desc()).all()
-    else:
-        students = []
-    return render_template("dashboard.html", students=students, teachers=teachers,
+    return render_template("dashboard.html", students=students,
                            role=role, user_name=name)
+
+
+@app.route("/admin/students")
+def admin_students():
+    guard = _admin_page()
+    if guard is not None:
+        return guard
+    q = (request.args.get("q") or "").strip()
+    class_id = (request.args.get("class") or "").strip()
+    section = (request.args.get("section") or "").strip()
+    gender = (request.args.get("gender") or "").strip()
+    status = (request.args.get("status") or "").strip()
+    lock = (request.args.get("lock") or "").strip()
+    per = _int_arg("per", 10)
+    if per not in (10, 20, 50):
+        per = 10
+
+    query = Student.query
+    if q:
+        like = f"%{q}%"
+        query = query.filter(db.or_(
+            Student.name.ilike(like),
+            Student.b_form.ilike(like),
+            Student.roll_no.ilike(like),
+            Student.father_name.ilike(like),
+            Student.admission_number.ilike(like),
+            Student.contact_number.ilike(like),
+        ))
+    if class_id:
+        query = query.filter(Student.class_id.ilike(class_id))
+    if section:
+        query = query.filter(Student.section_id.ilike(section))
+    if gender:
+        query = query.filter(Student.gender.ilike(gender))
+    if status == "submitted":
+        query = query.filter(Student.submitted.is_(True))
+    elif status == "draft":
+        query = query.filter(~Student.submitted.is_(True))
+    if lock == "locked":
+        query = query.filter(Student.locked.is_(True))
+    elif lock == "unlocked":
+        query = query.filter(~Student.locked.is_(True))
+
+    items, total, page, pages, qs = _paged(
+        query.order_by(Student.created_at.desc(), Student.id.desc()),
+        _int_arg("page", 1), per)
+    return render_template(
+        "admin_students.html", students=items, total=total, page=page,
+        pages=pages, per=per, qs=qs, role="admin",
+        user_name=session.get("user_name", ""),
+        classes=_distinct(Student.class_id), sections=_distinct(Student.section_id),
+        genders=_distinct(Student.gender),
+        f={"q": q, "class": class_id, "section": section, "gender": gender,
+           "status": status, "lock": lock},
+    )
+
+
+@app.route("/admin/teachers")
+def admin_teachers():
+    guard = _admin_page()
+    if guard is not None:
+        return guard
+    q = (request.args.get("q") or "").strip()
+    class_id = (request.args.get("class") or "").strip()
+    section = (request.args.get("section") or "").strip()
+    per = _int_arg("per", 10)
+    if per not in (10, 20, 50):
+        per = 10
+
+    query = Teacher.query.filter(Teacher.role != "admin")
+    if q:
+        query = query.filter(Teacher.name.ilike(f"%{q}%"))
+    if class_id:
+        query = query.filter(Teacher.class_id.ilike(class_id))
+    if section:
+        query = query.filter(Teacher.section_id.ilike(section))
+
+    items, total, page, pages, qs = _paged(
+        query.order_by(Teacher.created_at.desc(), Teacher.id.desc()),
+        _int_arg("page", 1), per)
+    return render_template(
+        "admin_teachers.html", teachers=items, total=total, page=page,
+        pages=pages, per=per, qs=qs, role="admin",
+        user_name=session.get("user_name", ""),
+        classes=_distinct(Teacher.class_id), sections=_distinct(Teacher.section_id),
+        f={"q": q, "class": class_id, "section": section},
+    )
+
+
+@app.route("/admin/bot")
+def admin_bot():
+    guard = _admin_page()
+    if guard is not None:
+        return guard
+    students = Student.query.order_by(Student.name.asc(), Student.id.asc()).all()
+    return render_template("admin_bot.html", students=students, role="admin",
+                           user_name=session.get("user_name", ""))
 
 
 @app.route("/logout")

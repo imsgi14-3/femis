@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% block title %}Teachers — Admin — FEMIS{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0"><i class="bi bi-person-workspace me-2"></i>Teachers <span class="badge bg-success fs-6" id="totalBadge">{{ total }}</span></h4>
+  <div class="d-flex gap-2">
+    <a href="/teacher-dashboard" class="btn btn-outline-secondary btn-sm"><i class="bi bi-speedometer2 me-1"></i>Dashboard</a>
+    <button class="btn btn-success btn-sm" onclick="showRegisterTeacher()" id="btnAddTeacher">
+      <i class="bi bi-person-plus me-1"></i>Add Teacher
+    </button>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body py-2">
+    <form method="get" action="/admin/teachers" id="filterForm" class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label small mb-1" for="fq">Search</label>
+        <div class="input-group input-group-sm">
+          <input type="text" class="form-control" id="fq" name="q" value="{{ f.q }}" placeholder="Teacher name…">
+          <button class="btn btn-primary" type="submit" id="btnSearch">
+            <i class="bi bi-search me-1"></i>Search
+          </button>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small mb-1" for="fclass">Class</label>
+        <select class="form-select form-select-sm" id="fclass" name="class">
+          <option value="">All classes</option>
+          {% for c in classes %}
+          <option value="{{ c }}" {{ 'selected' if f['class'] == c else '' }}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small mb-1" for="fsection">Section</label>
+        <select class="form-select form-select-sm" id="fsection" name="section">
+          <option value="">All sections</option>
+          {% for s in sections %}
+          <option value="{{ s }}" {{ 'selected' if f.section == s else '' }}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small mb-1" for="fper">Per page</label>
+        <select class="form-select form-select-sm" id="fper" name="per" onchange="this.form.submit()">
+          {% for p in (10, 20, 50) %}
+          <option value="{{ p }}" {{ 'selected' if per == p else '' }}>{{ p }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+  <span class="text-muted small" id="rangeInfo">
+    {% if total %}
+      Showing {{ (page - 1) * per + 1 }}–{{ [page * per, total]|min }} of {{ total }} teacher(s)
+    {% else %}
+      No teachers match
+    {% endif %}
+  </span>
+  <a href="/admin/teachers" class="btn btn-outline-secondary btn-sm" id="btnClear"><i class="bi bi-x-circle me-1"></i>Clear filters</a>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body p-0">
+    {% if teachers %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th width="50">ID</th>
+            <th>Name</th>
+            <th width="100">Class</th>
+            <th width="100">Section</th>
+            <th width="160">Created</th>
+            <th width="140">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in teachers %}
+          <tr data-tid="{{ t.id }}">
+            <td>{{ t.id }}</td>
+            <td><strong>{{ t.name }}</strong></td>
+            <td>{{ t.class_id }}</td>
+            <td>{{ t.section_id }}</td>
+            <td class="small text-muted">{{ t.created_at.strftime('%d %b %Y %I:%M %p') if t.created_at else '—' }}</td>
+            <td>
+              <button class="btn btn-sm btn-outline-warning" onclick="resetTeacherPassword({{ t.id }})" title="Reset password">
+                <i class="bi bi-key"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteTeacher({{ t.id }})" title="Delete teacher">
+                <i class="bi bi-trash"></i>
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+      <i class="bi bi-inbox display-3 text-muted"></i>
+      <p class="text-muted mt-2">No teachers match. Use “Add Teacher” to create one.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if pages > 1 %}
+<nav aria-label="Teachers pagination" class="mt-3">
+  <ul class="pagination pagination-sm justify-content-end mb-0">
+    <li class="page-item {{ 'disabled' if page <= 1 }}">
+      <a class="page-link" href="{{ qs }}page={{ page - 1 }}">&laquo;</a>
+    </li>
+    {% for p in range(1, pages + 1) %}
+      {% if p == 1 or p == pages or (p >= page - 2 and p <= page + 2) %}
+      <li class="page-item {{ 'active' if p == page }}">
+        <a class="page-link" href="{{ qs }}page={{ p }}" {{ 'aria-current="page"' if p == page }}>{{ p }}</a>
+      </li>
+      {% elif p == page - 3 or p == page + 3 %}
+      <li class="page-item disabled"><span class="page-link">…</span></li>
+      {% endif %}
+    {% endfor %}
+    <li class="page-item {{ 'disabled' if page >= pages }}">
+      <a class="page-link" href="{{ qs }}page={{ page + 1 }}">&raquo;</a>
+    </li>
+  </ul>
+</nav>
+{% endif %}
+
+<div class="modal fade" id="registerTeacherModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">Register New Teacher</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-bold">Full Name <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="reg-name" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold">Password <span class="text-danger">*</span></label>
+          <input type="password" class="form-control" id="reg-password" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold">Class <span class="text-danger">*</span></label>
+          <select class="form-select" id="reg-class" required>
+            <option value="">Select Class</option>
+            <option value="Nursery">Nursery</option><option value="KG">KG</option>
+            <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+            <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+            <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+            <option value="10">10</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold">Section <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="reg-section" required placeholder="e.g. A, B, C">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="submitRegisterTeacher()">Register</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showRegisterTeacher() {
+  new bootstrap.Modal(document.getElementById("registerTeacherModal")).show();
+}
+
+function deleteTeacher(id) {
+  if (!confirm("Delete this teacher account?")) return;
+  fetch("/api/admin/teachers/" + id + "/delete", { method: "POST", headers: { "Content-Type": "application/json" } })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (res.ok) { location.reload(); }
+      else { alert("Error: " + (res.error || "Unknown")); }
+    });
+}
+
+function resetTeacherPassword(id) {
+  var pw = prompt("Enter the new password for this teacher:");
+  if (!pw) return;
+  fetch("/api/admin/teachers/" + id + "/reset-password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password: pw })
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (res.ok) { alert("Password updated."); }
+      else { alert("Error: " + (res.error || "Unknown")); }
+    });
+}
+
+function submitRegisterTeacher() {
+  var payload = {
+    name: document.getElementById("reg-name").value,
+    password: document.getElementById("reg-password").value,
+    class_id: document.getElementById("reg-class").value,
+    section: document.getElementById("reg-section").value
+  };
+  fetch("/api/register-teacher", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(payload)
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(res) {
+    if (res.ok) { alert("Teacher registered!"); bootstrap.Modal.getInstance(document.getElementById("registerTeacherModal")).hide(); location.reload(); }
+    else { alert("Error: " + (res.error || "Unknown")); }
+  });
+}
+</script>
+{% endblock %}
