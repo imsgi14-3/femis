@@ -502,6 +502,10 @@ tab_1_personal_details:
       - I-16/2
       - I-16/3
       - I-16/4
+      - I-15/1
+      - I-15/2
+      - I-15/3
+      - I-15/4
     village:
       label: Village
       type: dropdown
@@ -1156,6 +1160,10 @@ tab_1_personal_details:
       - I-16/2
       - I-16/3
       - I-16/4
+      - I-15/1
+      - I-15/2
+      - I-15/3
+      - I-15/4
     village:
       label: Village
       type: dropdown

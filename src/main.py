@@ -350,7 +350,9 @@ class FEMISBot:
         if r.returncode == 0:
             logger.info("DB sync from portal OK.")
             return "ok"
-        tail = (r.stderr or r.stdout or "").strip()[-400:]
+        out_tail = (r.stdout or "").strip()[-300:]
+        err_tail = (r.stderr or "").strip()[-300:]
+        tail = " | ".join(t for t in (out_tail, err_tail) if t)
         logger.warning(f"DB sync failed (rc={r.returncode}): {tail}")
         return "failed"
 
@@ -414,13 +416,11 @@ class FEMISBot:
                 if status == 200 and state.get("should_run"):
                     reason = str(state.get("reason") or "manual")
                     logger.info(
-                        f"Run dispatched ({reason}): sync={state.get('sync_db')} "
+                        f"Run dispatched ({reason}): sync=always "
                         f"enqueue_locked={state.get('enqueue_locked')} "
                         f"enqueued={state.get('enqueued')}"
                     )
-                    sync_result = "skipped"
-                    if state.get("sync_db"):
-                        sync_result = await asyncio.to_thread(self._sync_db_from_portal)
+                    sync_result = await asyncio.to_thread(self._sync_db_from_portal)
                     try:
                         await self.run(None, source_type="auto", dry_run=False,
                                        submit=True, jobs=True)

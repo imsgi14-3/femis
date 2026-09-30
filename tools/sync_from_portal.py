@@ -5,8 +5,9 @@ Usage — repo root, local dev server STOPPED:
 
 Steps:
   1. Backup local femis-web/instance/femis.db -> data/backups/femis.db.bak-<ts>
-  2. Login to the portal as admin (FEMIS_PORTAL_URL / FEMIS_ADMIN_NAME /
-     FEMIS_ADMIN_PASSWORD from .env or the environment)
+  2. Login to the portal as admin (FEMIS_PORTAL_URL +
+     FEMIS_PORTAL_ADMIN_NAME / FEMIS_PORTAL_ADMIN_PASSWORD, falling back
+     to FEMIS_ADMIN_NAME / FEMIS_ADMIN_PASSWORD, from .env or the env)
   3. GET /api/admin/export -> verify SQLite header + PRAGMA integrity_check
   4. Atomically replace the local DB
 
@@ -40,12 +41,14 @@ def fail(msg):
 
 def main():
     url = (os.environ.get("FEMIS_PORTAL_URL") or "").strip().rstrip("/")
-    name = (os.environ.get("FEMIS_ADMIN_NAME") or "").strip()
-    password = (os.environ.get("FEMIS_ADMIN_PASSWORD") or "").strip()
+    name = ((os.environ.get("FEMIS_PORTAL_ADMIN_NAME") or "").strip()
+            or (os.environ.get("FEMIS_ADMIN_NAME") or "").strip())
+    password = ((os.environ.get("FEMIS_PORTAL_ADMIN_PASSWORD") or "").strip()
+                or (os.environ.get("FEMIS_ADMIN_PASSWORD") or "").strip())
     if not url:
         fail("FEMIS_PORTAL_URL not set (e.g. https://<user>.pythonanywhere.com)")
     if not (name and password):
-        fail("FEMIS_ADMIN_NAME / FEMIS_ADMIN_PASSWORD not set")
+        fail("FEMIS_PORTAL_ADMIN_NAME / FEMIS_PORTAL_ADMIN_PASSWORD not set")
     if not DB.exists():
         fail(f"local DB not found: {DB}")
 
