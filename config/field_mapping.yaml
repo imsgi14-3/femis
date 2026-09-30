@@ -2345,6 +2345,11 @@ tab_2_parents_guardian:
       - Farmer
       - Overseas
       - Other
+    other_profession:
+      label: Other Profession
+      type: text
+      required: true
+      source_field: guardian_profession_other
     guardian_income:
       label: Guardian Income
       type: dropdown
