@@ -147,16 +147,43 @@ class FormFiller:
 
         page.on("dialog", _on_dialog)
 
-    async def open_form(self, page: Page, student_data: dict) -> str:
-        """Open the CREATE form (create-first workflow).
+    async def open_form(self, page: Page, student_data: dict,
+                        attempt: int = 1) -> str:
+        """Open the CREATE form, or pre-scan the list on a retry attempt.
 
-        The portal list is never searched by name — two students can share a
-        name and the wrong record must never be edited. An existing record is
-        discovered only AFTER the portal rejects the B-Form/CNIC as already
-        taken: _recover_duplicate runs the CNIC scan (_scan_list_by_cnic,
+        Attempt 1 keeps the create-first workflow: the portal list is never
+        searched up front — two students can share a name and the wrong
+        record must never be edited. An existing record is discovered only
+        AFTER the portal rejects the B-Form/CNIC as already taken:
+        _recover_duplicate runs the CNIC scan (_scan_list_by_cnic,
         100 records/page) and switches to edit only when the name matches.
+
+        Attempt > 1 (retry of a record whose previous attempt failed — user
+        workflow 2026-09-30): search the portal list for the CNIC FIRST
+        instead of filling the create form blindly. _scan_list_by_cnic runs
+        the Ctrl+F-style page scan (100 records/page, page forward):
+          "edit"     -> CNIC found and the name matches: return "edit"
+                        (form_mode set, the fill probes the first incomplete
+                        tab of that record),
+          "conflict" -> CNIC found under a different name: return "conflict"
+                        with duplicate_conflict carrying the portal holder's
+                        name — the caller reports it and never fills,
+          "notfound" -> CNIC on no page: no duplicate exists, fall through
+                        to the create-first flow unchanged.
         """
         self.form_mode = "create"
+        if int(attempt or 1) > 1:
+            logger.warning(
+                f"Retry attempt {attempt}: scanning portal list by CNIC "
+                "(100 records/page) before any fill"
+            )
+            outcome = await self._scan_list_by_cnic(page, student_data)
+            if outcome == "edit":
+                self.form_mode = "edit"
+                return "edit"
+            if outcome == "conflict":
+                return "conflict"
+            # notfound: no portal record for this CNIC — create-first below.
         await page.goto(CREATE_URL, wait_until="networkidle")
         await asyncio.sleep(1.5)
         return "create"

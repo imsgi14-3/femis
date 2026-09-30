@@ -255,11 +255,29 @@ class FEMISBot:
                 return ev or None
 
             try:
-                # Create-first: open the CREATE form; an existing portal
-                # record is discovered only via the B-form-used error and
-                # the CNIC page-scan (100/page) inside the fill/submit flow.
-                mode = await self.filler.open_form(page, student)
-                logger.info(f"Job form mode: {mode} (create-first)")
+                # Attempt 1: create-first — open the CREATE form; an existing
+                # portal record is discovered only via the B-form-used error
+                # and the CNIC page-scan (100/page) inside the fill/submit flow.
+                # Attempt > 1: the retry workflow searches the list by CNIC
+                # FIRST (Ctrl+F scan, 100/page, page forward): name match ->
+                # edit that record; CNIC under a different name -> report the
+                # holder's name (duplicate_conflict) and stop without filling;
+                # CNIC nowhere -> the create-first flow as usual.
+                attempt = int(student.get("_attempt_number") or 1)
+                mode = await self.filler.open_form(page, student, attempt=attempt)
+                if mode == "conflict":
+                    conf = self.filler.duplicate_conflict or {}
+                    logger.error(
+                        "Retry pre-scan conflict — CNIC already exists on the "
+                        f"portal under a different name: {conf.get('errors') or ['unknown']} "
+                        "— reporting for human review; no fill/submit"
+                    )
+                    return WorkResult(
+                        submitted=False,
+                        evidence=_evidence(),
+                        failed_field=self.filler._last_attempted_field,
+                    )
+                logger.info(f"Job form mode: {mode} (attempt {attempt})")
                 await self.filler.fill_student_form(page, student)
                 if self.filler.duplicate_conflict:
                     logger.error(

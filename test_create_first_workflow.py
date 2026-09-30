@@ -4,7 +4,7 @@ The bot must NEVER search the portal list by student name — two students can
 share a name and an unverified edit would overwrite the wrong record. The
 locked workflow (user decision 2026-09-30):
 
-  1. open_form always opens CREATE (no list visit, no name search),
+  1. attempt 1: open_form always opens CREATE (no list visit, no name search),
   2. only a portal 'already been taken' error triggers the CNIC page-scan:
      100 records/page, browser-find (Ctrl+F equivalent) for the B-Form
      digits on every page, page forward until the row appears,
@@ -14,6 +14,12 @@ locked workflow (user decision 2026-09-30):
   4. CNIC on no page -> duplicate_conflict (original error) for a human,
   5. a set duplicate_conflict stops the fill, aborts the submit, and skips
      the submit call in the job worker.
+
+Retry workflow (user directive 2026-09-30, attempt > 1): open_form searches
+the portal list by CNIC FIRST instead of filling blindly — name match ->
+"edit" (fill that record), name mismatch -> "conflict" (report the portal
+holder's name, never fill), CNIC nowhere -> the attempt-1 create flow.
+Attempt 1 stays exactly as locked above.
 
 No network/browser: a scripted FakePage drives the flow.
 """
@@ -280,6 +286,65 @@ main_src = (ROOT / "src" / "main.py").read_text(encoding="utf-8")
 check("34 worker skips submit when conflict set",
       "if self.filler.duplicate_conflict:" in main_src
       and "skipping submit" in main_src)
+
+# 7. attempt-aware workflow (user directive 2026-09-30): attempt > 1
+#    pre-scans the list by CNIC before any fill; attempt 1 is unchanged.
+page = FakePage(hits=[{"href": "https://femis.fde.gov.pk/students/abc-123",
+                       "rowText": "AMMARA EHSAN 36302-1234567-1",
+                       "nameMatch": True}],
+                portal_name="  ammara   ehsan ")
+ff = FormFiller()
+mode = asyncio.run(ff.open_form(
+    page, {"name": "Ammara Ehsan", "b_form": "36302-1234567-1"}, attempt=2))
+check("35 attempt>1: CNIC found + name match -> edit", mode == "edit", mode)
+check("36 attempt>1 edit: form_mode set for the fill probe",
+      ff.form_mode == "edit")
+check("37 attempt>1 edit: list visited first, create never opened",
+      bool(page.visits) and page.visits[0] == LIST_URL
+      and CREATE_URL not in page.visits, str(page.visits))
+
+page = FakePage(hits=[{"href": "https://femis.fde.gov.pk/students/def-456",
+                       "rowText": "OTHER STUDENT 36302-1234567-1",
+                       "nameMatch": False}],
+                portal_name="OTHER STUDENT")
+ff = FormFiller()
+mode = asyncio.run(ff.open_form(
+    page, {"name": "Ammara Ehsan", "b_form": "36302-1234567-1"}, attempt=3))
+conf = ff.duplicate_conflict or {}
+check("38 attempt>1: name mismatch -> conflict (no fill)",
+      mode == "conflict", mode)
+check("39 conflict reports the student holding the CNIC",
+      any("OTHER STUDENT" in str(e) for e in conf.get("errors") or []),
+      str(conf.get("errors")))
+check("40 conflict reason cnic_name_mismatch",
+      conf.get("reason") == "cnic_name_mismatch", str(conf.get("reason")))
+
+page = FakePage(hits=[None], next_cls="disabled")
+ff = FormFiller()
+mode = asyncio.run(ff.open_form(
+    page, {"name": "Ammara Ehsan", "b_form": "36302-1234567-1"}, attempt=2))
+check("41 attempt>1: CNIC nowhere -> create-first fallback",
+      mode == "create" and bool(page.visits) and page.visits[-1] == CREATE_URL,
+      str(page.visits))
+
+page = FakePage()
+ff = FormFiller()
+mode = asyncio.run(ff.open_form(
+    page, {"name": "Ammara Ehsan", "b_form": "36302-1234567-1"}, attempt=1))
+check("42 attempt 1: unchanged create-first (no list visit)",
+      mode == "create" and page.visits == [CREATE_URL], str(page.visits))
+
+jr_src = (ROOT / "src" / "job_runner.py").read_text(encoding="utf-8")
+check("43 runner stamps attempt_number onto the student payload",
+      'student["_attempt_number"] = int(job.get("attempt_number") or 1)'
+      in jr_src)
+check("44 worker passes the attempt into open_form and stops on conflict",
+      "open_form(page, student, attempt=attempt)" in main_src
+      and 'if mode == "conflict":' in main_src)
+worker_region = main_src[main_src.index("async def worker"):]
+check("45 conflict return happens BEFORE the fill",
+      worker_region.index('if mode == "conflict":')
+      < worker_region.index("await self.filler.fill_student_form(page, student)"))
 
 failed = [n for n, ok in results if not ok]
 print(f"\n{'=' * 40}\n{len(results) - len(failed)}/{len(results)} passed")

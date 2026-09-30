@@ -459,6 +459,9 @@ async def _execute_claimed(client, claim_body: dict, claimed_by: str, worker,
     try:
         student = snapshot_to_student(snapshot)
         name = student.get("name") or student.get("student_name") or "unknown"
+        # One row = one attempt; attempt > 1 => the worker pre-scans the
+        # portal list by CNIC before any fill (retry workflow 2026-09-30).
+        student["_attempt_number"] = int(job.get("attempt_number") or 1)
     except ValueError as e:
         # Claimed but unusable snapshot: fail closed, never fill.
         logger.error(f"Job {job_id}: invalid snapshot: {e}")
