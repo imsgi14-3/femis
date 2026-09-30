@@ -207,6 +207,75 @@ tab_1_personal_details:
       required: false
       source_field: same_as_permanent_address
       note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    father_s_name:
+      label: Father's Name
+      type: text
+      required: true
+      source_field: father_name
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    father_s_cnic:
+      label: Father's CNIC
+      type: text
+      required: true
+      source_field: father_cnic
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    is_father_alive:
+      label: is_father_alive
+      type: radio
+      required: true
+      source_field: is_father_alive
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
+    father_domicile_province:
+      label: Father Domicile — Province
+      type: text
+      required: false
+      source_field: father_domicile_province_id
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    father_domicile_district:
+      label: Father Domicile — District
+      type: text
+      required: false
+      source_field: father_domicile_district_id
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    mother_s_name:
+      label: Mother's Name
+      type: text
+      required: true
+      source_field: mother_name
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    mother_s_cnic:
+      label: Mother's CNIC
+      type: text
+      required: false
+      source_field: mother_cnic
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    is_mother_alive:
+      label: is_mother_alive
+      type: radio
+      required: true
+      source_field: is_mother_alive
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
+    is_orphan:
+      label: is_orphan
+      type: radio
+      required: true
+      source_field: is_orphan
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+      options:
+      - 'Yes'
+      - 'No'
+    orphan_type:
+      label: Orphan Type
+      type: text
+      required: true
+      source_field: orphan_type
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
   domicile_information:
     nationality:
       label: Nationality
