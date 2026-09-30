@@ -255,11 +255,21 @@ class FEMISBot:
                 return ev or None
 
             try:
-                # Search the portal student list by name/CNIC first: open the
-                # existing record's edit page when found, else the create form.
+                # Create-first: open the CREATE form; an existing portal
+                # record is discovered only via the B-form-used error and
+                # the CNIC page-scan (100/page) inside the fill/submit flow.
                 mode = await self.filler.open_form(page, student)
-                logger.info(f"Job form mode: {mode} (open_form name/CNIC search)")
+                logger.info(f"Job form mode: {mode} (create-first)")
                 await self.filler.fill_student_form(page, student)
+                if self.filler.duplicate_conflict:
+                    logger.error(
+                        "Duplicate conflict during fill — skipping submit for human review"
+                    )
+                    return WorkResult(
+                        submitted=False,
+                        evidence=_evidence(),
+                        failed_field=self.filler._last_attempted_field,
+                    )
                 submitted = await self.filler.submit_form(page, student)
                 return WorkResult(
                     submitted=bool(submitted),

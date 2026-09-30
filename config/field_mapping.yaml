@@ -95,6 +95,45 @@ tab_1_personal_details:
       - Murree
       - Rawa
       - Islamabad
+      - Peshawar
+      - Charsadda
+      - Nowshera
+      - Khyber
+      - Mardan
+      - Swabi
+      - Swat
+      - Lower Dir
+      - Upper Dir
+      - Malakand
+      - Shangla
+      - Buner
+      - Chitral Lower
+      - Chitral Upper
+      - Abbottabad
+      - Haripur
+      - Mansehra
+      - Battagram
+      - Kohistan Lower
+      - Kohistan Upper
+      - Kolai-Palas Kohistan
+      - Torghar
+      - Kohat
+      - Karak
+      - Hangu
+      - Orakzai
+      - Kurram
+      - Bannu
+      - Lakki Marwat
+      - North Waziristan
+      - Dera Ismail Khan
+      - Tank
+      - South Waziristan Upper
+      - South Waziristan Lower
+      - Bajaur
+      - Mohmand
+      - Lower South Waziristan
+      - Upper South Waziristan
+      - Kohistan
     cnic_form_b_no:
       label: CNIC/Form-B No.
       type: text
@@ -226,6 +265,45 @@ tab_1_personal_details:
       - Poonch
       - Sudhanoti
       - Islamabad
+      - Peshawar
+      - Charsadda
+      - Nowshera
+      - Khyber
+      - Mardan
+      - Swabi
+      - Swat
+      - Lower Dir
+      - Upper Dir
+      - Malakand
+      - Shangla
+      - Buner
+      - Chitral Lower
+      - Chitral Upper
+      - Abbottabad
+      - Haripur
+      - Mansehra
+      - Battagram
+      - Kohistan Lower
+      - Kohistan Upper
+      - Kolai-Palas Kohistan
+      - Torghar
+      - Kohat
+      - Karak
+      - Hangu
+      - Orakzai
+      - Kurram
+      - Bannu
+      - Lakki Marwat
+      - North Waziristan
+      - Dera Ismail Khan
+      - Tank
+      - South Waziristan Upper
+      - South Waziristan Lower
+      - Bajaur
+      - Mohmand
+      - Lower South Waziristan
+      - Upper South Waziristan
+      - Kohistan
     is_hafiz:
       label: is_hafiz
       type: radio
@@ -323,13 +401,436 @@ tab_1_personal_details:
     village:
       label: Village
       type: dropdown
-      required: false
+      required: true
       source_field: village_id
+      options:
+      - Saidpur
+      - Talhar
+      - Gokina
+      - Muslim Colony
+      - Noor Pur Shahan
+      - Malpur
+      - Bhara Kahu
+      - Bani Gala
+      - Phulgran
+      - Athal
+      - Begwal
+      - Kirpa
+      - Kuri
+      - Tumair
+      - Nilore
+      - Chirah
+      - Tarlai
+      - Alipur
+      - Chak Shahzad
+      - Sihala
+      - Rawat
+      - Humak
+      - Koral
+      - Khanna Dak
+      - Sohan
+      - Jhangi Syedan
+      - Tarnol
+      - Sangjani
+      - Golra
+      - Shah Allah Ditta
+      - Sarai Kharboza
+      - Malot
+      - Lohi Bher
+      - Maira Akku
+      - Mughal
+      - Shakrial
+      - Banni Saran
+      - Chellow
+      - Jhang Syedan
+      - Herno
+      - Jagiot
+      - JABA TALI
+      - PUNJGRAN
+      - THANDA PANI
+      - KHANNA NAI ABADI
+      - ALIPUR FRASH
+      - DALLA
+      - HARNO THANDA PANI
+      - PEHOUNT
+      - NEW SHAKRIAL
+      - KALIA
+      - JABA TELI
+      - SHARIFABAD
+      - KHADRAPPER
+      - KIJNAH
+      - MOHRA SOLINA
+      - MOHRA TUMAIR
+      - KHANNA KAK
+      - PIND MISTRIAN
+      - KHANA NAI AABADI
+      - No.1 Tarlai islamabad
+      - TARLAI, (No-2)
+      - TAMMA
+      - ALI PUR FRASH (M.V)
+      - ALI PUR FRASH
+      - CHANOUL BANGIAL
+      - HERNO T.P
+      - DARKALA
+      - DHOKE FATEH HALL
+      - CHAPPAR Ghasota
+      - CHAKHTAN
+      - ALI PUR SOUTH
+      - SIRRI
+      - ALI PUR FARASH TOWN
+      - BIATH
+      - NAUGAZI
+      - NOON
+      - HERDOGHER
+      - BHADANA KALAN
+      - NARA SYEDAN
+      - DHOKE GANGAL
+      - PIND MALKAN
+      - TARNOUL
+      - MOHRA NAGIAL
+      - GAGRI
+      - BADIA QADIR BUKSH
+      - DHOKE JOURI
+      - UPRAN GOHRA
+      - DHOKE PRACHA
+      - MAIRA BERI
+      - BHIMBER TRAR
+      - MOHRI RAWAT
+      - PIND PARACHA
+      - RADIO COLONY RAWAT
+      - DHREAK MOHRI
+      - Bhangril Khurd
+      - RAJWAL
+      - DHALIALA
+      - DHOKE PARACHA
+      - SARAI KHARBUZA
+      - NIAZIAN
+      - TAMMAN
+      - PEIJA
+      - SANG JANI
+      - PINDORY SYEDAN
+      - MIANA THUB
+      - DORA
+      - JANDALA
+      - Sheikhpur Noon
+      - PIND HOON
+      - SHEIKH PUR RAWAT
+      - Karamabad
+      - DHOKE LUBANA
+      - JOHD
+      - SIHALA MIRZIAN
+      - PIND PARIAN
+      - HOON DHAMIAL
+      - GOHRA MAST
+      - SERI SARAL
+      - LADHIOT
+      - BOKRA
+      - SORAIN , Jhangi Syedan
+      - GHANGOTA SYEDAN
+      - BOORA BANGIAL
+      - MOHRI MUGHAL
+      - BHEKA SYEDAN
+      - PTC SIHALA
+      - Dhoke Hashoo
+      - PAK PWD COLONY
+      - DHOKE SULEMAN
+      - SIHALA KHURD
+      - SARAI MADHU
+      - MHS, D-17
+      - PAHG PANWAL
+      - GHAGRI
+      - (BSK) BHARA KAU
+      - BANI SARAN
+      - CHAKSHAHZAD
+      - BHARA KAU
+      - CHATTAR
+      - ARA BURJI
+      - PIND BEGWAL
+      - Shahdara
+      - Darwala
+      - RAWAL DAM
+      - Pind Malkan
+      - SAID PUR
+      - MOHRA KALU
+      - BOBRI
+      - DHOKE MAI NAWAB
+      - MAIRA BEGWAL
+      - KORTANA
+      - CHAK
+      - MOHRA NOOR
+      - MOHRI (RAWAT)
+      - KOT HATHIAL
+      - MALWAR
+      - SATRA MEEL
+      - BHUDDO
+      - CHAK KAMDAR
+      - CHAN MASTAL
+      - SIGGA
+      - DHOKE JERRANI
+      - CBR Colony
+      - DHOKE SYEDAN
+      - SOAN GARDEN LOHI BHEER
+      - DOHALA SYEDAN
+      - Gohra Shahan
+      - KALRAN
+      - MANGIAL
+      - MAL
+      - NOORPUR SHAHAN
+      - PALALI
+      - Rumli
+      - SIHALI
+      - QAZIABAD
+      - KUREE
+      - MARGALLA TOWN
+      - UNIVERSITY COLONY
+      - NHC
+      - NCH, CHAK SHAHZAD
+      - Kurri
+      - RAWAL TOWN
+      - LAKHWAL
+      - SHAHDRA KHURD
+      - SHAHDRA KALAN
+      - BAIN NALA
+      - MANDLA
+      - SANJALIAN
+      - NHC Chak Shezad Islamabad
+      - KOT HATHIAL, NAI ABADI
+      - MOHRIAN
+      - PIND BEGWAL, DANNA
+      - SHAH PUR
+      - SUBBAN
+      - SHAHZAD TOWN
+      - BHARA KAU, NAI ABADI
+      - MULPUR
+      - MAIRA MALPUR
+      - Arra
+      - Chohar Sharif
+      - Chakian
+      - Mughal Pari
+      - Kangota Syedan
+      - Druni
+      - Dhandi
+      - Arri Syedan
+      - Maira
+      - Dadocha
+      - Upra Ghora
+      - Chatro
+      - Bhoon
+      - Kangota Gujran
+      - Sain Mirchu (H-13)
+      - Dhoke Parathi
+      - Dhoke Malaika
+      - Jarakee
+      - Gurha Mistrian
+      - Sihala Baag
+      - Panyali
+      - Trikhian
+      - Dandee
+      - Chuchkal
+      - Masho Khel
     housing_society:
       label: Housing Society
       type: dropdown
-      required: false
+      required: true
       source_field: housing_society_id
+      options:
+      - Alhamra Avenue
+      - Al-Makkah City
+      - Anza Zephyr Dale Agro Farms
+      - Bahria Enclave-II Agro Farming
+      - Bahria Enclave-II Phase-II
+      - Bahria Town Phase-VII
+      - Bahria Town Ph-II
+      - Bahria Town Phase-I
+      - Bahria Town Phase-III
+      - Bahria Town Phase-IV
+      - Bahria Town Phase-V
+      - Bahria Town Phase-VI
+      - Bahria Town Phase-VIII
+      - DHA Phase - I
+      - DHA Phase - II
+      - DHA Phase - III
+      - DHA Phase - IV
+      - DHA Phase - V
+      - DHA Phase - VI
+      - DHA Phase - VII
+      - Cabinet Division Employees Cooperative Housing Society
+      - CBR Town
+      - Engineers Housing Scheme
+      - Grace Valley
+      - Gulberg Greens Farm Housing Scheme
+      - Gulberg Residencia
+      - Gulshan-e-Sehat
+      - Islamabad Gardens
+      - Jeddah Town
+      - Khayaban-e-Kashmir Phase-I
+      - Ministry of Interior Employees Cooperative Housing Society
+      - Multi Gardens Phase-I
+      - Multi Gardens Phase-II
+      - Naval Anchorage
+      - OPF Housing Scheme
+      - Paradise City
+      - Park View City
+      - Rahman Enclave
+      - Senate Avenue
+      - Supreme Court Employees Housing Scheme
+      - T&T Employees Cooperative Housing Society
+      - Tele Gardens F-17
+      - Zaraj Housing
+      - Bahria Enclave Phase-I
+      - Bahria Garden City
+      - Army Welfare Trust
+      - Engineers Cooperative
+      - Faisal Residencia Housing Scheme
+      - FIA Park Enclave
+      - Icon Garden
+      - Islamabad Model Town
+      - Jinnah Garden Phase-I
+      - Jinnah Garden Phase-II
+      - Jinnah Town
+      - Khayaban-e-Kashmir
+      - Margalla View Housing Scheme
+      - National Cooperative Housing Society & New Islamabad Enclave
+      - River Garden
+      - WWF Labour Colony
+      - AGOCHS Phase-I
+      - AGOCHS Phase-II
+      - Al-Hamra Hills Agro Farming Scheme
+      - Federation of Employees
+      - Gulshan-e-Rabia
+      - Khayaban-e-Kashmir Phase-II
+      - Morgah City
+      - National Police Foundation
+      - New Islamabad Garden
+      - Pakistan Medical Cooperative Housing Scheme
+      - Pakistan Navy Farms
+      - Parliamentarians Enclave
+      - Roshan Pakistan
+      - Services Cooperative Housing Society
+      - Soan Garden
+      - Ghouri Town Phase - I
+      - Ghouri Town Phase - II
+      - Ghouri Town Phase - III
+      - Ghouri Town Phase - IV
+      - Ghouri Town Phase - V
+      - Ghouri Town Phase - VI
+      - Ghouri Town Phase - VII
+      - Ghouri Town Phase - VIII
+      - Ghouri Town Phase - VIP
+      - Ghouri Gardens
+      - Faisal Town
+      - Burma Town
+      - Green Avenue
+      - Green Valley
+      - Gulberg Town
+      - Gulf Residencia
+      - Madina Town Block A
+      - Madina Town Block B
+      - Madina Town Block C
+      - Madina Town Block D
+      - Marwa Town
+      - Margalla Gardens
+      - New University Town
+      - Park Lane Valley
+      - Royal City Housing Scheme
+      - Saif Gardens
+      - Shaheen Town Phase - I
+      - Simly Valley
+      - Spring Valley
+      - The Enclave Housing Scheme
+      - Shaheen Town Phase - II
+      - Shaheen Town Phase - III
+      - Shaheen Town Phase - IV
+      - Yar Muhammad Society
+      - Japan Valley Kirpa
+      - Kiani Town
+      - Karsaz Villas
+      - Kohsar Enclave
+      - Rawal Enclave
+      - Doctors Enclave
+      - Doctors Town, PWD
+      - Al-Syed Avenue
+      - Ali Town
+      - Bani Gala Hill View
+      - Bara Kahu Enclave
+      - Capital Enclave
+      - Margalla View Housing Scheme (Extension)
+      - Kashmir Gardens Farming Scheme
+      - Khayaban-e-Kashmir, Phase (Extension)
+      - Tele Town
+      - AGOCHS, Phase-I
+      - AGOCHS, Phase-II
+      - National Assembly Employees Cooperative Housing Society (NAECHS)
+      - Roshan Pakistan (RP) Corporation Housing Scheme
+      - Services Co-operative Housing Society
+      - Abdullah Garden Kuri Road
+      - Abdullah Gardens Kuri Road
+      - Abu Bakar Town
+      - Adil Farms
+      - Adil Valley
+      - Al-Huda Town
+      - Al-Rayan Society
+      - Al-Rehman City View
+      - Al-Rehman Villas
+      - Ali Model Town
+      - Ameer Khan Enclave
+      - Arcadia City
+      - Arsalan Town
+      - Asian Ranches Villas
+      - Aryan Enclave
+      - Babar Enclave
+      - Badar Farms
+      - Blue Enclave / Star Home
+      - Bylee Town
+      - Capital Gardens
+      - Centerbury Enclave
+      - City Town
+      - City View
+      - Ghakar Town
+      - Ghouri Town
+      - Government Officers Co-operative Housing Scheme
+      - Green Avenue-II
+      - Green Field
+      - Green Hills
+      - Green Meadows (North Ridge) Housing Scheme
+      - Green Residencia
+      - Green Valley (1 & 2)
+      - Green Valley, Karor Road
+      - Green View Villas
+      - Gulberg Town (1 & 2)
+      - J&K Farm Housing Scheme
+      - Katrsaz Villas
+      - Madina Enclave Phase-I
+      - Madina Town
+      - Major Makhdoom Society
+      - Makkah Town
+      - Media City-1
+      - Mufti Mehmood Enclave
+      - Muslim Town
+      - Muzafarabad Town
+      - OGDCOL Town
+      - Olive Wood Farms
+      - Paradise Point HS
+      - PTV Colony
+      - Qurtbal Town
+      - Rawal Enclave Phase-III
+      - Royal Homes / Residencia
+      - Sama Town
+      - Satti Town
+      - Shaheen Farms
+      - Shaheen Town 1, 2, 3 & 4
+      - Simly Valley (1 & 2)
+      - Star Villas Housing Scheme
+      - Tricon Agro-Farms
+      - Usama Town
+      - Usama Town, Hurno Thanda Pani
+      - Bahria Paradise Commercial Scheme-I
+      - Bahria Paradise Commercial Scheme-II
+      - Bahria Paradise Commercial Scheme-III
+      - Bahria Paradise Commercial Scheme-IV
+      - Iqbal Town
+      - Korang Town
+      - Pakistan Town
     house_number:
       label: 'House # (Temporary)'
       type: text
@@ -346,6 +847,11 @@ tab_1_personal_details:
       required: true
       source_field: contact_number
       validation: mobile_pakistani
+    address:
+      label: Address
+      type: text
+      required: true
+      source_field: address
   address_permanent:
     city:
       label: City
@@ -449,6 +955,10 @@ tab_1_personal_details:
       - South Waziristan
       - Kotli
       - karak
+      - Upper Dir
+      - Kohistan Lower
+      - Rawlakot
+      - Poonch
     same_as_temporary:
       label: Same as Temporary Address
       type: checkbox
@@ -543,11 +1053,434 @@ tab_1_personal_details:
       type: dropdown
       required: false
       source_field: present_village_id
+      options:
+      - Saidpur
+      - Talhar
+      - Gokina
+      - Muslim Colony
+      - Noor Pur Shahan
+      - Malpur
+      - Bhara Kahu
+      - Bani Gala
+      - Phulgran
+      - Athal
+      - Begwal
+      - Kirpa
+      - Kuri
+      - Tumair
+      - Nilore
+      - Chirah
+      - Tarlai
+      - Alipur
+      - Chak Shahzad
+      - Sihala
+      - Rawat
+      - Humak
+      - Koral
+      - Khanna Dak
+      - Sohan
+      - Jhangi Syedan
+      - Tarnol
+      - Sangjani
+      - Golra
+      - Shah Allah Ditta
+      - Sarai Kharboza
+      - Malot
+      - Lohi Bher
+      - Maira Akku
+      - Mughal
+      - Shakrial
+      - Banni Saran
+      - Chellow
+      - Jhang Syedan
+      - Herno
+      - Jagiot
+      - JABA TALI
+      - PUNJGRAN
+      - THANDA PANI
+      - KHANNA NAI ABADI
+      - ALIPUR FRASH
+      - DALLA
+      - HARNO THANDA PANI
+      - PEHOUNT
+      - NEW SHAKRIAL
+      - KALIA
+      - JABA TELI
+      - SHARIFABAD
+      - KHADRAPPER
+      - KIJNAH
+      - MOHRA SOLINA
+      - MOHRA TUMAIR
+      - KHANNA KAK
+      - PIND MISTRIAN
+      - KHANA NAI AABADI
+      - No.1 Tarlai islamabad
+      - TARLAI, (No-2)
+      - TAMMA
+      - ALI PUR FRASH (M.V)
+      - ALI PUR FRASH
+      - CHANOUL BANGIAL
+      - HERNO T.P
+      - DARKALA
+      - DHOKE FATEH HALL
+      - CHAPPAR Ghasota
+      - CHAKHTAN
+      - ALI PUR SOUTH
+      - SIRRI
+      - ALI PUR FARASH TOWN
+      - BIATH
+      - NAUGAZI
+      - NOON
+      - HERDOGHER
+      - BHADANA KALAN
+      - NARA SYEDAN
+      - DHOKE GANGAL
+      - PIND MALKAN
+      - TARNOUL
+      - MOHRA NAGIAL
+      - GAGRI
+      - BADIA QADIR BUKSH
+      - DHOKE JOURI
+      - UPRAN GOHRA
+      - DHOKE PRACHA
+      - MAIRA BERI
+      - BHIMBER TRAR
+      - MOHRI RAWAT
+      - PIND PARACHA
+      - RADIO COLONY RAWAT
+      - DHREAK MOHRI
+      - Bhangril Khurd
+      - RAJWAL
+      - DHALIALA
+      - DHOKE PARACHA
+      - SARAI KHARBUZA
+      - NIAZIAN
+      - TAMMAN
+      - PEIJA
+      - SANG JANI
+      - PINDORY SYEDAN
+      - MIANA THUB
+      - DORA
+      - JANDALA
+      - Sheikhpur Noon
+      - PIND HOON
+      - SHEIKH PUR RAWAT
+      - Karamabad
+      - DHOKE LUBANA
+      - JOHD
+      - SIHALA MIRZIAN
+      - PIND PARIAN
+      - HOON DHAMIAL
+      - GOHRA MAST
+      - SERI SARAL
+      - LADHIOT
+      - BOKRA
+      - SORAIN , Jhangi Syedan
+      - GHANGOTA SYEDAN
+      - BOORA BANGIAL
+      - MOHRI MUGHAL
+      - BHEKA SYEDAN
+      - PTC SIHALA
+      - Dhoke Hashoo
+      - PAK PWD COLONY
+      - DHOKE SULEMAN
+      - SIHALA KHURD
+      - SARAI MADHU
+      - MHS, D-17
+      - PAHG PANWAL
+      - GHAGRI
+      - (BSK) BHARA KAU
+      - BANI SARAN
+      - CHAKSHAHZAD
+      - BHARA KAU
+      - CHATTAR
+      - ARA BURJI
+      - PIND BEGWAL
+      - Shahdara
+      - Darwala
+      - RAWAL DAM
+      - Pind Malkan
+      - SAID PUR
+      - MOHRA KALU
+      - BOBRI
+      - DHOKE MAI NAWAB
+      - MAIRA BEGWAL
+      - KORTANA
+      - CHAK
+      - MOHRA NOOR
+      - MOHRI (RAWAT)
+      - KOT HATHIAL
+      - MALWAR
+      - SATRA MEEL
+      - BHUDDO
+      - CHAK KAMDAR
+      - CHAN MASTAL
+      - SIGGA
+      - DHOKE JERRANI
+      - CBR Colony
+      - DHOKE SYEDAN
+      - SOAN GARDEN LOHI BHEER
+      - DOHALA SYEDAN
+      - Gohra Shahan
+      - KALRAN
+      - MANGIAL
+      - MAL
+      - NOORPUR SHAHAN
+      - PALALI
+      - Rumli
+      - SIHALI
+      - QAZIABAD
+      - KUREE
+      - MARGALLA TOWN
+      - UNIVERSITY COLONY
+      - NHC
+      - NCH, CHAK SHAHZAD
+      - Kurri
+      - RAWAL TOWN
+      - LAKHWAL
+      - SHAHDRA KHURD
+      - SHAHDRA KALAN
+      - BAIN NALA
+      - MANDLA
+      - SANJALIAN
+      - NHC Chak Shezad Islamabad
+      - KOT HATHIAL, NAI ABADI
+      - MOHRIAN
+      - PIND BEGWAL, DANNA
+      - SHAH PUR
+      - SUBBAN
+      - SHAHZAD TOWN
+      - BHARA KAU, NAI ABADI
+      - MULPUR
+      - MAIRA MALPUR
+      - Arra
+      - Chohar Sharif
+      - Chakian
+      - Mughal Pari
+      - Kangota Syedan
+      - Druni
+      - Dhandi
+      - Arri Syedan
+      - Maira
+      - Dadocha
+      - Upra Ghora
+      - Chatro
+      - Bhoon
+      - Kangota Gujran
+      - Sain Mirchu (H-13)
+      - Dhoke Parathi
+      - Dhoke Malaika
+      - Jarakee
+      - Gurha Mistrian
+      - Sihala Baag
+      - Panyali
+      - Trikhian
+      - Dandee
+      - Chuchkal
+      - Masho Khel
     housing_society:
       label: Housing Society
       type: dropdown
       required: false
       source_field: present_housing_society_id
+      options:
+      - Alhamra Avenue
+      - Al-Makkah City
+      - Anza Zephyr Dale Agro Farms
+      - Bahria Enclave-II Agro Farming
+      - Bahria Enclave-II Phase-II
+      - Bahria Town Phase-VII
+      - Bahria Town Ph-II
+      - Bahria Town Phase-I
+      - Bahria Town Phase-III
+      - Bahria Town Phase-IV
+      - Bahria Town Phase-V
+      - Bahria Town Phase-VI
+      - Bahria Town Phase-VIII
+      - DHA Phase - I
+      - DHA Phase - II
+      - DHA Phase - III
+      - DHA Phase - IV
+      - DHA Phase - V
+      - DHA Phase - VI
+      - DHA Phase - VII
+      - Cabinet Division Employees Cooperative Housing Society
+      - CBR Town
+      - Engineers Housing Scheme
+      - Grace Valley
+      - Gulberg Greens Farm Housing Scheme
+      - Gulberg Residencia
+      - Gulshan-e-Sehat
+      - Islamabad Gardens
+      - Jeddah Town
+      - Khayaban-e-Kashmir Phase-I
+      - Ministry of Interior Employees Cooperative Housing Society
+      - Multi Gardens Phase-I
+      - Multi Gardens Phase-II
+      - Naval Anchorage
+      - OPF Housing Scheme
+      - Paradise City
+      - Park View City
+      - Rahman Enclave
+      - Senate Avenue
+      - Supreme Court Employees Housing Scheme
+      - T&T Employees Cooperative Housing Society
+      - Tele Gardens F-17
+      - Zaraj Housing
+      - Bahria Enclave Phase-I
+      - Bahria Garden City
+      - Army Welfare Trust
+      - Engineers Cooperative
+      - Faisal Residencia Housing Scheme
+      - FIA Park Enclave
+      - Icon Garden
+      - Islamabad Model Town
+      - Jinnah Garden Phase-I
+      - Jinnah Garden Phase-II
+      - Jinnah Town
+      - Khayaban-e-Kashmir
+      - Margalla View Housing Scheme
+      - National Cooperative Housing Society & New Islamabad Enclave
+      - River Garden
+      - WWF Labour Colony
+      - AGOCHS Phase-I
+      - AGOCHS Phase-II
+      - Al-Hamra Hills Agro Farming Scheme
+      - Federation of Employees
+      - Gulshan-e-Rabia
+      - Khayaban-e-Kashmir Phase-II
+      - Morgah City
+      - National Police Foundation
+      - New Islamabad Garden
+      - Pakistan Medical Cooperative Housing Scheme
+      - Pakistan Navy Farms
+      - Parliamentarians Enclave
+      - Roshan Pakistan
+      - Services Cooperative Housing Society
+      - Soan Garden
+      - Ghouri Town Phase - I
+      - Ghouri Town Phase - II
+      - Ghouri Town Phase - III
+      - Ghouri Town Phase - IV
+      - Ghouri Town Phase - V
+      - Ghouri Town Phase - VI
+      - Ghouri Town Phase - VII
+      - Ghouri Town Phase - VIII
+      - Ghouri Town Phase - VIP
+      - Ghouri Gardens
+      - Faisal Town
+      - Burma Town
+      - Green Avenue
+      - Green Valley
+      - Gulberg Town
+      - Gulf Residencia
+      - Madina Town Block A
+      - Madina Town Block B
+      - Madina Town Block C
+      - Madina Town Block D
+      - Marwa Town
+      - Margalla Gardens
+      - New University Town
+      - Park Lane Valley
+      - Royal City Housing Scheme
+      - Saif Gardens
+      - Shaheen Town Phase - I
+      - Simly Valley
+      - Spring Valley
+      - The Enclave Housing Scheme
+      - Shaheen Town Phase - II
+      - Shaheen Town Phase - III
+      - Shaheen Town Phase - IV
+      - Yar Muhammad Society
+      - Japan Valley Kirpa
+      - Kiani Town
+      - Karsaz Villas
+      - Kohsar Enclave
+      - Rawal Enclave
+      - Doctors Enclave
+      - Doctors Town, PWD
+      - Al-Syed Avenue
+      - Ali Town
+      - Bani Gala Hill View
+      - Bara Kahu Enclave
+      - Capital Enclave
+      - Margalla View Housing Scheme (Extension)
+      - Kashmir Gardens Farming Scheme
+      - Khayaban-e-Kashmir, Phase (Extension)
+      - Tele Town
+      - AGOCHS, Phase-I
+      - AGOCHS, Phase-II
+      - National Assembly Employees Cooperative Housing Society (NAECHS)
+      - Roshan Pakistan (RP) Corporation Housing Scheme
+      - Services Co-operative Housing Society
+      - Abdullah Garden Kuri Road
+      - Abdullah Gardens Kuri Road
+      - Abu Bakar Town
+      - Adil Farms
+      - Adil Valley
+      - Al-Huda Town
+      - Al-Rayan Society
+      - Al-Rehman City View
+      - Al-Rehman Villas
+      - Ali Model Town
+      - Ameer Khan Enclave
+      - Arcadia City
+      - Arsalan Town
+      - Asian Ranches Villas
+      - Aryan Enclave
+      - Babar Enclave
+      - Badar Farms
+      - Blue Enclave / Star Home
+      - Bylee Town
+      - Capital Gardens
+      - Centerbury Enclave
+      - City Town
+      - City View
+      - Ghakar Town
+      - Ghouri Town
+      - Government Officers Co-operative Housing Scheme
+      - Green Avenue-II
+      - Green Field
+      - Green Hills
+      - Green Meadows (North Ridge) Housing Scheme
+      - Green Residencia
+      - Green Valley (1 & 2)
+      - Green Valley, Karor Road
+      - Green View Villas
+      - Gulberg Town (1 & 2)
+      - J&K Farm Housing Scheme
+      - Katrsaz Villas
+      - Madina Enclave Phase-I
+      - Madina Town
+      - Major Makhdoom Society
+      - Makkah Town
+      - Media City-1
+      - Mufti Mehmood Enclave
+      - Muslim Town
+      - Muzafarabad Town
+      - OGDCOL Town
+      - Olive Wood Farms
+      - Paradise Point HS
+      - PTV Colony
+      - Qurtbal Town
+      - Rawal Enclave Phase-III
+      - Royal Homes / Residencia
+      - Sama Town
+      - Satti Town
+      - Shaheen Farms
+      - Shaheen Town 1, 2, 3 & 4
+      - Simly Valley (1 & 2)
+      - Star Villas Housing Scheme
+      - Tricon Agro-Farms
+      - Usama Town
+      - Usama Town, Hurno Thanda Pani
+      - Bahria Paradise Commercial Scheme-I
+      - Bahria Paradise Commercial Scheme-II
+      - Bahria Paradise Commercial Scheme-III
+      - Bahria Paradise Commercial Scheme-IV
+      - Iqbal Town
+      - Korang Town
+      - Pakistan Town
     house_number:
       label: 'House # (Permanent)'
       type: text
@@ -555,7 +1488,13 @@ tab_1_personal_details:
     street_number:
       label: 'Street # (Permanent)'
       type: text
+      required: false
       source_field: present_street
+    present_address:
+      label: Present Address
+      type: text
+      required: true
+      source_field: present_address_other
   religion_language_other:
     religion:
       label: Religion
@@ -810,6 +1749,45 @@ tab_2_parents_guardian:
       - Chakwal
       - Rawa
       - Islamabad
+      - Peshawar
+      - Charsadda
+      - Nowshera
+      - Khyber
+      - Mardan
+      - Swabi
+      - Swat
+      - Lower Dir
+      - Upper Dir
+      - Malakand
+      - Shangla
+      - Buner
+      - Chitral Lower
+      - Chitral Upper
+      - Abbottabad
+      - Haripur
+      - Mansehra
+      - Battagram
+      - Kohistan Lower
+      - Kohistan Upper
+      - Kolai-Palas Kohistan
+      - Torghar
+      - Kohat
+      - Karak
+      - Hangu
+      - Orakzai
+      - Kurram
+      - Bannu
+      - Lakki Marwat
+      - North Waziristan
+      - Dera Ismail Khan
+      - Tank
+      - South Waziristan Upper
+      - South Waziristan Lower
+      - Bajaur
+      - Mohmand
+      - Lower South Waziristan
+      - Upper South Waziristan
+      - Kohistan
     is_orphan:
       label: is_orphan
       type: radio
@@ -2862,13 +3840,16 @@ tab_5_idps_details:
   idp_status:
     label: IDP Status
     type: radio
-    required: false
+    required: true
     source_field: idp_status_id
     note: Required when is_refugee = Yes
+    options:
+    - Registered
+    - Un registered
   is_registered_as_refugee:
     label: Is Registered as Refugee
     type: radio
-    required: false
+    required: true
     source_field: is_registered_refugee
     note: Required when is_refugee = Yes
     options:
@@ -3070,6 +4051,15 @@ tab_5_idps_details:
     required: true
     source_field: emergency_relation
     note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  is_registered_refugee:
+    label: is_registered_refugee
+    type: radio
+    required: true
+    source_field: is_registered_refugee
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    options:
+    - 'Yes'
+    - 'No'
 tab_6_health_details:
   any_major_disability:
     label: Any Major Disability
@@ -3100,12 +4090,16 @@ tab_6_health_details:
   mental_disability_type:
     label: Mental Disability Type
     type: dropdown
-    required: false
+    required: true
     source_field: mental_disability_type
+    options:
+    - Autism
+    - ADHD
+    - Other
   other_mental_disability:
     label: Other Mental Disability
     type: text
-    required: false
+    required: true
     source_field: mental_disability_other
   other_medical_conditions:
     label: Other Medical Conditions
@@ -3140,7 +4134,7 @@ tab_6_health_details:
   glass_prescription:
     label: Glasses Prescription
     type: text
-    required: false
+    required: true
     source_field: glass_prescription
     note: Required when visually_fit = No
   vision_difficulty:
@@ -3173,7 +4167,7 @@ tab_6_health_details:
   hearing_aid_details:
     label: Hearing Aid Details
     type: text
-    required: false
+    required: true
     source_field: hearing_aid_details
   difficulty_listening:
     label: Difficulty Listening
@@ -3468,6 +4462,18 @@ tab_6_health_details:
     source_field: email
     note: Auto-discovered from portal DOM (map source_field to DB column when known)
     placeholder: fde@gmail.com
+  specify_mental_disability:
+    label: Specify Mental Disability
+    type: text
+    required: true
+    source_field: mental_disability_other
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
+  hearing_difficulty_details:
+    label: Hearing Difficulty Details
+    type: text
+    required: true
+    source_field: hearing_aid_details
+    note: Auto-discovered from portal DOM (map source_field to DB column when known)
 tab_7_digital_access:
   access_to_digital_device:
     label: Access to Digital Device

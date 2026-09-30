@@ -26,6 +26,7 @@ PORTAL_NAME_ALIASES = {
     "same_address": "same_as_permanent_address",
     "siblings_same": "siblings_same_institution",
     "refugee_card": "refugee_card_number",
+    "present_address_other": "present_address",
     "other_conditions": "other_medical_condition",
     "hearing_aid_details": "hearing_aid_details",
     "achievement_details": "cocurricular_details",
@@ -147,116 +148,155 @@ class FormFiller:
         page.on("dialog", _on_dialog)
 
     async def open_form(self, page: Page, student_data: dict) -> str:
-        """Open create or edit form.
+        """Open the CREATE form (create-first workflow).
 
-        Portal search only works on name/class (not CNIC). Flow:
-        1. Search list by student name
-        2. Read CNIC/B-Form from visible result row(s)
-        3. Open edit only when CNIC matches; else create
+        The portal list is never searched by name — two students can share a
+        name and the wrong record must never be edited. An existing record is
+        discovered only AFTER the portal rejects the B-Form/CNIC as already
+        taken: _recover_duplicate runs the CNIC scan (_scan_list_by_cnic,
+        100 records/page) and switches to edit only when the name matches.
         """
-        b_form = str(student_data.get("b_form") or "").strip()
-        name = str(student_data.get("name") or student_data.get("student_name") or "").strip()
         self.form_mode = "create"
-        if not name:
-            await page.goto(CREATE_URL, wait_until="networkidle")
-            await asyncio.sleep(1.5)
-            return "create"
-
-        try:
-            await page.goto(LIST_URL, wait_until="networkidle")
-            await asyncio.sleep(1.5)
-            filled = False
-            for sel in (
-                "input[name='search']",
-                "input[type='search']",
-                "#search",
-                ".dataTables_filter input",
-            ):
-                loc = page.locator(sel).first
-                if await loc.count() == 0 or not await loc.is_visible():
-                    continue
-                await loc.fill(name)
-                await loc.press("Enter")
-                await asyncio.sleep(2.5)
-                filled = True
-                break
-            if not filled:
-                logger.warning("open_form: no search input on list page")
-
-            # Scan result rows: match name, then verify CNIC on the same row
-            result = await page.evaluate(
-                """([name, bf]) => {
-                    const norm = s => (s || '').replace(/\\s+/g, ' ').trim().toUpperCase();
-                    const nameN = norm(name);
-                    const bfDigits = (bf || '').replace(/\\D/g, '');
-                    const rows = Array.from(document.querySelectorAll('table tr, .table tr, tr'));
-                    const hits = [];
-                    for (const row of rows) {
-                        const text = row.innerText || '';
-                        if (!text || !norm(text).includes(nameN)) continue;
-                        const rowDigits = (text.replace(/\\D/g, ''));
-                        const a = row.querySelector(
-                            'a[href*="/students/"][href*="edit"], a[href*="/students/"]'
-                        );
-                        if (!a) continue;
-                        const href = a.getAttribute('href') || '';
-                        if (!href || href.endsWith('/students') || href.includes('/create')) continue;
-                        hits.push({
-                            href: a.href,
-                            rowText: text.replace(/\\s+/g, ' ').trim(),
-                            cnicMatch: bfDigits.length >= 6 && rowDigits.includes(bfDigits),
-                            hasBf: bfDigits.length >= 6,
-                        });
-                    }
-                    // Prefer CNIC match; else single name hit; else first hit
-                    if (!hits.length) return null;
-                    const exact = hits.filter(h => h.cnicMatch);
-                    if (exact.length === 1) return exact[0];
-                    if (hits.length === 1) return hits[0];
-                    if (exact.length > 1) return exact[0];
-                    return hits[0];
-                }""",
-                [name, b_form],
-            )
-
-            if result and result.get("href"):
-                edit_url = result["href"]
-                row_text = result.get("rowText", "")
-                cnic_ok = bool(result.get("cnicMatch"))
-                if b_form and not cnic_ok and result.get("hasBf"):
-                    logger.warning(
-                        f"Name matched but CNIC differs (want {b_form}); row={row_text!r}. Opening create."
-                    )
-                else:
-                    # Row link is the read-only View page (all inputs disabled,
-                    # no Finish). The wizard lives on /edit — normalize and fall
-                    # back to the raw href if that URL does not resolve.
-                    if not edit_url.rstrip("/").endswith("/edit"):
-                        edit_url = edit_url.rstrip("/") + "/edit"
-                    logger.info(
-                        f"Found existing student (name={name!r}, cnic_match={cnic_ok}), "
-                        f"opening edit: {edit_url}"
-                    )
-                    resp = await page.goto(edit_url, wait_until="networkidle")
-                    if resp is not None and resp.status >= 400:
-                        logger.warning(
-                            f"Edit URL {edit_url} -> HTTP {resp.status}; "
-                            f"falling back to {result['href']}"
-                        )
-                        await page.goto(result["href"], wait_until="networkidle")
-                    await asyncio.sleep(2)
-                    self.form_mode = "edit"
-                    return "edit"
-        except Exception as e:
-            logger.warning(f"open_form list search failed: {e}")
-
-        logger.info(f"No portal match for name={name!r}; opening create")
         await page.goto(CREATE_URL, wait_until="networkidle")
         await asyncio.sleep(1.5)
         return "create"
 
-    async def _recover_duplicate(self, page: Page, student_data: dict | None) -> bool:
-        """On 422 b_form already taken, switch to the existing portal record's edit form."""
+    async def _read_name_value(self, page: Page) -> str:
+        """Student name currently in the portal form (best effort)."""
+        try:
+            for sel in ('input[name="name"]', "#name", 'input[name="student_name"]'):
+                loc = page.locator(sel).first
+                if await loc.count() > 0:
+                    return str(await loc.input_value() or "").strip()
+        except Exception:
+            pass
+        return ""
+
+    async def _scan_list_by_cnic(self, page: Page, student_data: dict,
+                                 tab: int | None = None) -> str:
+        """CNIC page-scan of the portal student list (the user's workflow).
+
+        100 records per page; on every page run the browser find (Ctrl+F
+        equivalent) for the B-Form digits without dashes; page forward until
+        the row carrying the CNIC appears. Open that record and read its
+        name: case/space-insensitive match => "edit" (stay); any difference
+        => "conflict" (duplicate_conflict set, never edit); CNIC absent on
+        every page => "notfound".
+        """
+        digits = re.sub(r"\D", "", str(student_data.get("b_form") or ""))
+        want = re.sub(r"\s+", " ", str(
+            student_data.get("name") or student_data.get("student_name") or ""
+        ).strip()).upper()
+        if len(digits) < 6 or not want:
+            logger.warning("CNIC scan: no usable B-Form or name — cannot scan")
+            return "notfound"
+        logger.warning(f"CNIC scan: list search for {digits} (100 records/page)")
+        await page.goto(LIST_URL, wait_until="networkidle")
+        await asyncio.sleep(1.5)
+        try:
+            length_sel = page.locator("select[name$='_length']").first
+            if await length_sel.count() > 0:
+                await length_sel.select_option("100")
+                await asyncio.sleep(1.5)
+                logger.info("CNIC scan: list length set to 100/page")
+        except Exception as e:
+            logger.warning(f"CNIC scan: could not set list length to 100: {e}")
+
+        for page_no in range(1, 61):
+            hit = await page.evaluate(
+                """([digits, want]) => {
+                    const norm = s => (s || '').replace(/\\s+/g, ' ').trim().toUpperCase();
+                    // browser find — same engine as the Ctrl+F bar
+                    try { window.find(digits); } catch (e) {}
+                    const rows = Array.from(document.querySelectorAll('table tr, .table tr'));
+                    for (const row of rows) {
+                        const text = row.innerText || '';
+                        if (!text.replace(/\\D/g, '').includes(digits)) continue;
+                        const a = row.querySelector('a[href*="/students/"]');
+                        if (!a) continue;
+                        const href = a.getAttribute('href') || '';
+                        if (!href || href.endsWith('/students') || href.includes('/create')) continue;
+                        const cells = Array.from(row.querySelectorAll('td'))
+                            .map(td => (td.innerText || '').replace(/\\s+/g, ' ').trim());
+                        return {
+                            href: a.href,
+                            rowText: text.replace(/\\s+/g, ' ').trim(),
+                            nameMatch: cells.some(c => norm(c) === norm(want)),
+                        };
+                    }
+                    return null;
+                }""",
+                [digits, want],
+            )
+            if hit and hit.get("href"):
+                row_text = str(hit.get("rowText") or "")[:200]
+                href = str(hit["href"])
+                if not href.rstrip("/").endswith("/edit"):
+                    href = href.rstrip("/") + "/edit"
+                logger.info(
+                    f"CNIC scan: row found on page {page_no} "
+                    f"(name_match={bool(hit.get('nameMatch'))}); row={row_text!r}"
+                )
+                resp = await page.goto(href, wait_until="networkidle")
+                if resp is not None and resp.status >= 400:
+                    logger.warning(f"Edit URL -> HTTP {resp.status}; falling back to row href")
+                    await page.goto(str(hit["href"]), wait_until="networkidle")
+                await asyncio.sleep(2)
+                portal_name = await self._read_name_value(page)
+                norm = lambda s: re.sub(r"\s+", " ", (s or "").strip()).upper()  # noqa: E731
+                if portal_name and norm(portal_name) == want:
+                    logger.info(f"CNIC scan: same student ({portal_name!r}) — opening edit")
+                    self.form_mode = "edit"
+                    return "edit"
+                portal_disp = portal_name or str(hit.get("rowText") or "unknown")[:120]
+                logger.error(
+                    f"CNIC scan: {digits} exists on portal as {portal_disp!r} — "
+                    f"name differs from {want!r}; reporting conflict"
+                )
+                if self.duplicate_conflict is None:
+                    self.duplicate_conflict = {
+                        "reason": "cnic_name_mismatch",
+                        "tab": tab,
+                        "cnic": digits,
+                        "portal_name": portal_disp,
+                        "errors": [
+                            f"B-Form/CNIC {digits} already exists on the portal "
+                            f"under a different name: '{portal_disp}'"
+                        ],
+                    }
+                await page.goto(CREATE_URL, wait_until="networkidle")
+                await asyncio.sleep(1.5)
+                return "conflict"
+
+            nxt = page.locator("li.paginate_button.next, .paginate_button.next, button.next").first
+            disabled = True
+            try:
+                if await nxt.count() > 0 and await nxt.is_visible():
+                    cls = str(await nxt.get_attribute("class") or "")
+                    disabled = "disabled" in cls
+                    if not disabled:
+                        await nxt.click()
+                        await asyncio.sleep(1.8)
+            except Exception as e:
+                logger.warning(f"CNIC scan: paging failed: {e}")
+                return "notfound"
+            if disabled:
+                logger.warning(
+                    f"CNIC scan: {digits} not found on any page ({page_no} page(s) checked)"
+                )
+                return "notfound"
+        logger.warning(f"CNIC scan: stopped after 60 pages; {digits} not found")
+        return "notfound"
+
+    async def _recover_duplicate(self, page: Page, student_data: dict | None,
+                                 tab: int | None = None) -> bool:
+        """On b_form/admission 'already been taken': CNIC page-scan recovery.
+
+        Create-first workflow: scan the portal list for the B-Form digits
+        (100/page). Same name => switch to that record's edit form (True).
+        Name mismatch or CNIC nowhere => duplicate_conflict for human review
+        (False) — the bot never edits an unverified record.
+        """
         if not student_data:
             return False
         body_hit = False
@@ -268,13 +308,27 @@ class FormFiller:
             ui = await self._capture_ui_error(page)
             if "already been taken" not in (ui or "").lower() and "b-form" not in (ui or "").lower():
                 return False
-        logger.warning("Duplicate b_form on portal — switching to edit mode")
+        logger.warning("Duplicate on portal — scanning list by CNIC (100/page)")
         try:
-            mode = await self.open_form(page, student_data)
-            return mode == "edit"
+            outcome = await self._scan_list_by_cnic(page, student_data, tab)
         except Exception as e:
-            logger.error(f"Duplicate recovery failed: {e}")
-            return False
+            logger.error(f"CNIC scan failed: {e}")
+            outcome = "notfound"
+        if outcome == "edit":
+            self.form_mode = "edit"
+            return True
+        if self.duplicate_conflict is None:
+            digits = re.sub(r"\D", "", str(student_data.get("b_form") or ""))
+            self.duplicate_conflict = {
+                "reason": "cnic_not_found",
+                "tab": tab,
+                "cnic": digits,
+                "errors": [
+                    f"B-Form/CNIC {digits or 'unknown'} duplicate on the portal: "
+                    "the CNIC appears on no list page — resolve manually"
+                ],
+            }
+        return False
 
     async def _notify_progress(self, tab=None, stage=None, field=None,
                                last_completed=None, detail=None):
@@ -354,10 +408,11 @@ class FormFiller:
                         str(e).lower() for e in (result.get("errors") or [])
                     ]
                     if any("already been taken" in e for e in dup_errs) and await self._recover_duplicate(
-                        page, student_data
+                        page, student_data, tab=i
                     ):
-                        # CNIC exists on the portal — open_form switched us to the
-                        # existing record's edit page; redo this tab and re-save.
+                        # CNIC exists on the portal — the CNIC scan switched us
+                        # to the existing record's edit page; redo this tab and
+                        # re-save.
                         logger.warning(
                             f"  Duplicate B-Form on save — switched to edit mode; redoing tab {i}"
                         )
@@ -370,10 +425,10 @@ class FormFiller:
                             str(e) for e in (result.get("errors") or [])
                             if "already been taken" in str(e).lower()
                         ]
-                        if still_dup:
-                            # Auto-recovery (edit-mode switch) could not make
-                            # this tab save — a human must resolve the portal
-                            # duplicate (CNIC / admission no.) before retrying.
+                        if still_dup and self.duplicate_conflict is None:
+                            # Auto-recovery (CNIC scan) could not make this tab
+                            # save — a human must resolve the portal duplicate
+                            # (CNIC / admission no.) before retrying.
                             self.duplicate_conflict = {
                                 "tab": i,
                                 "errors": still_dup[:3],
@@ -392,6 +447,11 @@ class FormFiller:
                     field=self._last_attempted_field,
                     last_completed=i if result.get("ok") else None,
                 )
+                if self.duplicate_conflict:
+                    logger.error(
+                        f"  Duplicate conflict (tab {i}) — stopping fill for human review"
+                    )
+                    break
 
         # Tab 7 has no Save & Next; its data persists through the Finish POST.
         # No forced saves — blockers are reported, never bypassed.
@@ -1405,6 +1465,10 @@ class FormFiller:
                     groups[r.name].push(r);
                 });
                 Object.entries(groups).forEach(([name, radios]) => {
+                    // transport_facility must come from data (None->Private or
+                    // bus_route=>Institution Bus); defaulting the first radio
+                    // (Institution Bus) demands bus_route and traps the save.
+                    if (name === 'transport_facility') return;
                     const any = radios.some(r => r.checked);
                     if (any) return;
                     // only default if marked required or known yes/no style
@@ -1538,7 +1602,8 @@ class FormFiller:
 
         await self._preflight_save(page, 7)
 
-        # If create-mode personal save already 422'd, switch to edit before finishing
+        # If create-mode personal save already 422'd, run the CNIC scan and
+        # switch to edit before finishing
         if student_data and await self._recover_duplicate(page, student_data):
             try:
                 for i, (tab_name, tab_id) in enumerate(TAB_IDS, 1):
@@ -1550,6 +1615,9 @@ class FormFiller:
                 await self._preflight_save(page, 7)
             except Exception as e:
                 logger.warning(f"Re-fill after edit switch failed: {e}")
+        elif self.duplicate_conflict:
+            logger.error("Duplicate conflict unresolved — aborting submit for human review")
+            return False
 
         # Ensure we are on Digital Access (tab 7) — recovery only; the
         # Save & Next traversal should already have put us here. Top-nav is
@@ -1983,10 +2051,15 @@ class FormFiller:
             return
         if source_field == "glass_prescription" and not _truthy(data.get("uses_glasses")):
             return
-        # Portal default: bus_route set => Institution Bus when transport blank
-        if source_field == "transport_facility" and value in (None, ""):
-            if data.get("bus_route"):
-                value = "Institution Bus"
+        # Portal defaults: bus_route set => Institution Bus when transport
+        # blank. The portal has no 'None' radio (only Institution Bus /
+        # Private), so PA's 'None' maps to 'Private' (user decision).
+        if source_field == "transport_facility":
+            if value in (None, ""):
+                if data.get("bus_route"):
+                    value = "Institution Bus"
+            elif str(value).strip().lower() == "none":
+                value = "Private"
 
         # Guardian block: portal still requires Guardian Name for non-orphans;
         # default from father when DB guardian is blank.

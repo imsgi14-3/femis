@@ -1198,12 +1198,31 @@ def admin_students():
     items, total, page, pages, qs = _paged(
         query.order_by(Student.created_at.desc(), Student.id.desc()),
         _int_arg("page", 1), per)
+
+    # Latest bot job per student on this page (for the Bot status column).
+    bot_jobs = {}
+    page_ids = [s.id for s in items]
+    if page_ids:
+        latest_ids = [
+            r[0]
+            for r in db.session.query(db.func.max(BotJob.id))
+            .filter(BotJob.student_id.in_(page_ids))
+            .group_by(BotJob.student_id)
+            .all()
+        ]
+        if latest_ids:
+            bot_jobs = {
+                j.student_id: j
+                for j in BotJob.query.filter(BotJob.id.in_(latest_ids)).all()
+            }
+
     return render_template(
         "admin_students.html", students=items, total=total, page=page,
         pages=pages, per=per, qs=qs, role="admin",
         user_name=session.get("user_name", ""),
         classes=_distinct(Student.class_id), sections=_distinct(Student.section_id),
         genders=_distinct(Student.gender),
+        bot_jobs=bot_jobs,
         f={"q": q, "class": class_id, "section": section, "gender": gender,
            "status": status, "lock": lock},
     )

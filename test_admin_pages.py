@@ -65,6 +65,7 @@ def row_ids(body, attr="data-sid"):
 
 created_students = []
 created_teachers = []
+created_botjobs = []
 
 try:
     adm = client(role="admin")
@@ -276,8 +277,66 @@ try:
         check("F2 teacher filter offers the fixture class",
               f'<option value="{TCH_CLASS}"' in b, "")
 
+        # ------------------------------------------------------------------
+        # G. Bot status column on the students table (latest job per student)
+        # ------------------------------------------------------------------
+        sid_ok = created_students[-1]
+        sid_fail = created_students[-2]
+        sid_pend = created_students[-3]
+        sid_none = created_students[-4]
+        fixtures = (
+            (sid_ok, "success", dict(
+                attempt_number=1, bot_result_code="success",
+                outcome_known=True, finish_clicked=True, indicator_detected=True)),
+            (sid_fail, "failed", dict(
+                attempt_number=3, bot_result_code="DATA_STALE",
+                error_message="DATA_STALE: expected student version "
+                              "2026-09-28 17:45:20.906722, current 2026-09-30 04:50:54.")),
+            (sid_pend, "pending", dict(attempt_number=1)),
+        )
+        for sid, st, extra in fixtures:
+            job = BotJob(student_id=sid, status=st, **extra)
+            db.session.add(job)
+            db.session.flush()
+            created_botjobs.append(job.id)
+        db.session.commit()
+
+        b = adm.get(
+            f"/admin/students?q={quote(STU_PREFIX)}&per=50"
+        ).get_data(as_text=True)
+
+        def row_of(body, sid):
+            m = re.search(rf'<tr data-sid="{sid}">.*?</tr>', body, re.S)
+            return m.group(0) if m else ""
+
+        def badge(row, cls, text):
+            return re.search(
+                rf'<span class="badge {re.escape(cls)}"[^>]*>\s*{text}\s*</span>',
+                row) is not None
+
+        check("G1 students table has a Bot column",
+              '<th width="90">Bot</th>' in b, "")
+        row = row_of(b, sid_ok)
+        check("G2 success job renders a success badge",
+              badge(row, "bg-success", "success") and "Attempt 1" in row,
+              row[:160])
+        row = row_of(b, sid_fail)
+        check("G3 failed job renders a failed badge + error tooltip",
+              badge(row, "bg-danger", "failed") and "DATA_STALE" in row
+              and "Attempt 3" in row, row[:160])
+        row = row_of(b, sid_pend)
+        check("G4 pending job renders a pending badge",
+              badge(row, "bg-secondary", "pending"), row[:160])
+        row = row_of(b, sid_none)
+        check("G5 student with no job renders a dash",
+              "Never queued" in row and "—" in row, row[:160])
+
 finally:
     with app.app_context():
+        for jid in created_botjobs:
+            job = BotJob.query.get(jid)
+            if job:
+                db.session.delete(job)
         for sid in created_students:
             st = Student.query.get(sid)
             if st:

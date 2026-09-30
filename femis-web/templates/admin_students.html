@@ -103,6 +103,7 @@
             <th width="90">Gender</th>
             <th width="140">B-Form</th>
             <th width="100">Status</th>
+            <th width="90">Bot</th>
             <th width="90">Lock</th>
             <th width="150">Actions</th>
           </tr>
@@ -122,6 +123,21 @@
                 <span class="badge bg-success">Submitted</span>
               {% else %}
                 <span class="badge bg-warning text-dark">Draft</span>
+              {% endif %}
+            </td>
+            <td>
+              {% set job = bot_jobs.get(s.id) %}
+              {% if job %}
+                {% set cls = {'pending': 'bg-secondary', 'claimed': 'bg-info',
+                              'running': 'bg-info', 'success': 'bg-success',
+                              'failed': 'bg-danger',
+                              'cancelled': 'bg-warning text-dark'}.get(job.status, 'bg-secondary') %}
+                <span class="badge {{ cls }}"
+                      title="Attempt {{ job.attempt_number }}{% if job.bot_result_code %} · {{ job.bot_result_code }}{% endif %}{% if job.error_message %} — {{ job.error_message[:180] }}{% endif %}">
+                  {{ job.status }}
+                </span>
+              {% else %}
+                <span class="text-muted" title="Never queued for the bot">—</span>
               {% endif %}
             </td>
             <td>
