@@ -29,7 +29,7 @@ def check(name, ok, detail=""):
 
 
 DB_PATH = ROOT / "femis-web" / "instance" / "femis.db"
-P3B9 = "P3B9 CREATION PROBE"
+P3B9 = "PHASE B NINE CREATION PROBE"
 created_ids = []
 students_before = []
 

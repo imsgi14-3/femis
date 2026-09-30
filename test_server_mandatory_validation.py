@@ -6,7 +6,7 @@ Locks femis-web/mandatory.py + app.py wiring end to end:
    B. tab-1 visibility branches (Sector/Other, same-as-permanent, b-form
       unconditional + flag forced to '1', gender -> girls_stipend)
   C. tab-2 conditional branches (profession Other, father-dead guardians,
-     mother income / BPS, orphan)
+     mother income / BPS, father + guardian BPS for Govt Employee, orphan)
   D. tab-3 conditional branch (Institution Bus -> bus_route)
   E. checkbox-group parity: digital_device_type[] is NEVER required
   F. final-submit over the STORED record (the Alisha case: legacy empty
@@ -74,12 +74,12 @@ try:
     # ==================================================================
     # A. save-tab create: empty mandatory field -> 400 naming the field
     # ==================================================================
-    st, b = post(tab1(name="MandGuard A1"))
+    st, b = post(tab1(name="MandGuard Alpha"))
     sid_a = b.get("student_id")
     created.append(sid_a)
     check("A1 complete tab-1 create -> 200", st == 200 and sid_a, str(b))
 
-    for fld in ("name", "email", "contact_number"):
+    for fld in ("name", "contact_number"):
         data = tab1(name="MandGuard Probe")
         data[fld] = ""
         st, b = post(data)
@@ -146,7 +146,7 @@ try:
     # C. tab-2 branches (updates on one complete record; 400s leave
     #    stored state untouched, so order is: rejects first, passes last)
     # ==================================================================
-    st, b = create_full(admin(), name="MandGuard Tab2")
+    st, b = create_full(admin(), name="MandGuard Tab Two")
     sid_t = b.get("student_id")
     created.append(sid_t)
     check("C0 complete record for tab-2 branches -> 200",
@@ -187,6 +187,37 @@ try:
     err = b.get("error") or ""
     check("C5 mother Govt Employee: mother_bps required -> 400 names it",
           st == 400 and "tab 2: mother_bps" in err, err)
+
+    st, b = post({"father_profession": "Govt Employee", "father_bps": ""},
+                 tab=2, student_id=sid_t, client=admin())
+    err = b.get("error") or ""
+    check("C5b father Govt Employee: father_bps required -> 400 names it",
+          st == 400 and "tab 2: father_bps" in err, err)
+
+    st, b = post({"father_profession": "Govt Employee", "father_bps": "17"},
+                 tab=2, student_id=sid_t, client=admin())
+    check("C5c father Govt Employee with father_bps filled -> 200",
+          st == 200 and b.get("ok"), str(b))
+
+    _guardian_block = {"is_father_alive": "0",
+                       "guardian_name": "GUARDIAN PAYLOAD",
+                       "guardian_cnic": "35202-7654321-1",
+                       "guardian_relation": "Uncle",
+                       "guardian_contact": "0300-1234571",
+                       "guardian_profession": "Govt Employee",
+                       "guardian_income": "Less than 50,000"}
+    st, b = post({**_guardian_block, "guardian_bps": ""},
+                 tab=2, student_id=sid_t, client=admin())
+    err = b.get("error") or ""
+    check("C5d father dead + guardian Govt Employee: guardian_bps required "
+          "-> 400 names it",
+          st == 400 and "tab 2: guardian_bps" in err, err)
+
+    st, b = post({**_guardian_block, "guardian_bps": "17"},
+                 tab=2, student_id=sid_t, client=admin())
+    check("C5e father dead + guardian Govt Employee with guardian_bps "
+          "filled -> 200",
+          st == 200 and b.get("ok"), str(b))
 
     st, b = post({"is_orphan": "1", "orphan_type": ""},
                  tab=2, student_id=sid_t, client=admin())

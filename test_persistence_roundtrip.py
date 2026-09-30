@@ -30,7 +30,7 @@ def check(name, ok, detail=""):
     print(f"{'PASS' if ok else 'FAIL'}: {name}" + (f" — {detail}" if detail else ""))
 
 
-PROBE_NAME = "P3B11 PERSISTENCE PROBE"
+PROBE_NAME = "PHASE B ELEVEN PERSISTENCE PROBE"
 DB_PATH = ROOT / "femis-web" / "instance" / "femis.db"
 
 CREATE_DATA = {
@@ -38,8 +38,8 @@ CREATE_DATA = {
     "class_id": "9",
     "section_id": "A",
     "roll_no": "P3B11",
-    "father_name": "P3B11-FATHER",
-    "guardian_name": "P3B11-GUARDIAN",
+    "father_name": "PERSISTENCE FATHER",
+    "guardian_name": "PERSISTENCE GUARDIAN",
     "sub_sector_id": "P3B11-SECTOR",
     "transport_facility": "Institution Bus",
     "bus_route": "TARNOL",
@@ -49,7 +49,7 @@ CREATE_DATA = {
     "date_of_admission": "04/24/2023",
 }
 UPDATE_DATA = {
-    "father_name": "P3B11-FATHER-UPDATED",
+    "father_name": "PERSISTENCE FATHER UPDATED",
     "bus_route": "RAWALPINDI",
 }
 
@@ -85,8 +85,8 @@ try:
         ("refugee_card", "P3B11-REFCARD"),
         ("disability_types", "Visual"),
         ("sub_sector_id", "P3B11-SECTOR"),
-        ("father_name", "P3B11-FATHER"),
-        ("guardian_name", "P3B11-GUARDIAN"),
+        ("father_name", "PERSISTENCE FATHER"),
+        ("guardian_name", "PERSISTENCE GUARDIAN"),
         ("digital_device_type", "Mobile Phone"),
         # calendar posts MM/DD/YYYY; server normalizes to canonical ISO
         ("date_of_admission", "2023-04-24"),
@@ -124,7 +124,7 @@ try:
 
     r = client.get(f"/students/{probe_id}/json")
     row2 = r.get_json()
-    check("updated field persisted", row2.get("father_name") == "P3B11-FATHER-UPDATED",
+    check("updated field persisted", row2.get("father_name") == "PERSISTENCE FATHER UPDATED",
           f"got {row2.get('father_name')!r}")
     check("updated bus_route persisted", row2.get("bus_route") == "RAWALPINDI",
           f"got {row2.get('bus_route')!r}")

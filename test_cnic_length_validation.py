@@ -129,7 +129,7 @@ try:
     #    C3 expects 200, so the carrier must be a COMPLETE record (every
     #    tab filled) — the mandatory twin rejects incomplete finals.
     # ==================================================================
-    st, b = create_full(admin(), name="CnicGuard C2", roll_no="961")
+    st, b = create_full(admin(), name="CnicGuard C Two", roll_no="961")
     sid3 = b.get("student_id")
     created.append(sid3)
     check("C0 full record created for the final-submit round-trip",

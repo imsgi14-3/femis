@@ -140,7 +140,7 @@
       </select>
     </div>
     <div class="col-md-6" id="village_group" style="display:none;">
-      <label class="form-label">Village</label>
+      <label class="form-label">Village <span class="text-danger">*</span></label>
       <select class="form-select" name="village_id">
         <option value="">— Select —</option>
         {% for v in opts.villages %}
@@ -149,7 +149,7 @@
       </select>
     </div>
     <div class="col-md-6" id="housing_society_group" style="display:none;">
-      <label class="form-label">Housing Society</label>
+      <label class="form-label">Housing Society <span class="text-danger">*</span></label>
       <select class="form-select" name="housing_society_id">
         <option value="">— Select —</option>
         {% for hs in opts.housing_societies %}
@@ -221,7 +221,7 @@
         </select>
       </div>
       <div class="col-md-6" id="present_village_group" style="display:none;">
-        <label class="form-label">Village</label>
+        <label class="form-label">Village <span class="text-danger">*</span></label>
         <select class="form-select" name="present_village_id">
           <option value="">— Select —</option>
           {% for v in opts.villages %}
@@ -230,7 +230,7 @@
         </select>
       </div>
       <div class="col-md-6" id="present_housing_society_group" style="display:none;">
-        <label class="form-label">Housing Society</label>
+        <label class="form-label">Housing Society <span class="text-danger">*</span></label>
         <select class="form-select" name="present_housing_society_id">
           <option value="">— Select —</option>
           {% for hs in opts.housing_societies %}
@@ -299,8 +299,8 @@
       </select>
     </div>
     <div class="col-md-6">
-      <label class="form-label">Email ID <span class="text-danger">*</span></label>
-      <input type="email" class="form-control" name="email" required>
+      <label class="form-label">Email ID</label>
+      <input type="email" class="form-control" name="email">
     </div>
     <div class="col-md-6" id="girls_stipend_group">
       <label class="form-label">Girls Stipend <span class="text-danger">*</span></label>
@@ -407,7 +407,7 @@
       </select>
     </div>
     <div class="col-md-6" id="father_bps_group" style="display:none;">
-      <label class="form-label">Father's BPS</label>
+      <label class="form-label">Father's BPS <span class="text-danger">*</span></label>
       <select class="form-select" name="father_bps" id="father_bps">
         <option value="">— Select —</option>
         {% for b in opts.father_bps %}
@@ -605,7 +605,7 @@
         </select>
       </div>
       <div class="col-md-6" id="guardian_bps_group">
-        <label class="form-label">Guardian BPS</label>
+        <label class="form-label">Guardian BPS <span class="text-danger">*</span></label>
         <select class="form-select" name="guardian_bps" id="guardian_bps">
           <option value="">— Select —</option>
           {% for gb in opts.guardian_bps %}

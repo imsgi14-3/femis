@@ -109,7 +109,7 @@ def set_job_cols(job_id, **cols):
     return sql(f"UPDATE bot_jobs SET {', '.join(parts)} WHERE id = ?", vals)
 
 
-def new_client(role=None, name="P3B4 Test Operator"):
+def new_client(role=None, name="PBFour Test Operator"):
     c = app.test_client()
     if role:
         with c.session_transaction() as s:
@@ -196,7 +196,7 @@ try:
         active = [r for r in baseline_jobs if r["status"] in ("pending", "claimed", "running")]
         leftovers = [
             r for r in baseline_jobs
-            if (r.get("student_name") or "").startswith(("P3B4 ", "P3B5 "))
+            if (r.get("student_name") or "").startswith(("PBFour ", "PBFive ", "P3B4 ", "P3B5 "))
         ]
         check(
             "S0 baseline recorded; no active foreign jobs and no prior-suite leftovers",
@@ -210,19 +210,19 @@ try:
             sys.exit(1)
 
         # All test students up front (SQ is created first => oldest job order).
-        SQ = create_student("P3B4 SQ")
-        S2 = create_student("P3B4 S2 HAPPY")
-        S3 = create_student("P3B4 S3 STALE")
-        S4 = create_student("P3B4 S4 FAILURE")
-        S6 = create_student("P3B4 S6 CANCEL")
-        S7 = create_student("P3B4 S7 CREATE RACE")
-        S8 = create_student("P3B4 S8 CLAIM RACE")
-        S9 = create_student("P3B4 S9 CANCEL RACE")
-        S10 = create_student("P3B4 S10 STALE COMPLETE")
-        S11 = create_student("P3B4 S11 UNCERTAIN")
-        S12 = create_student("P3B4 S12 FILL FAIL")
-        S13 = create_student("P3B4 S13 DOUBLE COMPLETE")
-        SFS = create_student("P3B4 SFS FINAL SUBMIT")
+        SQ = create_student("PBFour SQ")
+        S2 = create_student("PBFour S Two HAPPY")
+        S3 = create_student("PBFour S Three STALE")
+        S4 = create_student("PBFour S Four FAILURE")
+        S6 = create_student("PBFour S Six CANCEL")
+        S7 = create_student("PBFour S Seven CREATE RACE")
+        S8 = create_student("PBFour S Eight CLAIM RACE")
+        S9 = create_student("PBFour S Nine CANCEL RACE")
+        S10 = create_student("PBFour S Ten STALE COMPLETE")
+        S11 = create_student("PBFour S Eleven UNCERTAIN")
+        S12 = create_student("PBFour S Twelve FILL FAIL")
+        S13 = create_student("PBFour S Thirteen DOUBLE COMPLETE")
+        SFS = create_student("PBFour SFS FINAL SUBMIT")
         check(
             "S1 test students created",
             all([SQ, S2, S3, S4, S6, S7, S8, S9, S10, S11, S12, S13, SFS]),
@@ -280,7 +280,7 @@ try:
             and j.get("student_data_version") == raw_updated(SQ)
             and j.get("has_snapshot") is False
             and j.get("retryable") is False and j.get("data_stale") is False
-            and j.get("created_by") == "P3B4 Test Operator",
+            and j.get("created_by") == "PBFour Test Operator",
             json.dumps(b),
         )
         r, b = cap(op_c.post("/api/jobs", json=create_payload(SQ), headers=OP_H))
@@ -328,7 +328,7 @@ try:
 
         # B13-B16: no job is attempted without a B-Form number
         # (2026-09-30 directive) — create gate + retry gate.
-        gate_sid = create_student("P3B4 NoBform Gate")
+        gate_sid = create_student("PBFour NoBform Gate")
         r, b = cap(op_c.post("/api/jobs", json=create_payload(gate_sid), headers=OP_H))
         gate_job = b.get("job", {}).get("job_id")
         check("B13 queue with b_form present -> 200", r == 200 and b.get("ok") and gate_job, str(b))
@@ -422,7 +422,7 @@ try:
         check("D3 claim specific pending job ok", r == 200 and b.get("ok") and b.get("job", {}).get("status") == "claimed", str(b))
         r, b = cap(bot().post("/api/jobs/claim", json={"job_id": s3_job}, headers=BOT_H))
         check("D4 claim missing claimed_by -> 422", r == 422 and b.get("error_code") == "validation_error", str(b))
-        edit_student(S3, "P3B4 S3 STALE EDITED")
+        edit_student(S3, "PBFour S Three STALE EDITED")
         r, b = cap(bot().post("/api/jobs/claim", json={"claimed_by": "w-stale", "job_id": s3_job}, headers=BOT_H))
         s3 = job_row(s3_job)
         check(
@@ -440,7 +440,7 @@ try:
         check("D6 claim terminal job -> 409 invalid_transition", r == 409 and b.get("error_code") == "invalid_transition", str(b))
         r, b = cap(bot().post("/api/jobs/claim", json={"claimed_by": "w", "job_id": 999999}, headers=BOT_H))
         check("D7 claim unknown job -> 404", r == 404 and b.get("error_code") == "job_not_found", str(b))
-        edit_student(S2, "P3B4 S2 HAPPY EDITED")
+        edit_student(S2, "PBFour S Two HAPPY EDITED")
         r, b = cap(op_c.get(f"/api/jobs/{s2_job}", headers=OP_H))
         j = b.get("job", {})
         check(
@@ -651,7 +651,7 @@ try:
         check("I1b prior attempt unchanged by retry", b.get("job") == prior_before, "")
         r, b = cap(op_c.post("/api/jobs", json=create_payload(S4), headers=OP_H))
         check("I2 create blocked while new attempt open", r == 409 and b.get("error_code") == "open_job_exists", str(b))
-        edit_student(S4, "P3B4 S4 FAILURE EDITED")
+        edit_student(S4, "PBFour S Four FAILURE EDITED")
         r, b = cap(op_c.post(f"/api/jobs/{s4a2}/cancel", json={}, headers=OP_H))
         check("I3 close attempt 2 (cancel) for retry semantics", r == 200 and b.get("job", {}).get("status") == "cancelled", str(b))
         r, b = cap(op_c.post(f"/api/jobs/{s4a2}/retry", json={"refresh_snapshot": False}, headers=OP_H))

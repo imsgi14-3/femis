@@ -625,7 +625,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // (misalignment report §6-P1.1/P1.2/P1.3).
     // ==================================================================
     var mandatoryByTab = {
-        0: ["name", "b_form", "gender", "date_of_birth", "birth_province_id", "birth_district_id", "nationality", "address_type", "sector_id", "sub_sector_id", "house", "street", "address", "contact_number", "city_id", "present_address_type", "present_sector_id", "present_sub_sector_id", "present_house", "present_street", "present_address", "religion", "language_id", "email"],
+        0: ["name", "b_form", "gender", "date_of_birth", "birth_province_id", "birth_district_id", "nationality", "address_type", "sector_id", "sub_sector_id", "house", "street", "address", "contact_number", "city_id", "present_address_type", "present_sector_id", "present_sub_sector_id", "present_house", "present_street", "present_address", "religion", "language_id"],
         1: [
             "father_name", "father_cnic", "is_father_alive", "father_profession",
             "father_qualification", "father_monthly_income",
@@ -735,6 +735,8 @@ document.addEventListener("DOMContentLoaded", function () {
             {fields: ["father_contact"], trigger: "is_father_alive", values: ["1"]},
             {fields: ["mother_contact"], trigger: "is_mother_alive", values: ["1"]},
             {fields: ["mother_bps"], trigger: "mother_profession", values: ["Govt Employee"]},
+            {fields: ["father_bps"], trigger: "father_profession", values: ["Govt Employee"]},
+            {fields: ["guardian_bps"], trigger: "guardian_profession", values: ["Govt Employee"]},
             {fields: ["girls_stipend"], trigger: "gender", values: ["Female"]},
             {fields: ["father_profession_other"], trigger: "father_profession", values: ["Other"]},
             {fields: ["mother_profession_other"], trigger: "mother_profession", values: ["Other"]},
@@ -837,6 +839,20 @@ document.addEventListener("DOMContentLoaded", function () {
             if (!raw) return;
             if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)) {
                 missing.push(fieldLabel(pane, fname) + " (enter a valid email address)");
+            }
+        });
+
+        // Names: letters and spaces only — FEMIS's name fields reject
+        // digits and periods ("no period no number"); empty stays the
+        // required-list's job, same as emails.
+        ["name", "father_name", "mother_name", "guardian_name", "emergency_name"].forEach(function (fname) {
+            var ctl = fieldControl(pane, fname);
+            if (!ctl) return;
+            if (isHiddenWithin(pane, ctl.els[0])) return;
+            var raw = controlValue(ctl);
+            if (!raw) return;
+            if (!/^[A-Za-z ]+$/.test(raw)) {
+                missing.push(fieldLabel(pane, fname) + " (letters and spaces only, no numbers or periods)");
             }
         });
 

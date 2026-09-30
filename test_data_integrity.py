@@ -26,7 +26,7 @@ with app.app_context():
     created_ids = []
 
     # --- create student (complete: every tab filled, server mandatory twin) ---
-    resp_st, body = create_full(client, name="P2 DATA INTEGRITY")
+    resp_st, body = create_full(client, name="PHASE TWO DATA INTEGRITY")
     sid = body.get("student_id") if body else None
     check("create student ok", resp_st == 200 and body.get("ok") and sid is not None, json.dumps(body))
     if sid:
@@ -141,7 +141,7 @@ with app.app_context():
     )
 
     # --- legacy final-submit without data still works (complete record) ---
-    resp_st, body = create_full(client, name="P2 LEGACY FINAL")
+    resp_st, body = create_full(client, name="PHASE TWO LEGACY FINAL")
     sid2 = body.get("student_id")
     if sid2:
         created_ids.append(sid2)

@@ -149,12 +149,14 @@ CLEAR_CHECKBOXES_JS = """
 # after the cascade resolves.  is_bform_available dropped 2026-09-30: the
 # yes/no question was removed from the form (server forces the flag to '1').
 TAB1_FILL = ["name", "b_form", "gender", "date_of_birth", "nationality",
-             "house", "street", "contact_number", "city_id", "religion", "language_id", "email"]
+             "house", "street", "contact_number", "city_id", "religion",
+             "language_id"]
 TAB1_PRESENT = ["present_address_type", "present_sector_id", "present_house", "present_street"]
 TAB1_PRESENT_SUB = ["present_sub_sector_id"]
 # Final submit validates every tab (§8-8.2) — each tab must be filled + saved.
 TAB2_FILL = ["father_name", "father_cnic", "is_father_alive", "father_contact",
-             "father_qualification", "father_profession", "father_monthly_income",
+             "father_qualification", "father_profession", "father_bps",
+             "father_monthly_income",
              "mother_name", "is_mother_alive", "mother_contact", "mother_profession",
              "mother_qualification", "mother_bps", "mother_monthly_income"]
 TAB3_FILL = ["class_id", "section_id", "date_of_admission", "class_admitted_id",
@@ -171,7 +173,7 @@ TAB6_FILL = ["has_major_disability", "has_mental_disability", "mental_disability
              "difficulty_reading_writing", "difficulty_remembering", "difficulty_concentrating"]
 TAB7_FILL = ["digital_device_at_home", "internet_at_home"]
 
-PROBE = "P3B13 PREFILL PROBE"
+PROBE = "PHASE B THIRTEEN PREFILL PROBE"
 
 
 def main():

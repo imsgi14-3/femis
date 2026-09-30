@@ -29,7 +29,7 @@ def check(name, ok, detail=""):
 
 
 DB_PATH = ROOT / "femis-web" / "instance" / "femis.db"
-PROBE_NAME = "P3B10 INTEGRITY PROBE"
+PROBE_NAME = "PHASE B TEN INTEGRITY PROBE"
 EXPECTED_STUDENT_IDS = [3, 4, 6, 8, 9, 10]
 EXPECTED_INDEXES = ["ix_bot_jobs_lease", "ix_bot_jobs_status_created",
                     "ix_bot_jobs_student_created", "ix_bot_jobs_student_id",

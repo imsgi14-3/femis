@@ -217,7 +217,7 @@ try:
     err = b.get("error") or ""
     check("F1 b_form error names holder and id",
           st == 409 and "'DupGuard A'" in err and "(id" in err, err)
-    st, b = save({"name": "Msg Probe 2", "class_id": "6", "section_id": "Z",
+    st, b = save({"name": "Msg Probe Two", "class_id": "6", "section_id": "Z",
                   "roll_no": "913", "admission_number": "ADM-2026-002"})
     err = b.get("error") or ""
     check("F2 admission error names holder and id",
@@ -232,7 +232,7 @@ finally:
             st_row = Student.query.get(sid)
             if st_row:
                 db.session.delete(st_row)
-        for nm in ("Legacy Dup", "Msg Probe 2", "Msg Probe"):
+        for nm in ("Legacy Dup", "Msg Probe Two", "Msg Probe"):
             for st_row in Student.query.filter(Student.name == nm).all():
                 db.session.delete(st_row)
         db.session.commit()

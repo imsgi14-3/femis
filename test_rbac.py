@@ -175,7 +175,7 @@ try:
               and (r.get_json() or {}).get("ok"), r.status_code)
 
         r = t_9a.post("/api/save-tab", json={"tab": 1, "student_id": sid_other,
-                                             "data": {"name": "h4x"}})
+                                             "data": {"name": "RBAC Probe"}})
         check("D2 teacher blocked from other-class student", r.status_code == 403, r.status_code)
 
         r = s_own.post("/api/save-tab", json={"tab": 1, "student_id": sid_own,
@@ -184,7 +184,7 @@ try:
               and (r.get_json() or {}).get("ok"), r.status_code)
 
         r = s_other.post("/api/save-tab", json={"tab": 1, "student_id": sid_own,
-                                                "data": {"name": "h4x"}})
+                                                "data": {"name": "RBAC Probe"}})
         check("D4 student blocked from another student's record", r.status_code == 403,
               r.status_code)
 

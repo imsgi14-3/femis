@@ -18,6 +18,15 @@ parity between the client lists and the server spec.
 form — the server forces the flag to '1' in _map_form_data, b_form became
 unconditional on BOTH sides, and no bot job is queued without a B-Form
 number ([Xb] locks it).
+2026-09-30 (later): father_bps and guardian_bps became mandatory when the
+respective profession is Govt Employee — JS conditional rules + server
+RULES + red asterisks, mirroring the existing mother_bps branch ([3c]).
+2026-09-30 (later): the 5 name inputs became letters-and-spaces-only on
+both sides ("no period no number", [39]) and the Village / Housing
+Society labels gained their missing red asterisks ([38]).
+2026-09-30 (later): the student email is no longer mandatory ([40]) - it
+was dropped from mandatoryByTab[0], ALWAYS[1] and the HTML required attr
++ red asterisk; a filled value must still be @-shaped.
 Each requirement is evaluated as MET or GAP; further fixes must consciously
 update this file.
 """
@@ -144,6 +153,24 @@ check("[3b] mother_bps group gated on profession=Govt Employee",
       'selectToggle("mother_profession", "mother_bps_group", ["Govt Employee"])' in JS)
 check("[3b] mother_bps label carries red asterisk (visible only when required)",
       '<label class="form-label">Mother\'s BPS <span class="text-danger">*</span></label>' in HTML)
+
+# 3c. father / guardian BPS mandatory only for Govt Employee (2026-09-30 —
+#     same branch as mother_bps; alive-gating rides on group visibility,
+#     the server rules carry the is_father_alive / is_mother_alive gate)
+check("[3c] father_bps conditional on father_profession=Govt Employee",
+      cond_rule("father_bps") == ("father_profession", ["Govt Employee"]),
+      str(cond_rule("father_bps")))
+check("[3c] father_bps group gated on profession=Govt Employee",
+      'id="father_bps_group"' in HTML and
+      'getElementById("father_bps_group")' in JS and
+      'profSel.value === "Govt Employee" ? "block" : "none"' in JS)
+check("[3c] father_bps label carries red asterisk (visible only when required)",
+      '<label class="form-label">Father\'s BPS <span class="text-danger">*</span></label>' in HTML)
+check("[3c] guardian_bps conditional on guardian_profession=Govt Employee",
+      cond_rule("guardian_bps") == ("guardian_profession", ["Govt Employee"]),
+      str(cond_rule("guardian_bps")))
+check("[3c] guardian_bps label carries red asterisk (visible only when required)",
+      '<label class="form-label">Guardian BPS <span class="text-danger">*</span></label>' in HTML)
 
 # 4. orphan type when orphan=yes
 check("[4] orphan_type conditional rule exists", cond_rule("orphan_type") == ("is_orphan", ["1"]),
@@ -444,6 +471,52 @@ check("[Xb] server forces is_bform_available='1' in _map_form_data",
       'mapped["is_bform_available"] = "1"' in APP)
 check("[Xb] CNIC toggle IIFE removed (number group always visible)",
       'input[name="is_bform_available"]' not in JS)
+
+# 38. Village / Housing Society address branches — enforcement existed on
+#     both sides already (test_format_validation D1-D9/F3); 2026-09-30
+#     added the missing red asterisks on the four labels.
+check("[38] village/housing conditional rules on the client",
+      cond_rule("village_id") == ("address_type", ["Village"])
+      and cond_rule("housing_society_id") == ("address_type", ["Housing Society"])
+      and cond_rule("present_village_id") == ("present_address_type", ["Village"])
+      and cond_rule("present_housing_society_id") == ("present_address_type", ["Housing Society"]),
+      str({f: cond_rule(f) for f in ("village_id", "housing_society_id",
+                                     "present_village_id",
+                                     "present_housing_society_id")}))
+check("[38] Village / Housing Society labels carry red asterisks (temp + present)",
+      HTML.count('<label class="form-label">Village <span class="text-danger">*</span></label>') == 2
+      and HTML.count('<label class="form-label">Housing Society <span class="text-danger">*</span></label>') == 2,
+      "4 labels")
+check("[38] server RULES require the matching id per address type",
+      any(t == 1 and f == ["village_id"] for t, _, f in server_spec.RULES)
+      and any(t == 1 and f == ["housing_society_id"] for t, _, f in server_spec.RULES)
+      and any(t == 1 and f == ["present_village_id"] for t, _, f in server_spec.RULES)
+      and any(t == 1 and f == ["present_housing_society_id"] for t, _, f in server_spec.RULES),
+      "village/housing rules present in mandatory.py RULES")
+
+# 39. name fields: letters + spaces only, no periods, no numbers — the
+#     FEMIS name inputs reject digits/periods; twins on both sides.
+check("[39] name format validated in validateTab (letters + spaces only)",
+      "/^[A-Za-z ]+$/" in JS and "letters and spaces only" in JS,
+      "regex + message next to the email/DOB guards")
+check("[39] server NAME_FIELDS twin wired in _format_error",
+      '_NAME_RE = re.compile(r"^[A-Za-z ]+$")' in APP
+      and '("name", "Name")' in APP
+      and '"father_name", "Father\'s Name"' in APP
+      and "tuple(k for k, _ in NAME_FIELDS)" in APP,
+      "app.py NAME_FIELDS + FORMAT_FIELDS + _format_error loop")
+
+# 40. student email is NOT mandatory (directive 2026-09-30): dropped from
+#     both required lists plus the HTML required attr/red asterisk; a filled
+#     value must still be @-shaped ([37] / FORMAT_FIELDS keep that gate).
+check("[40] student email not mandatory (JS list + server ALWAYS + HTML)",
+      not js_mandatory("email")
+      and "email" not in server_spec.ALWAYS.get(1, [])
+      and "email" not in server_spec.coverage()
+      and not re.search(r'<input[^>]*\bname="email"[^>]*\brequired', HTML)
+      and "Email ID <span class=\"text-danger\">*</span>" not in HTML
+      and '("email", "Email")' in APP,
+      "required dropped everywhere; format gate kept")
 
 client_fields = set(JS_MAND)
 for _cfields, _, _ in COND:

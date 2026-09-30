@@ -109,7 +109,7 @@ with app.app_context():
         # complete record: B3 (tab-3 save) and B4 (final-submit) both need
         # stored tabs covered by the server mandatory twin
         from form_payloads import create_full
-        resp_status, body = create_full(client, name="P3B3 SCHEMA TEST")
+        resp_status, body = create_full(client, name="SCHEMA TEST STUDENT")
         sid = body.get("student_id") if body else None
         check("B1 create student via API", resp_status == 200 and body.get("ok") and sid is not None,
               json.dumps(body))
@@ -134,7 +134,7 @@ with app.app_context():
             time.sleep(0.05)
             resp = client.post(
                 "/api/save-tab",
-                json={"tab": 3, "student_id": sid, "data": {"name": "P3B3 SCHEMA TEST MODIFIED"}},
+                json={"tab": 3, "student_id": sid, "data": {"name": "SCHEMA TEST STUDENT MODIFIED"}},
             )
             second_updated = raw_updated(sid)
             check("B3 modify bumps updated_at",

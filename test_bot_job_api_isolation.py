@@ -79,7 +79,7 @@ try:
         _ac = app.test_client()
         with _ac.session_transaction() as _s:
             _s["role"] = "admin"
-        _st, j = create_full(_ac, name="P3B7 ISOLATION SENTINEL")
+        _st, j = create_full(_ac, name="ISOLATION SENTINEL STUDENT")
         sentinel_sid = j.get("student_id") if j.get("ok") else None
         check("sentinel student created", sentinel_sid is not None, str(j))
 
@@ -162,7 +162,7 @@ try:
             f"before={students_before} after={students_after}",
         )
         leftovers = rows(
-            "SELECT id, name FROM students WHERE name LIKE 'P3B4 %' OR name LIKE 'P3B5 %'"
+            "SELECT id, name FROM students WHERE name LIKE 'P3B4 %' OR name LIKE 'P3B5 %' OR name LIKE 'PBFour %' OR name LIKE 'PBFive %'"
         )
         check("no suite-named student leftovers", not leftovers, str(leftovers))
 finally:

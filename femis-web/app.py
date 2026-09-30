@@ -711,8 +711,8 @@ def _cnic_length_error(mapped):
     return None
 
 
-# Format gates (server twin of form.js validateTab): phone/email/DOB shapes.
-# Empty/absent values pass — required-ness is mandatory.py's job.
+# Format gates (server twin of form.js validateTab): phone/email/DOB/name
+# shapes.  Empty/absent values pass — required-ness is mandatory.py's job.
 MOBILE_FIELDS = (
     ("contact_number", "Contact Number"),
     ("father_contact", "Father's Contact Number"),
@@ -730,13 +730,22 @@ EMAIL_FIELDS = (
     ("mother_email", "Mother's Email"),
     ("guardian_email", "Guardian's Email"),
 )
+NAME_FIELDS = (
+    ("name", "Name"),
+    ("father_name", "Father's Name"),
+    ("mother_name", "Mother's Name"),
+    ("guardian_name", "Guardian's Name"),
+    ("emergency_name", "Emergency Contact Name"),
+)
 FORMAT_FIELDS = (tuple(k for k, _ in MOBILE_FIELDS)
                  + tuple(k for k, _ in LANDLINE_FIELDS)
                  + tuple(k for k, _ in EMAIL_FIELDS)
+                 + tuple(k for k, _ in NAME_FIELDS)
                  + ("date_of_birth",))
 _MOBILE_RE = re.compile(r"^03\d{2}-\d{7}$")
 _LANDLINE_RE = re.compile(r"^0\d{2}-\d{7}$")
 _EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+_NAME_RE = re.compile(r"^[A-Za-z ]+$")
 
 
 def _parse_date(value):
@@ -756,9 +765,10 @@ def _format_error(values):
     """First format violation among `values` (DB-column keys), else None.
 
     Mobile must be 03XX-XXXXXXX, landline 0XX-XXXXXXX, emails a real
-    address, and date_of_birth a date strictly before today — the FEMIS
-    portal rejects today/future DOBs ("The Date of Birth field must be a
-    date before today").
+    address, names letters and spaces only (FEMIS rejects digits and
+    periods in name fields), and date_of_birth a date strictly before
+    today — the FEMIS portal rejects today/future DOBs ("The Date of
+    Birth field must be a date before today").
     """
     for key, label in MOBILE_FIELDS:
         if key not in values:
@@ -781,6 +791,13 @@ def _format_error(values):
         if raw and not _EMAIL_RE.match(raw):
             return (f"{label} must be a valid email address "
                     f"(e.g. name@example.com): got '{raw}'")
+    for key, label in NAME_FIELDS:
+        if key not in values:
+            continue
+        raw = str(values.get(key) or "").strip()
+        if raw and not _NAME_RE.match(raw):
+            return (f"{label} must contain only letters and spaces "
+                    f"(no numbers or periods): got '{raw}'")
     if "date_of_birth" in values:
         raw = str(values.get("date_of_birth") or "").strip()
         if raw:

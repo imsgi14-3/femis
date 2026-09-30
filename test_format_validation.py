@@ -157,6 +157,24 @@ try:
     check("A14 conformant emergency_contact -> 200",
           st == 200 and b.get("ok"), str(b))
 
+    st, b = post(tab1(name="FmtGuard Ahmed1"))
+    err = b.get("error") or ""
+    check("A15 digit in student name -> 400 letters and spaces only",
+          st == 400 and "only letters and spaces" in err
+          and "Name" in err, err)
+
+    st, b = post({"father_name": "Mr. Ali"}, tab=2, student_id=sid_a,
+                 client=admin())
+    err = b.get("error") or ""
+    check("A16 period in father_name -> 400 names Father's Name",
+          st == 400 and "Father's Name" in err
+          and "only letters and spaces" in err, err)
+
+    st, b = post({"father_name": "Abdul Sattar"}, tab=2, student_id=sid_a,
+                 client=admin())
+    check("A17 multi-word alphabet father_name -> 200",
+          st == 200 and b.get("ok"), str(b))
+
     # ==================================================================
     # B. final-submit over the STORED record (merged format gate)
     # ==================================================================
@@ -182,6 +200,16 @@ try:
     err = (r.get_json() or {}).get("error") or ""
     check("B2 stored dashless mobile blocks final-submit -> 400",
           r.status_code == 400 and "03XX-XXXXXXX" in err, err)
+
+    sql("UPDATE students SET contact_number='0300-1234567', "
+        "name='FmtGuard Digit Nine9' WHERE id=?", (sid_b,))
+    r = admin().post("/api/final-submit", json={"student_id": sid_b,
+                                                "data": {}})
+    err = (r.get_json() or {}).get("error") or ""
+    check("B2b stored name with digit blocks final-submit -> 400 "
+          "letters and spaces only",
+          r.status_code == 400 and "only letters and spaces" in err, err)
+    sql("UPDATE students SET name='FmtGuard Stale' WHERE id=?", (sid_b,))
 
     sql("UPDATE students SET contact_number='0300-1234567' WHERE id=?",
         (sid_b,))
@@ -211,17 +239,31 @@ try:
           (n_bad, r.status_code, r.headers.get("Location")))
 
     r = anon().post("/submit",
-                    data=form_all(name="FmtGuard Legacy Bad2", email="Nil"),
+                    data=form_all(name="FmtGuard Legacy BadMail", email="Nil"),
                     follow_redirects=False)
     con = sqlite3.connect(str(DB))
     n_bad2 = con.execute(
-        "SELECT COUNT(*) FROM students WHERE name='FmtGuard Legacy Bad2'"
+        "SELECT COUNT(*) FROM students WHERE name='FmtGuard Legacy BadMail'"
     ).fetchone()[0]
     con.close()
     check("C2 legacy /submit email 'Nil' -> rejected, no row",
           n_bad2 == 0 and r.status_code == 302
           and "/success/" not in (r.headers.get("Location") or ""),
           (n_bad2, r.status_code, r.headers.get("Location")))
+
+    r = anon().post("/submit",
+                    data=form_all(name="FmtGuard Legacy Digit Nine9"),
+                    follow_redirects=False)
+    con = sqlite3.connect(str(DB))
+    n_bad3 = con.execute(
+        "SELECT COUNT(*) FROM students "
+        "WHERE name='FmtGuard Legacy Digit Nine9'"
+    ).fetchone()[0]
+    con.close()
+    check("C2b legacy /submit digit in name -> rejected, no row",
+          n_bad3 == 0 and r.status_code == 302
+          and "/success/" not in (r.headers.get("Location") or ""),
+          (n_bad3, r.status_code, r.headers.get("Location")))
 
     r = anon().post("/submit", data=form_all(name="FmtGuard Legacy Good"),
                     follow_redirects=False)
@@ -339,6 +381,9 @@ try:
           and '{fields: ["present_housing_society_id"], '
           'trigger: "present_address_type", values: ["Housing Society"]}' in JS,
           "mirrors mandatory.py RULES")
+    check("F4 JS name letters-only guard present",
+          "/^[A-Za-z ]+$/" in JS and "letters and spaces only" in JS,
+          "same pattern as app.py _NAME_RE")
 
 finally:
     # ------------------------------------------------------------------
@@ -349,7 +394,7 @@ finally:
             row = Student.query.get(sid)
             if row:
                 db.session.delete(row)
-        for nm in ("FmtGuard Legacy Bad", "FmtGuard Legacy Bad2",
+        for nm in ("FmtGuard Legacy Bad", "FmtGuard Legacy BadMail",
                    "FmtGuard Legacy Good", "FmtGuard Probe",
                    "FmtGuard Village", "FmtGuard Housing"):
             for row in Student.query.filter(Student.name == nm).all():

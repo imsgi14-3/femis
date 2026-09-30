@@ -96,7 +96,7 @@ try:
     # ------------------------------------------------------------------
     with app.app_context():
         for i in range(N_STUDENTS):
-            over = dict(name=f"{STU_PREFIX} {i:02d}", class_id=STU_CLASS,
+            over = dict(name=f"{STU_PREFIX} {chr(65 + i)}", class_id=STU_CLASS,
                         section_id=STU_SECTION, roll_no=f"9{900 + i}")
             if i < N_FEMALE:
                 over.update(gender="Female", girls_stipend="0")
@@ -141,7 +141,7 @@ try:
         check("B4 bot card count == bot_jobs total",
               f'id="statBotJobs">{bot_total}<' in body, str(bot_total))
         check("B5 overview does not dump student rows",
-              STU_PREFIX not in body and f"{STU_PREFIX} 00" not in body, "")
+              STU_PREFIX not in body and f"{STU_PREFIX} A" not in body, "")
 
         # ------------------------------------------------------------------
         # C. Students pagination (scoped to our prefix)
@@ -205,7 +205,7 @@ try:
         check("D4 lock=locked returns the 4 locked fixtures",
               len(row_ids(body)) == N_LOCKED, f"rows={len(row_ids(body))}")
 
-        r = adm.get(f"/admin/students?q={quote(f'{STU_PREFIX} 07')}&per=50")
+        r = adm.get(f"/admin/students?q={quote(f'{STU_PREFIX} H')}&per=50")
         b = r.get_data(as_text=True)
         check("D5 search by exact name returns 1 row",
               len(row_ids(b)) == 1, f"rows={len(row_ids(b))}")

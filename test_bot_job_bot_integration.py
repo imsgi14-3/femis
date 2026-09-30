@@ -102,7 +102,7 @@ def op_client():
     c = app.test_client()
     with c.session_transaction() as s:
         s["role"] = "teacher"
-        s["user_name"] = "P3B5 Test Operator"
+        s["user_name"] = "PBFive Test Operator"
     return c
 
 
@@ -224,7 +224,7 @@ try:
     check("A3 claim with empty queue -> no_pending_job",
           r == 404 and b.get("error_code") == "no_pending_job", f"{r} {b.get('error_code')}")
 
-    sid_a = create_student("P3B5 Student A")
+    sid_a = create_student("PBFive Student A")
     r0, j0 = create_job(sid_a)
     job_a = j0.get("job", {}).get("job_id")
     check("A4 operator created job", r0 == 200 and bool(job_a), f"{r0} {j0.get('error_code')}")
@@ -258,10 +258,10 @@ try:
           ("transport" not in data_snap) or ("transport_facility" in data_snap))
 
     copy_before = dict(data_snap)
-    edit_student(sid_a, "P3B5 Student A Renamed")
+    edit_student(sid_a, "PBFive Student A Renamed")
     again = snapshot_to_student(snap)
     check("B3 mid-run student edit does not change adapter output",
-          again == copy_before and data_snap.get("name") == "P3B5 Student A")
+          again == copy_before and data_snap.get("name") == "PBFive Student A")
     forced = snapshot_to_student({"data": dict(copy_before,
                                                is_bform_available="0")})
     check("B3b adapter forces is_bform_available='1' (FEMIS always-Yes)",
@@ -283,7 +283,7 @@ try:
     WebFormHandler.read_by_id = _boom
     WebFormHandler.read_all = _boom
     try:
-        sid_b5 = create_student("P3B5 Student B5")
+        sid_b5 = create_student("PBFive Student B Five")
         create_job(sid_b5)
         seen_b = []
 
@@ -295,7 +295,7 @@ try:
         job_b_row = one("SELECT * FROM bot_jobs WHERE student_id=? ORDER BY id DESC", (sid_b5,))
         check("B5 full cycle without any students-table read",
               reason_b == "idle" and job_b_row["status"] == "success"
-              and seen_b == ["P3B5 Student B5"],
+              and seen_b == ["PBFive Student B Five"],
               f"reason={reason_b} status={job_b_row['status']}")
     finally:
         WebFormHandler.read_by_id = orig_read_by_id
@@ -307,10 +307,10 @@ try:
     #      (Legacy rows can hold partial CNICs — the save-path 13-digit gate
     #      postdates them — so the runner guards the fill itself.)
     # =======================================================================
-    sid_cnic_bad = create_student("P3B5 Student CNIC Bad")
+    sid_cnic_bad = create_student("PBFive Student CNIC Bad")
     sql("UPDATE students SET b_form='35202' WHERE id=?", (sid_cnic_bad,))
     create_job(sid_cnic_bad)
-    sid_cnic_ok = create_student("P3B5 Student CNIC OK")
+    sid_cnic_ok = create_student("PBFive Student CNIC OK")
     sql("UPDATE students SET b_form='12345-1234567-1' WHERE id=?", (sid_cnic_ok,))
     create_job(sid_cnic_ok)
     seen_cnic = []
@@ -331,15 +331,15 @@ try:
           f"reason={reason_c} status={bad_row['status']} "
           f"cat={bad_row['failure_category']} msg={bad_row['error_message']!r}")
     check("B5b worker never received the incomplete-CNIC record",
-          "P3B5 Student CNIC Bad" not in seen_cnic, str(seen_cnic))
+          "PBFive Student CNIC Bad" not in seen_cnic, str(seen_cnic))
     check("B5b queue continues: next job runs and succeeds after the rejection",
-          ok_row["status"] == "success" and seen_cnic == ["P3B5 Student CNIC OK"],
+          ok_row["status"] == "success" and seen_cnic == ["PBFive Student CNIC OK"],
           f"ok_status={ok_row['status']} seen={seen_cnic}")
 
     # =======================================================================
     # C. Heartbeat: lease extension, fencing, lease expiry
     # =======================================================================
-    sid_c = create_student("P3B5 Student C")
+    sid_c = create_student("PBFive Student C")
     _, jc = create_job(sid_c)
     job_c = jc["job"]["job_id"]
     rc, bc = c.claim("w-hb", job_id=job_c)
@@ -369,7 +369,7 @@ try:
           hb_bad.lost_reason == "fencing_conflict" and hb_bad.should_abort(),
           f"lost={hb_bad.lost_reason}")
 
-    sid_c2 = create_student("P3B5 Student C2")
+    sid_c2 = create_student("PBFive Student C Two")
     _, jc2 = create_job(sid_c2)
     job_c2 = jc2["job"]["job_id"]
     rc2, bc2 = c.claim("w-hb2", job_id=job_c2)
@@ -388,7 +388,7 @@ try:
     # =======================================================================
     # D. Progress: state transition + fencing + failure preservation
     # =======================================================================
-    sid_d = create_student("P3B5 Student D")
+    sid_d = create_student("PBFive Student D")
     _, jd = create_job(sid_d)
     job_d = jd["job"]["job_id"]
     rd, bd = c.claim("w-prog", job_id=job_d)
@@ -436,7 +436,7 @@ try:
     # =======================================================================
     # E. run_job_loop evidence matrix (success only with full evidence)
     # =======================================================================
-    sid_e1 = create_student("P3B5 Student E1")
+    sid_e1 = create_student("PBFive Student E One")
     create_job(sid_e1)
     seen_e1 = []
     recs_e1 = []
@@ -453,7 +453,7 @@ try:
           and recs_e1[0]["complete_ok"] is True,
           f"reason={reason_e1} status={job_e1['status']}")
 
-    sid_e2 = create_student("P3B5 Student E2")
+    sid_e2 = create_student("PBFive Student E Two")
     create_job(sid_e2)
     recs_e2 = []
     run(run_job_loop(api(), "w-loop", make_worker(evidence=FILL_ONLY_EVIDENCE),
@@ -466,7 +466,7 @@ try:
           and recs_e2[0]["status"] == "submit_failed",
           f"{job_e2['status']} {job_e2['failure_category']}")
 
-    sid_e3 = create_student("P3B5 Student E3")
+    sid_e3 = create_student("PBFive Student E Three")
     create_job(sid_e3)
     ev_e3 = {"finish_clicked": True, "indicator_detected": False, "outcome_known": False,
              "errors": ["Name is required"], "diagnostics": {"errorTexts": []}}
@@ -480,7 +480,7 @@ try:
           and job_e3["failure_category"] == "validation",
           f"known={job_e3['outcome_known']} cat={job_e3['failure_category']}")
 
-    sid_e4 = create_student("P3B5 Student E4")
+    sid_e4 = create_student("PBFive Student E Four")
     create_job(sid_e4)
     ev_e4 = {"finish_clicked": False, "indicator_detected": True, "outcome_known": True,
              "errors": [], "diagnostics": None}
@@ -491,7 +491,7 @@ try:
           and job_e4["failure_category"] == "femis",
           f"{job_e4['status']} {job_e4['failure_category']}")
 
-    sid_e5 = create_student("P3B5 Student E5")
+    sid_e5 = create_student("PBFive Student E Five")
     create_job(sid_e5)
     run(run_job_loop(api(), "w-loop",
                      make_worker(evidence=SUCCESS_EVIDENCE,
@@ -502,7 +502,7 @@ try:
           job_e5["status"] == "success" and job_e5["bot_result_code"] == "success",
           f"{job_e5['status']}")
 
-    sid_e6 = create_student("P3B5 Student E6")
+    sid_e6 = create_student("PBFive Student E Six")
     create_job(sid_e6)
     run(run_job_loop(api(), "w-loop",
                      make_worker(evidence=None, error=ValueError("student CNIC missing")),
@@ -516,10 +516,10 @@ try:
     # =======================================================================
     # F. DATA_STALE never filled; loop continues to next job
     # =======================================================================
-    sid_f1 = create_student("P3B5 Student F1")
+    sid_f1 = create_student("PBFive Student F One")
     create_job(sid_f1)
-    edit_student(sid_f1, "P3B5 Student F1 Edited")
-    sid_f2 = create_student("P3B5 Student F2")
+    edit_student(sid_f1, "PBFive Student F One Edited")
+    sid_f2 = create_student("PBFive Student F Two")
     create_job(sid_f2)
     seen_f = []
     recs_f = []
@@ -534,13 +534,13 @@ try:
           and "F1" not in "".join(seen_f) and bool(stale_recs),
           f"{job_f1['status']} seen={seen_f}")
     check("F2 loop continues past DATA_STALE to next job",
-          job_f2["status"] == "success" and seen_f == ["P3B5 Student F2"],
+          job_f2["status"] == "success" and seen_f == ["PBFive Student F Two"],
           f"{job_f2['status']} seen={seen_f}")
 
     # =======================================================================
     # G. Retry = new attempt; history preserved
     # =======================================================================
-    sid_g = create_student("P3B5 Student G")
+    sid_g = create_student("PBFive Student G")
     _, jg = create_job(sid_g)
     job_g1 = jg["job"]["job_id"]
     run(run_job_loop(api(), "w-loop", make_worker(evidence=FILL_ONLY_EVIDENCE),
@@ -560,7 +560,7 @@ try:
     # =======================================================================
     # H. Superseded worker cannot complete; failure still completes
     # =======================================================================
-    sid_h = create_student("P3B5 Student H")
+    sid_h = create_student("PBFive Student H")
     _, jh = create_job(sid_h)
     job_h = jh["job"]["job_id"]
     rh, bh = c.claim("w-old", job_id=job_h)
@@ -800,7 +800,7 @@ try:
     # =======================================================================
     # K. Filler -> runner -> API progress chain (real FormFiller, no browser)
     # =======================================================================
-    sid_k = create_student("P3B5 Student K")
+    sid_k = create_student("PBFive Student K")
     _, jk = create_job(sid_k)
     job_k = jk["job"]["job_id"]
     rk, bk = c.claim("w-chain", job_id=job_k)

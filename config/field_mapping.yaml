@@ -2891,6 +2891,7 @@ tab_3_educational_details:
       - 278 — Islamabad Model College For Girls (VI-XII), G-11/1
       - 522 — Islamabad Model School for Girls (I-VIII) , Pindory Syedan
       - 573 — Islamabad Model School For Girls (I-VIII), CBR Town
+      - 608 — Islamabad Model College for Boys (VI-XII), Golra
     class_admitted_in:
       label: Class Admitted In
       type: dropdown
