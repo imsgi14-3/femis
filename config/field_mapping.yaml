@@ -134,6 +134,36 @@ tab_1_personal_details:
       - Lower South Waziristan
       - Upper South Waziristan
       - Kohistan
+      - Badin
+      - Dadu
+      - Ghotki
+      - Hyderabad
+      - Jacobabad
+      - Jamshoro
+      - Karachi Central
+      - Karachi East
+      - Karachi South
+      - Karachi West
+      - Kemari
+      - Korangi
+      - Kashmore
+      - Khairpur
+      - Larkana
+      - Matiari
+      - Mirpurkhas
+      - Naushahro Feroze
+      - Sanghar
+      - Shaheed Benazirabad
+      - Shikarpur
+      - Sukkur
+      - Sujawal
+      - Tando Allahyar
+      - Tando Muhammad Khan
+      - Tharparkar
+      - Thatta
+      - Umerkot
+      - Malir
+      - Kambar Shahdadkot
     cnic_form_b_no:
       label: CNIC/Form-B No.
       type: text
@@ -304,6 +334,7 @@ tab_1_personal_details:
       - Lower South Waziristan
       - Upper South Waziristan
       - Kohistan
+      - Neelam
     is_hafiz:
       label: is_hafiz
       type: radio
@@ -398,6 +429,10 @@ tab_1_personal_details:
       - H-13/3
       - H-13/4
       - H-13
+      - I-16/1
+      - I-16/2
+      - I-16/3
+      - I-16/4
     village:
       label: Village
       type: dropdown
@@ -1048,6 +1083,10 @@ tab_1_personal_details:
       - H-13/3
       - H-13/4
       - H-13
+      - I-16/1
+      - I-16/2
+      - I-16/3
+      - I-16/4
     village:
       label: Village
       type: dropdown

@@ -78,16 +78,30 @@ try:
     st, b = save({"name": "DupGuard D", "class_id": "5", "section_id": "Z",
                   "roll_no": "904", "b_form": "",
                   "is_bform_available": "0"})
-    sid4 = b.get("student_id")
-    created.append(sid4)
-    check("A4 create without b_form ok (empty never conflicts)",
-          st == 200 and sid4, str(b))
+    err = b.get("error") or ""
+    check("A4 empty b_form create -> 400 mandatory, NOT 409 (flag no "
+          "longer exempts; empties never conflict)",
+          st == 400 and "Mandatory fields missing" in err
+          and "b_form" in err and "already used" not in err, err)
     st, b = save({"name": "DupGuard E", "class_id": "5", "section_id": "Z",
                   "roll_no": "905", "b_form": "",
                   "is_bform_available": "0"})
+    err = b.get("error") or ""
+    check("A5 second empty b_form -> 400 mandatory again (empties may "
+          "repeat — a conflict would surface as 409)",
+          st == 400 and "Mandatory fields missing" in err
+          and "b_form" in err and "already used" not in err, err)
+    st, b = save({"name": "DupGuard D", "class_id": "5", "section_id": "Z",
+                  "roll_no": "904", "b_form": "36302-1111111-1"})
+    sid4 = b.get("student_id")
+    created.append(sid4)
+    check("A4b row created with a b_form for the update-path checks",
+          st == 200 and sid4, str(b))
+    st, b = save({"name": "DupGuard E", "class_id": "5", "section_id": "Z",
+                  "roll_no": "905", "b_form": "36302-2222222-1"})
     sid5 = b.get("student_id")
     created.append(sid5)
-    check("A5 second empty b_form ok (empties may repeat)",
+    check("A5b second row created for exclude_id / own-value checks",
           st == 200 and sid5, str(b))
 
     # ==================================================================

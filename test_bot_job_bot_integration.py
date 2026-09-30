@@ -262,6 +262,11 @@ try:
     again = snapshot_to_student(snap)
     check("B3 mid-run student edit does not change adapter output",
           again == copy_before and data_snap.get("name") == "P3B5 Student A")
+    forced = snapshot_to_student({"data": dict(copy_before,
+                                               is_bform_available="0")})
+    check("B3b adapter forces is_bform_available='1' (FEMIS always-Yes)",
+          forced.get("is_bform_available") == "1",
+          str(forced.get("is_bform_available")))
 
     try:
         snapshot_to_student({"data": {}})

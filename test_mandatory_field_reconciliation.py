@@ -14,6 +14,10 @@ profession=Other, and email 'Nil' at submit while PA Save & Next let them pass).
 2026-09-29 (later): the server-side twin landed in femis-web/mandatory.py —
 [X] now locks the save/final-submit/legacy-submit wiring and the exact rule
 parity between the client lists and the server spec.
+2026-09-30: the is_bform_available yes/no question was removed from the PA
+form — the server forces the flag to '1' in _map_form_data, b_form became
+unconditional on BOTH sides, and no bot job is queued without a B-Form
+number ([Xb] locks it).
 Each requirement is evaluated as MET or GAP; further fixes must consciously
 update this file.
 """
@@ -421,6 +425,25 @@ server_wired = ("_mandatory_error(" in save_body
 check("[X] server-side mandatory validation wired in save + final-submit + /submit",
       server_wired,
       "femis-web/mandatory.py twin of validateTab gates all three write paths")
+
+# 2026-09-30: the CNIC / Form-B availability question was removed from the
+# PA form (always Yes), b_form became unconditional, and the flag is forced
+# to '1' inside _map_form_data on every write path.
+check("[Xb] is_bform_available radio removed from form.html",
+      html_present("is_bform_available") is False,
+      "no control renders the yes/no question anymore")
+check("[Xb] is_bform_available dropped from JS mandatory + server coverage",
+      js_mandatory("is_bform_available") is False
+      and "is_bform_available" not in server_spec.coverage(),
+      "parity: neither side enforces the removed question")
+check("[Xb] b_form unconditional in server ALWAYS[1] (no conditional rule)",
+      "b_form" in server_spec.ALWAYS.get(1, [])
+      and not any("b_form" in f for _, _, f in server_spec.RULES),
+      str(server_spec.ALWAYS.get(1)))
+check("[Xb] server forces is_bform_available='1' in _map_form_data",
+      'mapped["is_bform_available"] = "1"' in APP)
+check("[Xb] CNIC toggle IIFE removed (number group always visible)",
+      'input[name="is_bform_available"]' not in JS)
 
 client_fields = set(JS_MAND)
 for _cfields, _, _ in COND:

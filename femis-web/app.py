@@ -591,6 +591,11 @@ def _map_form_data(data):
             if db_col in DATE_COLUMNS:
                 value = _normalize_date_value(value)
             mapped[db_col] = value
+    # The CNIC / Form-B availability question was removed from the form:
+    # every record is "Yes" (2026-09-30 directive), so force the flag on
+    # EVERY write path (save-tab, final-submit, legacy /submit) — even for
+    # payloads that omit it or still carry a legacy "0".
+    mapped["is_bform_available"] = "1"
     return mapped
 
 

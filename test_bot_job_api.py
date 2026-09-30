@@ -326,6 +326,23 @@ try:
         s3_job = b.get("job", {}).get("job_id")
         check("B12 create S3 ok", r == 200 and b.get("ok"), str(b))
 
+        # B13-B16: no job is attempted without a B-Form number
+        # (2026-09-30 directive) — create gate + retry gate.
+        gate_sid = create_student("P3B4 NoBform Gate")
+        r, b = cap(op_c.post("/api/jobs", json=create_payload(gate_sid), headers=OP_H))
+        gate_job = b.get("job", {}).get("job_id")
+        check("B13 queue with b_form present -> 200", r == 200 and b.get("ok") and gate_job, str(b))
+        r, b = cap(op_c.post(f"/api/jobs/{gate_job}/cancel", json={}, headers=OP_H))
+        check("B14 close gate job (pending -> cancelled)",
+              r == 200 and b.get("job", {}).get("status") == "cancelled", str(b))
+        sql("UPDATE students SET b_form='' WHERE id=?", (gate_sid,))
+        r, b = cap(op_c.post("/api/jobs", json=create_payload(gate_sid), headers=OP_H))
+        check("B15 create with blank b_form -> 422 missing_b_form",
+              r == 422 and b.get("error_code") == "missing_b_form", str(b))
+        r, b = cap(op_c.post(f"/api/jobs/{gate_job}/retry", json={}, headers=OP_H))
+        check("B16 retry with blank b_form -> 422 missing_b_form",
+              r == 422 and b.get("error_code") == "missing_b_form", str(b))
+
         # =================================================================
         # C. list / get
         # =================================================================

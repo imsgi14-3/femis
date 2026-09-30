@@ -146,8 +146,9 @@ CLEAR_CHECKBOXES_JS = """
 # b_form + present_* are newly mandatory (misalignment report §6-P1.1);
 # house/street + present_house/present_street joined them 2026-09-29 (address
 # family visibility-gated); the present-address sub-sector needs its own fill
-# after the cascade resolves.
-TAB1_FILL = ["name", "is_bform_available", "b_form", "gender", "date_of_birth", "nationality",
+# after the cascade resolves.  is_bform_available dropped 2026-09-30: the
+# yes/no question was removed from the form (server forces the flag to '1').
+TAB1_FILL = ["name", "b_form", "gender", "date_of_birth", "nationality",
              "house", "street", "contact_number", "city_id", "religion", "language_id", "email"]
 TAB1_PRESENT = ["present_address_type", "present_sector_id", "present_house", "present_street"]
 TAB1_PRESENT_SUB = ["present_sub_sector_id"]

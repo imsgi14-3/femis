@@ -562,18 +562,20 @@ try:
     )
 
     # Two eligible finals (submitted — a teacher lock is not required), one
-    # duplicate-conflict final, and two that must be skipped by auto-enqueue
-    # (already filled at current version / not submitted).
+    # duplicate-conflict final, and three that must be skipped by auto-enqueue
+    # (already filled at current version / not submitted / no B-Form number).
     sid_final = create_student("Bot Mgmt Final")
     sid_done = create_student("Bot Mgmt Done")
     sid_locked_only = create_student("Bot Mgmt LockedOnly")
     sid_sub_only = create_student("Bot Mgmt SubOnly")
     sid_conflict = create_student("Bot Mgmt Conflict")
+    sid_nobform = create_student("Bot Mgmt NoBform")
     sql("UPDATE students SET locked=1, submitted=1 WHERE id=?", (sid_final,))
     sql("UPDATE students SET locked=1, submitted=1 WHERE id=?", (sid_done,))
     sql("UPDATE students SET locked=1 WHERE id=?", (sid_locked_only,))
     sql("UPDATE students SET submitted=1 WHERE id=?", (sid_sub_only,))
     sql("UPDATE students SET locked=1, submitted=1 WHERE id=?", (sid_conflict,))
+    sql("UPDATE students SET submitted=1, b_form='' WHERE id=?", (sid_nobform,))
     with app.app_context():
         st_done = db.session.get(Student, sid_done)
         db.session.add(BotJob(
@@ -654,6 +656,14 @@ try:
         "I8b submitted record queues without a lock (submitted-only rule)",
         (sub_job or {}).get("status") == "pending",
         str(sub_job),
+    )
+    nob_job = one(
+        "SELECT status FROM bot_jobs WHERE student_id=? "
+        "ORDER BY id DESC LIMIT 1", (sid_nobform,))
+    check(
+        "I8c submitted record WITHOUT a B-Form number is never auto-queued",
+        nob_job is None,
+        str(nob_job),
     )
 
     r, b = cap(bot().post("/api/bot/agent/poll",

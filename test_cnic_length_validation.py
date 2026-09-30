@@ -97,11 +97,12 @@ try:
                     "is_bform_available": "0",
                     "b_form": "", "father_cnic": "",
                     "mother_cnic": "", "guardian_cnic": ""})
-    sid2 = b.get("student_id")
-    created.append(sid2)
-    check("A6 empty CNIC fields -> 200 (length gate is presence-only; "
-          "B-Form=yes would be mandatory's business, see A7)",
-          st == 200 and b.get("ok") and sid2, str(b))
+    err = b.get("error") or ""
+    check("A6 empty b_form with B-Form=no -> 400 mandatory (the removed "
+          "flag no longer exempts b_form; empties otherwise pass the "
+          "length gate)",
+          st == 400 and "Mandatory fields missing" in err
+          and "b_form" in err and "13 digits" not in err, err)
 
     st, b = create({"name": "CnicGuard H", "roll_no": "960",
                     "b_form": ""})

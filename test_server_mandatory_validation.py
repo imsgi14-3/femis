@@ -3,8 +3,8 @@ mandatory fields, per tab, mirroring form.js validateTab.
 
 Locks femis-web/mandatory.py + app.py wiring end to end:
   A. save-tab CREATE with an empty mandatory field -> 400 + field names
-  B. tab-1 visibility branches (Sector/Other, same-as-permanent, b-form flag,
-     gender -> girls_stipend)
+   B. tab-1 visibility branches (Sector/Other, same-as-permanent, b-form
+      unconditional + flag forced to '1', gender -> girls_stipend)
   C. tab-2 conditional branches (profession Other, father-dead guardians,
      mother income / BPS, orphan)
   D. tab-3 conditional branch (Institution Bus -> bus_route)
@@ -125,11 +125,22 @@ try:
     check("B3 gender=Female requires girls_stipend -> 400 names it",
           st == 400 and "tab 1: girls_stipend" in err, err)
 
-    sid_b4, b = mk(name="MandGuard NoBform", is_bform_available="0",
-                   b_form="")
-    check("B4 B-Form=no: b_form blanked -> 200 (conditional rule off)",
-          sid_b4 is not None, str(b))
+    st, b = post(tab1(name="MandGuard NoBform", is_bform_available="0",
+                      b_form=""))
+    err = b.get("error") or ""
+    check("B4 empty b_form rejected even with flag=0 (question removed; "
+          "b_form is unconditional)",
+          st == 400 and "Mandatory fields missing" in err
+          and "b_form" in err, err)
+
+    sid_b4, b = mk(name="MandGuard FlagForced", is_bform_available="0")
     created.append(sid_b4)
+    check("B4b flag=0 payload with b_form filled -> 200", sid_b4 is not None, str(b))
+    with app.app_context():
+        row = Student.query.get(sid_b4) if sid_b4 else None
+        check("B4c stored is_bform_available forced to '1' on save",
+              row is not None and row.is_bform_available == "1",
+              getattr(row, "is_bform_available", None))
 
     # ==================================================================
     # C. tab-2 branches (updates on one complete record; 400s leave

@@ -82,6 +82,11 @@ def snapshot_to_student(snapshot: dict) -> dict:
     student = dict(data)  # defensive copy: filler mutations never touch the claim
     if "transport" in student and "transport_facility" not in student:
         student["transport_facility"] = student.get("transport")
+    # FEMIS directive (2026-09-30): the CNIC / Form-B availability question
+    # is always answered "Yes" — force it regardless of the stored value so
+    # legacy "0"/NULL rows still select the Yes radio (and the filler then
+    # requires a real B-Form number, which the queue gate already ensures).
+    student["is_bform_available"] = "1"
     return student
 
 

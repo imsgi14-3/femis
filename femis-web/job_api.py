@@ -294,6 +294,16 @@ def svc_create(payload, identity):
     student = db.session.get(Student, student_id)
     if student is None:
         return _fail("Student not found.", "student_not_found", 404)
+    # No job is attempted without a B-Form / CNIC number (2026-09-30
+    # directive): covers the operator API, the admin Queue Job button and
+    # the auto-enqueue (which counts the 422 as a skip).
+    if not (student.b_form or "").strip():
+        return _fail(
+            "Student has no B-Form/CNIC number — queue blocked until one is "
+            "entered on the student record.",
+            "missing_b_form",
+            422,
+        )
 
     token_dt, exact = _parse_version_token(payload.get("student_data_version"))
     if token_dt is None:
@@ -495,6 +505,15 @@ def svc_retry(job_id, payload, identity):
     refresh_snapshot = bool(payload.get("refresh_snapshot", True))
 
     student = db.session.get(Student, job.student_id)
+    # Same gate as svc_create: never requeue a record without a B-Form /
+    # CNIC number (2026-09-30 directive).
+    if student is not None and not (student.b_form or "").strip():
+        return _fail(
+            "Student has no B-Form/CNIC number — retry blocked until one is "
+            "entered on the student record.",
+            "missing_b_form",
+            422,
+        )
     if refresh_snapshot:
         if student is None:
             return _fail("Student not found.", "student_not_found", 404)

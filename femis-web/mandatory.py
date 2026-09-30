@@ -47,7 +47,7 @@ DB_NAME = {
 # Unconditional required fields per tab (form.js mandatoryByTab minus the
 # entries whose group is visibility-gated — those live in RULES below).
 ALWAYS = {
-    1: ["name", "is_bform_available", "gender", "date_of_birth",
+    1: ["name", "b_form", "gender", "date_of_birth",
         "birth_province_id", "birth_district_id", "nationality",
         "address_type", "contact_number", "city_id", "religion",
         "language_id", "email"],
@@ -110,7 +110,9 @@ def _and(*conds):
 # condition is None = always (kept here so every rule has one home).
 RULES = [
     # --- tab 1: personal + address family ---
-    (1, _c("is_bform_available", "1"), ["b_form"]),
+    # b_form is UNCONDITIONAL (2026-09-30): the is_bform_available yes/no
+    # question was removed from the form and the server forces it to "1",
+    # so every student must supply a B-Form / CNIC number.
     (1, _c("address_type", "Sector"), ["sector_id"]),
     (1, _and(_c("address_type", "Sector"), _filled("sector_id")),
      ["sub_sector_id"]),

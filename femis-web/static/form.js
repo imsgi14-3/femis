@@ -209,26 +209,9 @@ document.addEventListener("DOMContentLoaded", function () {
     setupSectorCascade("");
     setupSectorCascade("present_");
 
-    // === Conditional: CNIC Available → show/hide CNIC field ===
-    (function () {
-        var radios = document.querySelectorAll('input[name="is_bform_available"]');
-        var cnicGroup = document.getElementById("cnic_number_group");
-        var cnicInput = document.getElementById("cnic_number_input");
-        function toggle() {
-            var selected = document.querySelector('input[name="is_bform_available"]:checked');
-            var val = selected ? selected.value : "";
-            if (val === "1") {
-                if (cnicGroup) cnicGroup.style.display = "block";
-                if (cnicInput) cnicInput.required = true;
-            } else {
-                if (cnicGroup) cnicGroup.style.display = "none";
-                if (cnicInput) cnicInput.required = false;
-                if (cnicInput) cnicInput.value = "";
-            }
-        }
-        radios.forEach(function (r) { r.addEventListener("change", toggle); });
-        toggle();
-    })();
+    // === CNIC / Form-B number: always shown and always required (the
+    //     yes/no availability question was removed; the server forces
+    //     is_bform_available='1' and the mandatory twin requires b_form).
 
     // === Conditional: Address Type (select) → Show/Hide fields (temp) ===
     (function () {
@@ -642,7 +625,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // (misalignment report §6-P1.1/P1.2/P1.3).
     // ==================================================================
     var mandatoryByTab = {
-        0: ["name", "is_bform_available", "b_form", "gender", "date_of_birth", "birth_province_id", "birth_district_id", "nationality", "address_type", "sector_id", "sub_sector_id", "house", "street", "address", "contact_number", "city_id", "present_address_type", "present_sector_id", "present_sub_sector_id", "present_house", "present_street", "present_address", "religion", "language_id", "email"],
+        0: ["name", "b_form", "gender", "date_of_birth", "birth_province_id", "birth_district_id", "nationality", "address_type", "sector_id", "sub_sector_id", "house", "street", "address", "contact_number", "city_id", "present_address_type", "present_sector_id", "present_sub_sector_id", "present_house", "present_street", "present_address", "religion", "language_id", "email"],
         1: [
             "father_name", "father_cnic", "is_father_alive", "father_profession",
             "father_qualification", "father_monthly_income",
