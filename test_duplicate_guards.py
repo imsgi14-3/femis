@@ -1,10 +1,18 @@
-"""Duplicate guards: b_form (student CNIC) + admission_number uniqueness.
+"""Duplicate guards: b_form (student CNIC), admission_number, and the
+Class+Section+Roll triple uniqueness (user directive 2026-10-01).
 
 Locks `_uniqueness_error` in femis-web/app.py across every write path:
 save-tab (create + update), final-submit, IntegrityError fallback, and the
 legacy /submit route. Semantics: digits-only CNIC compare, whitespace/case
--insensitive admission compare, empty/None never conflicts, own-row value
-allowed on update (exclude_id).
+-insensitive admission compare, case/whitespace-insensitive roll-triple
+compare (class+section+roll all present required; empty/None never
+conflicts), own-row value allowed on update (exclude_id).
+
+Also locks the student-login auto-create gate: a name typo at login must
+flash an "already belongs" error instead of creating a second row for a
+taken roll, an ilike-matching name logs into the existing row, and the
+startup migration's guarded uq_students_class_section_roll index exists
+(baseline has no duplicate groups).
 
 Run: python test_duplicate_guards.py   (exit 0 = all pass)
 """
@@ -223,6 +231,104 @@ try:
     check("F2 admission error names holder and id",
           st == 409 and "'AdmGuard A'" in err and "(id" in err, err)
 
+    # ==================================================================
+    # G. Class+Section+Roll uniqueness (save-tab create + update)
+    # ==================================================================
+    st, b = save({"name": "RollGuard A", "class_id": "8", "section_id": "XX",
+                  "roll_no": "951"})
+    sidg = b.get("student_id")
+    created.append(sidg)
+    check("G1 first roll create ok", st == 200 and sidg, str(b))
+    st, b = save({"name": "RollGuard B", "class_id": "8", "section_id": "XX",
+                  "roll_no": "951"})
+    err = b.get("error") or ""
+    check("G2 same class/section/roll with a different name -> 409",
+          st == 409 and "already belongs" in err and "'RollGuard A'" in err, err)
+    st, b = save({"name": "rollguard a", "class_id": " 8 ",
+                  "section_id": "xx", "roll_no": "951"})
+    err = b.get("error") or ""
+    check("G3 roll conflict is case/space-insensitive -> 409",
+          st == 409 and "already belongs" in err, err)
+    st, b = save({"name": "RollGuard A", "class_id": "8",
+                  "section_id": "XX", "roll_no": "951"},
+                 student_id=sidg, as_admin=True)
+    check("G4 own unchanged triple on update -> ok (exclude self)",
+          st == 200 and b.get("ok"), str(b))
+    st, b = save({"class_id": "8", "section_id": "XX", "roll_no": "951"},
+                 student_id=sid5, as_admin=True)
+    err = b.get("error") or ""
+    check("G5 moving another row onto a taken triple -> 409",
+          st == 409 and "'RollGuard A'" in err, err)
+
+    # ==================================================================
+    # H. student login: a name typo never creates a second row
+    # ==================================================================
+    def login_as(nm, cls, sec, roll):
+        c = anon()
+        r = c.post("/login", data={"role": "student", "name": nm,
+                                   "class_id": cls, "section": sec,
+                                   "roll_no": roll}, follow_redirects=False)
+        return c, r
+
+    c1, r1 = login_as("RollKid A", "9", "YY", "961")
+    with c1.session_transaction() as s:
+        sidh = s.get("student_id")
+    created.append(sidh)
+    check("H1 first login with a fresh roll creates the row",
+          r1.status_code == 302 and sidh
+          and "student-dashboard" in r1.headers.get("Location", ""),
+          (r1.status_code, r1.headers.get("Location"), sidh))
+
+    c2, r2 = login_as("RollKid Typo", "9", "YY", "961")
+    page = c2.get("/login").data.decode("utf-8", "replace")
+    with app.app_context():
+        n_rollkid = Student.query.filter(Student.name.like("RollKid%")).count()
+    check("H2 same roll + different name -> rejected, NO second row",
+          r2.status_code == 302
+          and str(r2.headers.get("Location", "")).endswith("/login")
+          and n_rollkid == 1 and "already belongs" in page,
+          (r2.headers.get("Location"), n_rollkid))
+
+    c3, r3 = login_as("rollkid a", "9", "yy", " 961 ")
+    with c3.session_transaction() as s:
+        sid3 = s.get("student_id")
+    with app.app_context():
+        n_rollkid = Student.query.filter(Student.name.like("RollKid%")).count()
+    check("H3 same roll + matching name (ilike) logs into the existing row",
+          sid3 == sidh and n_rollkid == 1, (sid3, sidh, n_rollkid))
+
+    # ==================================================================
+    # I. source locks: login gate + guarded startup index + /submit keys
+    # ==================================================================
+    app_src = (ROOT / "femis-web" / "app.py").read_text(encoding="utf-8")
+    check("I1 login asks the roll owner before auto-creating",
+          "holder = _roll_conflict(class_id, section, roll_no)" in app_src
+          and "ask the admin to correct it instead of" in app_src)
+    check("I2 _uniqueness_error checks the full class/section/roll triple",
+          'all(k in mapped for k in ("class_id", "section_id", "roll_no"))'
+          in app_src)
+    check("I3 legacy /submit passes class/section/roll through uniq",
+          '"class_id", "section_id", "roll_no"' in app_src)
+    check("I4 startup index is guarded by a duplicate-groups count",
+          "uq_students_class_section_roll" in app_src
+          and "class/section/roll group(s) remain" in app_src)
+
+    # ==================================================================
+    # J. the unique index itself (baseline is clean, so migration created it)
+    # ==================================================================
+    con = sqlite3.connect(str(DB))
+    idx = [r[1] for r in con.execute("PRAGMA index_list(students)")]
+    dup_now = con.execute(
+        "SELECT COUNT(*) FROM ("
+        " SELECT LOWER(class_id), LOWER(section_id), LOWER(roll_no)"
+        " FROM students WHERE class_id IS NOT NULL AND section_id IS NOT NULL"
+        "   AND roll_no IS NOT NULL AND roll_no <> ''"
+        " GROUP BY 1, 2, 3 HAVING COUNT(*) > 1)").fetchone()[0]
+    con.close()
+    check("J1 uq_students_class_section_roll exists (baseline has no dupes)",
+          "uq_students_class_section_roll" in idx and dup_now == 0,
+          (idx, dup_now))
+
 finally:
     # ------------------------------------------------------------------
     # Cleanup: every row this run created; baseline must be restored.
@@ -232,7 +338,8 @@ finally:
             st_row = Student.query.get(sid)
             if st_row:
                 db.session.delete(st_row)
-        for nm in ("Legacy Dup", "Msg Probe Two", "Msg Probe"):
+        for nm in ("Legacy Dup", "Msg Probe Two", "Msg Probe",
+                   "RollGuard A", "RollGuard B", "RollKid Typo", "RollKid A"):
             for st_row in Student.query.filter(Student.name == nm).all():
                 db.session.delete(st_row)
         db.session.commit()

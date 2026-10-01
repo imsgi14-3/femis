@@ -380,6 +380,38 @@ with app.app_context():
                 "replace(replace(replace(b_form, '-', ''), ' ', ''), '.', '')) "
                 "WHERE b_form IS NOT NULL AND b_form <> ''"
             ))
+            # One student per Class+Section+Roll (user directive 2026-10-01):
+            # student-login auto-create used to allow a second row whenever
+            # the typed name differed (Hanna/Misbha duplicates). Guarded —
+            # pre-existing duplicates would make CREATE UNIQUE INDEX fail, so
+            # the index is only created when the table is already clean;
+            # otherwise warn and let a human merge the pairs first.
+            # Empty/NULL roll rows stay exempt (partial index), mirroring
+            # the app-level check where empties never conflict.
+            dup_groups = conn.execute(text(
+                "SELECT COUNT(*) FROM ("
+                " SELECT LOWER(class_id), LOWER(section_id), LOWER(roll_no)"
+                " FROM students"
+                " WHERE class_id IS NOT NULL AND section_id IS NOT NULL"
+                "   AND roll_no IS NOT NULL AND roll_no <> ''"
+                " GROUP BY LOWER(class_id), LOWER(section_id), LOWER(roll_no)"
+                " HAVING COUNT(*) > 1)"
+            )).scalar() or 0
+            if dup_groups:
+                print(
+                    f"schema migration warning: {dup_groups} duplicate "
+                    "class/section/roll group(s) remain - merge them, then "
+                    "restart to create uq_students_class_section_roll",
+                    flush=True,
+                )
+            else:
+                conn.execute(text(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS "
+                    "uq_students_class_section_roll ON students "
+                    "(class_id, section_id, roll_no) "
+                    "WHERE class_id IS NOT NULL AND section_id IS NOT NULL "
+                    "AND roll_no IS NOT NULL AND roll_no <> ''"
+                ))
             # RBAC: teachers.role ('admin' | 'teacher') — additive + idempotent,
             # preserves existing rows (defaulted to 'teacher').
             tcols = {r[1] for r in conn.execute(text("PRAGMA table_info(teachers)"))}
@@ -668,8 +700,39 @@ def _admission_error(holder, value):
     )
 
 
+def _roll_conflict(class_id, section_id, roll_no, exclude_id=None):
+    """Return the student row already holding this Class+Section+Roll, or None.
+
+    Case/whitespace-insensitive (student login compares with ilike too);
+    empty/None class, section or roll never conflicts — the data form carries
+    class and section but roll only arrives via login/admin payloads.
+    """
+    c = (class_id or "").strip()
+    s = (section_id or "").strip()
+    r = (roll_no or "").strip()
+    if not (c and s and r):
+        return None
+    query = Student.query.filter(
+        Student.class_id.ilike(c),
+        Student.section_id.ilike(s),
+        Student.roll_no.ilike(r),
+    )
+    if exclude_id:
+        query = query.filter(Student.id != exclude_id)
+    return query.first()
+
+
+def _roll_error(holder, class_id, section_id, roll_no):
+    return (
+        f"Roll {roll_no} in Class {class_id} - Section {section_id} already "
+        f"belongs to student '{holder.name}' (id {holder.id}). The portal keeps "
+        f"one record per class/section/roll — edit that record instead of "
+        f"creating a duplicate."
+    )
+
+
 def _uniqueness_error(mapped, exclude_id=None):
-    """409 message if mapped b_form/admission_number duplicates a row, else None."""
+    """409 message if mapped b_form/admission_number/class+section+roll duplicates a row, else None."""
     if "b_form" in mapped:
         holder = _b_form_conflict(mapped["b_form"], exclude_id=exclude_id)
         if holder:
@@ -678,6 +741,15 @@ def _uniqueness_error(mapped, exclude_id=None):
         holder = _admission_conflict(mapped["admission_number"], exclude_id=exclude_id)
         if holder:
             return _admission_error(holder, mapped["admission_number"])
+    if all(k in mapped for k in ("class_id", "section_id", "roll_no")):
+        holder = _roll_conflict(
+            mapped["class_id"], mapped["section_id"], mapped["roll_no"],
+            exclude_id=exclude_id,
+        )
+        if holder:
+            return _roll_error(
+                holder, mapped["class_id"], mapped["section_id"], mapped["roll_no"]
+            )
     return None
 
 
@@ -971,7 +1043,9 @@ def submit():
     if cnic_err:
         flash(cnic_err, "error")
         return redirect(url_for("index"))
-    uniq = {k: v for k, v in data.items() if k in ("b_form", "admission_number")}
+    uniq = {k: v for k, v in data.items()
+            if k in ("b_form", "admission_number",
+                     "class_id", "section_id", "roll_no")}
     err = _uniqueness_error(uniq)
     if err:
         flash(err, "error")
@@ -1104,6 +1178,19 @@ def login():
         if student:
             session["student_id"] = student.id
             return redirect(url_for("student_dashboard"))
+        # One record per Class+Section+Roll (user directive 2026-10-01): a
+        # name typo at login must never auto-create a second row for a roll
+        # that already belongs to someone else (the Hanna/Misbha duplicates).
+        holder = _roll_conflict(class_id, section, roll_no)
+        if holder:
+            flash(
+                f"Roll {roll_no} in Class {class_id} - Section {section} already "
+                f"belongs to '{holder.name}'. Your name '{name}' does not match "
+                f"that record — ask the admin to correct it instead of "
+                f"creating a duplicate.",
+                "danger",
+            )
+            return redirect(url_for("login"))
         student = Student(
             name=name,
             class_id=class_id,

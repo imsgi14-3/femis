@@ -35,7 +35,8 @@ EXPECTED_INDEXES = ["ix_bot_jobs_lease", "ix_bot_jobs_status_created",
                     "ix_bot_jobs_student_created", "ix_bot_jobs_student_id",
                     "sqlite_autoindex_app_settings_1",
                     "sqlite_autoindex_bot_jobs_1", "sqlite_autoindex_bot_jobs_2",
-                    "uq_bot_jobs_open_per_student", "uq_students_b_form"]
+                    "uq_bot_jobs_open_per_student", "uq_students_b_form",
+                    "uq_students_class_section_roll"]
 created_ids = []
 students_before = []
 botjobs_before = 0
