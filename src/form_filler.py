@@ -2380,7 +2380,11 @@ class FormFiller:
             elif field_type == "date":
                 await self._fill_date(page, label, value, portal_name)
             elif field_type == "checkbox":
-                await self._fill_checkbox(page, label, value, portal_name)
+                status = await self._fill_checkbox(page, label, value, portal_name)
+                if status != "filled":
+                    # Skip/failure already logged honestly by _fill_checkbox -
+                    # never emit a false OK for a click that did not happen.
+                    return status
             # Verify control actually took the value when possible
             if field_type in ("text", "dropdown", "date"):
                 await self._verify_filled(page, label, portal_name, value)
@@ -2971,7 +2975,7 @@ class FormFiller:
             [value, portal_val, name_attr],
         )
 
-    async def _fill_checkbox(self, page: Page, label: str, value: str, portal_name: str = ""):
+    async def _fill_checkbox(self, page: Page, label: str, value: str, portal_name: str = "") -> str:
         should_check = value.lower() in ("yes", "true", "1", "on")
 
         cb = None
@@ -3003,11 +3007,44 @@ class FormFiller:
 
         if cb is None:
             logger.warning(f"    No checkbox for '{label}'")
-            return
+            logger.info(f"  Skip (checkbox not found): {label}")
+            return "skipped"
 
         is_checked = await cb.is_checked()
-        if is_checked != should_check:
-            await cb.click(force=True)
+        if is_checked == should_check:
+            # State already matches the desired value - nothing to click.
+            return "filled"
+
+        # FEMIS rule: "Same as Temporary Address" is not allowed when the
+        # permanent City is other than Islamabad - the portal renders the
+        # checkbox disabled in that case, so a force-click would be a no-op.
+        try:
+            disabled = await cb.is_disabled()
+        except Exception:
+            disabled = False
+        if disabled:
+            if should_check:
+                logger.warning(
+                    f"  DATA CONFLICT: {label} = 1 (PA) but the portal disables this"
+                    " checkbox - not allowed when City is not Islamabad; leaving it unchecked"
+                )
+            else:
+                logger.warning(
+                    f"  Could not clear '{label}': portal disables this checkbox"
+                )
+            return "skipped"
+
+        await cb.click(force=True)
+        try:
+            if await cb.is_checked() != should_check:
+                logger.warning(
+                    f"  '{label}' click did not take (desired {int(should_check)},"
+                    f" still {int(await cb.is_checked())})"
+                )
+                return "skipped"
+        except Exception:
+            pass
+        return "filled"
 
     async def _find_label(self, page: Page, label: str):
         """Find a label element, handling apostrophes and special characters."""

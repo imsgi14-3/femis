@@ -164,6 +164,20 @@ tab_1_personal_details:
       - Umerkot
       - Malir
       - Kambar Shahdadkot
+      - Hunza
+      - Gilgit
+      - Skardu
+      - Tangir
+      - Darel
+      - Roundu
+      - Ghanche
+      - Kharmang
+      - Shigar
+      - Astore
+      - Diamer
+      - Gupis-Yasin
+      - Ghizer
+      - Nagar
     cnic_form_b_no:
       label: CNIC/Form-B No.
       type: text
@@ -404,6 +418,20 @@ tab_1_personal_details:
       - Upper South Waziristan
       - Kohistan
       - Neelam
+      - Hunza
+      - Gilgit
+      - Skardu
+      - Tangir
+      - Darel
+      - Roundu
+      - Ghanche
+      - Kharmang
+      - Shigar
+      - Astore
+      - Diamer
+      - Gupis-Yasin
+      - Ghizer
+      - Nagar
     is_hafiz:
       label: is_hafiz
       type: radio
@@ -1068,6 +1096,7 @@ tab_1_personal_details:
       - Rawlakot
       - Poonch
       - Malakand
+      - Lower Dir
     same_as_temporary:
       label: Same as Temporary Address
       type: checkbox
