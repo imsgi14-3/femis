@@ -37,6 +37,17 @@ PORTAL_NAME_ALIASES = {
     "disability_types": "disability_types[]",
 }
 
+# Portal duplicate signals, BOTH routed to duplicate_conflict (human action
+# required): the classic Rails uniqueness message ("already been taken") and
+# FEMIS's whole-school admission conflict ("already exists for another
+# student" — the holder is a different student, invisible to our one-class
+# PA DB; the CNIC scan cannot help, so the job stops for a human).
+# KEEP IN SYNC with the DUP_ERROR_RE copy in src/job_runner.py (the
+# classify fallback uses the same two phrasings).
+DUP_ERROR_RE = re.compile(
+    r"already been taken|already exists for another student", re.I
+)
+
 # Portal rejects mixed-case names: "Please enter only capital alphabets"
 CAPITAL_NAME_SOURCES = {
     "name",
@@ -395,7 +406,7 @@ class FormFiller:
 
         fill_from = 1
         if probe_edit:
-            fill_from = await self._probe_incomplete_tab(page)
+            fill_from = await self._probe_incomplete_tab(page, student_data)
 
         for i, (tab_name, tab_id) in enumerate(TAB_IDS, 1):
             if probe_edit and i < fill_from:
@@ -448,9 +459,15 @@ class FormFiller:
                         await self._fill_tab_fields(page, i, student_data)
                         result = await self._save_next(page, i)
                     if not result.get("ok"):
+                        # Both dup phrasings: b_form uniqueness ("already
+                        # been taken") AND the admission-number conflict
+                        # ("already exists for another student") — the
+                        # admission holder is a different student, so the
+                        # CNIC scan above never fires for it and a human
+                        # must resolve it (user directive: human category).
                         still_dup = [
                             str(e) for e in (result.get("errors") or [])
-                            if "already been taken" in str(e).lower()
+                            if DUP_ERROR_RE.search(str(e))
                         ]
                         if still_dup and self.duplicate_conflict is None:
                             # Auto-recovery (CNIC scan) could not make this tab
@@ -556,11 +573,23 @@ class FormFiller:
                 return True
         return await self._on_tab_pane(page, target_tab_id)
 
-    async def _probe_incomplete_tab(self, page: Page) -> int:
-        """In edit mode, Save & Next each tab without filling.
+    async def _probe_incomplete_tab(self, page: Page,
+                                    student_data: dict | None = None) -> int:
+        """In edit mode, probe Save & Next each tab — refreshing stale fields.
+
+        The probe used to Save & Next WITHOUT filling: a tab that was valid
+        but held STALE portal values (Jannat noor job 144 — the pre-queue
+        admin DOB fix never reached FEMIS because tab 1 probed "already
+        filled") was skipped and the old value stayed in the portal. The
+        probe now rewrites only the fields whose current DOM value differs
+        from PA (`_fill_tab_fields(..., only_if_changed=True)`) BEFORE the
+        probe save: the save persists the refresh, unchanged tabs make no
+        DOM writes (old behavior).
 
         Returns the first tab number (1-based) that fails validation
-        (or 7 if all of 1–6 are already valid).
+        (or 7 if all of 1–6 are already valid). A failed refresh write
+        stops the probe on that tab (still on the pane — no save yet) so
+        the fill loop rewrites it fully.
         """
         for i, (tab_name, tab_id) in enumerate(TAB_IDS, 1):
             if i >= 7:
@@ -570,9 +599,24 @@ class FormFiller:
             if not await self._on_tab_pane(page, tab_id) and not await self._advance_to_tab(page, i):
                 logger.warning(f"  Probe: cannot reach tab {i} — filling from here")
                 return i
+            refreshed, failed = 0, 0
+            if student_data:
+                refreshed, failed = await self._fill_tab_fields(
+                    page, i, student_data, only_if_changed=True
+                )
+                if failed:
+                    logger.warning(
+                        f"  Probe tab {i}: {failed} refresh write(s) failed — filling from here"
+                    )
+                    return i
             result = await self._save_next(page, i, probe=True)
             if result.get("ok"):
-                logger.info(f"  Probe tab {i}: OK (already filled)")
+                if refreshed:
+                    logger.info(
+                        f"  Probe tab {i}: OK (refreshed {refreshed} stale field(s))"
+                    )
+                else:
+                    logger.info(f"  Probe tab {i}: OK (already filled)")
                 continue
             errs = result.get("errors") or []
             logger.warning(f"  Probe tab {i}: FAIL — filling from here. Errors: {errs[:6]}")
@@ -2011,7 +2055,13 @@ class FormFiller:
         except Exception:
             return ""
 
-    async def _fill_tab_fields(self, page: Page, tab_number: int, data: dict):
+    async def _fill_tab_fields(self, page: Page, tab_number: int, data: dict,
+                               only_if_changed: bool = False) -> tuple[int, int]:
+        """Fill one tab's mapped fields. Returns (filled, failed) counts.
+
+        only_if_changed=True is the edit-probe refresh: unchanged controls
+        are skipped, only stale ones rewritten (see _read_control_state).
+        """
         tab_key = f"tab_{tab_number}_"
         tab_data = None
         for key in self.field_map:
@@ -2020,13 +2070,25 @@ class FormFiller:
                 break
 
         if not tab_data:
-            return
+            return 0, 0
+
+        filled = 0
+        failed = 0
+
+        async def _run(field_name: str, config: dict):
+            nonlocal filled, failed
+            res = await self._fill_field(page, field_name, config, data,
+                                         only_if_changed=only_if_changed)
+            if res == "filled":
+                filled += 1
+            elif res == "failed":
+                failed += 1
 
         for section_name, section_fields in tab_data.items():
             if not isinstance(section_fields, dict) or "status" in section_fields:
                 continue
             if "type" in section_fields:
-                await self._fill_field(page, section_name, section_fields, data)
+                await _run(section_name, section_fields)
             else:
                 # Fill city first in permanent section so same-as checkbox enables,
                 # then address fields, then same-as last (portal may require order).
@@ -2046,26 +2108,158 @@ class FormFiller:
                     for field_name in order:
                         config = section_fields.get(field_name)
                         if isinstance(config, dict) and "type" in config:
-                            await self._fill_field(page, field_name, config, data)
+                            await _run(field_name, config)
                             seen.add(field_name)
                     for field_name, config in section_fields.items():
                         if field_name in seen:
                             continue
                         if isinstance(config, dict) and "type" in config:
-                            await self._fill_field(page, field_name, config, data)
+                            await _run(field_name, config)
                     continue
                 for field_name, config in section_fields.items():
                     if isinstance(config, dict) and "type" in config:
-                        await self._fill_field(page, field_name, config, data)
+                        await _run(field_name, config)
 
         if tab_number == 1:
             await self._repair_address_selects(page, data)
+
+        return filled, failed
 
     def _portal_name(self, config: dict) -> str:
         source = config.get("source_field") or ""
         return PORTAL_NAME_ALIASES.get(source, source)
 
-    async def _fill_field(self, page: Page, field_name: str, config: dict, data: dict):
+    @staticmethod
+    def _norm_text(s) -> str:
+        """Whitespace-collapsed, casefolded text for equality compares."""
+        return re.sub(r"\s+", " ", str(s if s is not None else "")).strip().casefold()
+
+    async def _read_control_state(self, page: Page, portal_name: str):
+        """Current DOM state of input[name=portal_name] for the probe refresh.
+
+        Returns a dict ({kind, value/text/label/checked}) or None when the
+        control cannot be read (no portal_name / not in DOM / JS error).
+        None always means "fill it": a missed skip is today's idempotent
+        behavior; a wrong skip would leave stale data (the Jannat noor bug).
+        """
+        if not portal_name:
+            return None
+        try:
+            state = await page.evaluate(
+                """(name) => {
+                    // READ_CURRENT_VALUE: report the current value of an
+                    // input[name] control (selected option text for selects,
+                    // checked value+label for radio groups).
+                    const esc = (s) => (window.CSS && CSS.escape) ? CSS.escape(s) : String(s).replace(/"/g, '\\\\"');
+                    let el = null;
+                    try { el = document.querySelector('[name="' + esc(name) + '"]'); } catch (e) {}
+                    if (!el) return null;
+                    const tag = el.tagName ? String(el.tagName).toUpperCase() : '';
+                    if (tag === 'SELECT') {
+                        const idx = el.selectedIndex;
+                        const opt = idx >= 0 ? el.options[idx] : null;
+                        return {kind: 'select', value: String(el.value || ''),
+                                text: opt ? String(opt.text || '').trim() : ''};
+                    }
+                    const t = String(el.type || '').toLowerCase();
+                    if (t === 'radio') {
+                        let checked = null;
+                        document.querySelectorAll('input[type="radio"][name="' + esc(name) + '"]')
+                            .forEach(function(r) { if (r.checked) checked = r; });
+                        if (!checked) return {kind: 'radio', value: '', label: ''};
+                        let lab = '';
+                        if (checked.labels && checked.labels[0]) {
+                            lab = String(checked.labels[0].innerText || '').trim();
+                        }
+                        return {kind: 'radio', value: String(checked.value || ''), label: lab};
+                    }
+                    if (t === 'checkbox') return {kind: 'checkbox', checked: !!el.checked};
+                    return {kind: 'input', value: String(el.value == null ? '' : el.value)};
+                }""",
+                portal_name,
+            )
+            return state if isinstance(state, dict) else None
+        except Exception:
+            return None
+
+    @staticmethod
+    def _state_matches(field_type: str, state, desired, config: dict | None = None) -> bool:
+        """True only when the control definitely already holds `desired`.
+
+        Conservative by design: any ambiguity returns False so the field is
+        refilled (today's idempotent behavior). A false "changed" costs a
+        redundant rewrite; a false "unchanged" re-creates the stale-value
+        bug this probe refresh exists to fix.
+        """
+        if not isinstance(state, dict):
+            return False
+        kind = state.get("kind")
+        want_raw = str(desired if desired is not None else "")
+        want = FormFiller._norm_text(want_raw)
+        if not want:
+            return False
+
+        if field_type == "date":
+            # _fill_date writes mm/dd/yyyy and the portal parser is
+            # month-first (observed), so read the portal side as mm/dd/yyyy;
+            # ISO round-trips through _normalize_date. Anything else =>
+            # refill (the safe direction).
+            cur = str(state.get("value") or "").strip()
+            if not cur:
+                return False
+            m = re.match(r"^(\d{1,2})/(\d{1,2})/(\d{4})$", cur)
+            if m:
+                mm, dd, yy = m.groups()
+                if int(mm) > 12 or int(dd) > 31:
+                    return False
+                cur_iso = f"{yy}-{mm.zfill(2)}-{dd.zfill(2)}"
+            else:
+                cur_iso = FormFiller._normalize_date(cur)
+            return bool(cur_iso) and cur_iso == FormFiller._normalize_date(want_raw)
+
+        if field_type == "checkbox":
+            if kind != "checkbox":
+                return False
+            should_check = want in ("yes", "true", "1", "on")
+            return bool(state.get("checked")) == should_check
+
+        if field_type == "radio":
+            if kind != "radio":
+                return False
+            cur_val = FormFiller._norm_text(state.get("value"))
+            cur_lab = FormFiller._norm_text(state.get("label"))
+            if want in ("yes", "true", "1", "y"):
+                cands = {"1", "yes", "true", "y"}
+            elif want in ("no", "false", "0", "n"):
+                cands = {"0", "no", "false", "n"}
+            else:
+                cands = {want}
+            return cur_val in cands or (bool(cur_lab) and cur_lab == want)
+
+        if kind == "select":
+            return (FormFiller._norm_text(state.get("text")) == want
+                    or FormFiller._norm_text(state.get("value")) == want)
+
+        if kind == "input":
+            cur = str(state.get("value") or "")
+            if (config or {}).get("validation") in ("cnic", "mobile_pakistani"):
+                # Portal may hold formatted or raw digits — compare digits.
+                cd = re.sub(r"\D", "", cur)
+                wd = re.sub(r"\D", "", want_raw)
+                return bool(wd) and cd == wd
+            return FormFiller._norm_text(cur) == want
+
+        return False
+
+    async def _fill_field(self, page: Page, field_name: str, config: dict, data: dict,
+                          only_if_changed: bool = False) -> str:
+        """Write one mapped field. Returns 'filled' | 'skipped' | 'failed'.
+
+        only_if_changed=True (edit-probe refresh): read the control first
+        and return 'skipped' when it already holds the desired value —
+        unchanged tabs make no DOM writes, stale ones are rewritten before
+        the probe save persists them.
+        """
         source_field = config.get("source_field", field_name)
         self._last_attempted_field = field_name  # job-mode failure evidence
         value = data.get(source_field)
@@ -2075,9 +2269,9 @@ class FormFiller:
             return str(v if v is not None else "").strip().lower() in ("1", "yes", "true", "y")
 
         if source_field == "orphan_type" and not _truthy(data.get("is_orphan")):
-            return
+            return "skipped"
         if source_field == "glass_prescription" and not _truthy(data.get("uses_glasses")):
-            return
+            return "skipped"
         # Portal defaults: bus_route set => Institution Bus when transport
         # blank. The portal has no 'None' radio (only Institution Bus /
         # Private), so PA's 'None' maps to 'Private' (user decision).
@@ -2108,9 +2302,9 @@ class FormFiller:
             if config.get("required"):
                 # Device Type is only needed when the student has a device
                 if source_field == "digital_device_type" and str(data.get("digital_device_at_home") or "0").strip() in ("0", "No", "no", ""):
-                    return
+                    return "skipped"
                 logger.warning(f"  Missing required: {config.get('label', field_name)}")
-            return
+            return "skipped"
 
         value = str(value).strip()
         field_type = config.get("type", "text")
@@ -2163,9 +2357,18 @@ class FormFiller:
                 if vis is False:
                     if config.get("required"):
                         logger.warning(f"  Skip (hidden on this tab): {label}")
-                    return
+                    return "skipped"
         except Exception:
             pass
+
+        # Probe refresh: skip the DOM write when the control already holds
+        # the desired value (compared AFTER the value transforms above, so
+        # both sides are in portal form).
+        if only_if_changed:
+            state = await self._read_control_state(page, portal_name)
+            if state is not None and self._state_matches(field_type, state, value, config):
+                logger.debug(f"  Skip (unchanged): {label}")
+                return "skipped"
 
         try:
             if field_type == "text":
@@ -2186,8 +2389,10 @@ class FormFiller:
                 if not await self._radio_checked(page, portal_name) and not await self._radio_checked(page, source_field):
                     raise RuntimeError(f"Radio not checked after fill: {portal_name}={value}")
             logger.info(f"  OK: {label} = {value[:50]}")
+            return "filled"
         except Exception as e:
             logger.error(f"  FAIL: {label}: {e}")
+            return "failed"
 
     async def _verify_filled(self, page: Page, label: str, portal_name: str, expected: str):
         """Raise if the target control is still empty after a fill attempt."""

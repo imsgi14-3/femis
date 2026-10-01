@@ -331,6 +331,22 @@ try:
         check("G5 student with no job renders a dash",
               "Never queued" in row and "—" in row, row[:160])
 
+        # ------------------------------------------------------------------
+        # H. Bot queue: Result / Error cell opens the full-error modal
+        # ------------------------------------------------------------------
+        b = adm.get("/admin/bot").get_data(as_text=True)
+        check("H1 bot page ships the full-error modal",
+              'id="botErrorModal"' in b and 'id="botErrText"' in b
+              and 'id="botErrMeta"' in b, "")
+        check("H2 error cell text is a click target into the modal",
+              "onclick=\"botShowError(" in b
+              and "function botShowError(id)" in b, "")
+        check("H3 modal shows the whole error (pre-wrap) + job metadata",
+              "white-space: pre-wrap" in b and "failure_category" in b
+              and "botErrTitle" in b, "")
+        check("H4 job rows are cached for the modal (botJobsById)",
+              "botJobsById[j.job_id] = j" in b, "")
+
 finally:
     with app.app_context():
         for jid in created_botjobs:

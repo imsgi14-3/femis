@@ -39,6 +39,11 @@ TIMEOUT_RE = re.compile(r"timed? ?out|timeout|deadline exceeded", re.I)
 CAPTCHA_RE = re.compile(r"captcha", re.I)
 AUTH_RE = re.compile(r"log ?in|session expired|not authenticated|auth(entication)? fail", re.I)
 FIELD_RE = re.compile(r"field[_ ]?map|source_field|mapping", re.I)
+# Portal duplicate signals -> human category ("Duplicate record conflict").
+# KEEP IN SYNC with the DUP_ERROR_RE copy in src/form_filler.py (fill loop).
+DUP_ERROR_RE = re.compile(
+    r"already been taken|already exists for another student", re.I
+)
 
 try:  # pragma: no cover - playwright is present in the bot environment
     from playwright.async_api import Error as PlaywrightError
@@ -217,7 +222,7 @@ def classify_submit_failure(evidence: dict | None) -> tuple[str, str]:
     dup_errors = [str(e) for e in (dup.get("errors") or []) if e]
     if not dup_errors:
         dup_errors = [e for e in errors + ([diag_text] if diag_text else [])
-                      if "already been taken" in e.lower()]
+                      if DUP_ERROR_RE.search(e)]
     if dup_errors:
         detail = "; ".join(dup_errors[:3])[:380]
         tab = dup.get("tab")

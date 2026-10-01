@@ -1067,6 +1067,7 @@ tab_1_personal_details:
       - Kohistan Lower
       - Rawlakot
       - Poonch
+      - Malakand
     same_as_temporary:
       label: Same as Temporary Address
       type: checkbox

@@ -87,16 +87,65 @@
     <div class="mt-3" id="botRunHistory"></div>
   </div>
 </div>
+
+<!-- Full error log for a job — opened by clicking a Result / Error cell -->
+<div class="modal fade" id="botErrorModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-exclamation-triangle me-2"></i><span id="botErrTitle">Job error</span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row small mb-3" id="botErrMeta"></div>
+        <pre class="small mb-0" id="botErrText" style="white-space: pre-wrap; word-break: break-word;"></pre>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
 var botPaused = false;
+var botJobsById = {};
 
 function botEsc(v) {
   return String(v === null || v === undefined ? "" : v)
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function botShowError(id) {
+  var j = botJobsById[id];
+  if (!j) return;
+  document.getElementById("botErrTitle").textContent =
+    "Job #" + j.job_id + " — " + (j.student_name || ("Student #" + j.student_id));
+  var meta = [
+    ["Status", j.status],
+    ["Result", j.bot_result_code || "—"],
+    ["Category", j.failure_category || "—"],
+    ["Attempt", j.attempt_number],
+    ["Failed tab", j.failed_tab == null ? "—" : j.failed_tab],
+    ["Failed field", j.failed_field || "—"],
+    ["Finish clicked", j.finish_clicked == null ? "—" : (j.finish_clicked ? "yes" : "no")],
+    ["Success indicator", j.indicator_detected == null ? "—" : (j.indicator_detected ? "yes" : "no")],
+    ["Outcome known", j.outcome_known == null ? "—" : (j.outcome_known ? "yes" : "no")],
+    ["Created", j.created_at || "—"],
+    ["Completed", j.completed_at || "—"],
+    ["Prior attempt", j.prior_attempt_id == null ? "—" : j.prior_attempt_id]
+  ];
+  document.getElementById("botErrMeta").innerHTML = meta.map(function(kv) {
+    return '<div class="col-6 col-md-4 mb-2"><span class="text-muted">' +
+      botEsc(kv[0]) + ":</span> <strong>" + botEsc(String(kv[1])) + "</strong></div>";
+  }).join("");
+  document.getElementById("botErrText").textContent =
+    j.error_message || "(no error message recorded)";
+  var m = bootstrap.Modal.getOrCreateInstance(document.getElementById("botErrorModal"));
+  m.show();
 }
 
 function botStatusBadge(status) {
@@ -181,7 +230,9 @@ function botLoadJobs() {
         return;
       }
       var html = "";
+      botJobsById = {};
       res.jobs.forEach(function(j) {
+        botJobsById[j.job_id] = j;
         var actions = "";
         if (j.status === "pending") {
           actions += '<button class="btn btn-sm btn-outline-danger me-1" title="Cancel" onclick="botCancelJob(' + j.job_id + ')"><i class="bi bi-x-circle"></i></button>';
@@ -197,7 +248,10 @@ function botLoadJobs() {
           result += '<span class="badge bg-light text-dark border me-1">' + botEsc(j.bot_result_code) + "</span>";
         }
         if (msg) {
-          result += '<span class="text-muted small" title="' + botEsc(j.error_message) + '">' + botEsc(msg) + "</span>";
+          // Click the cell text to open the full error log in a modal.
+          result += '<a href="#" class="small text-reset text-decoration-underline" ' +
+            'title="' + botEsc(j.error_message) + '" ' +
+            'onclick="botShowError(' + j.job_id + '); return false;">' + botEsc(msg) + "</a>";
         }
         if (!result) result = '<span class="text-muted">—</span>';
         html += "<tr>" +
