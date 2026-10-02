@@ -65,6 +65,19 @@
           <option value="unlocked" {{ 'selected' if f.lock == 'unlocked' else '' }}>Unlocked</option>
         </select>
       </div>
+      <div class="col-md-2">
+        <label class="form-label small mb-1" for="fsort">Sort by</label>
+        <select class="form-select form-select-sm" id="fsort" name="sort" onchange="this.form.submit()">
+          <option value="new" {{ 'selected' if f.sort == 'new' else '' }}>Newest first</option>
+          <option value="old" {{ 'selected' if f.sort == 'old' else '' }}>Oldest first</option>
+          <option value="name" {{ 'selected' if f.sort == 'name' else '' }}>Name A-Z</option>
+          <option value="name_desc" {{ 'selected' if f.sort == 'name_desc' else '' }}>Name Z-A</option>
+          <option value="class" {{ 'selected' if f.sort == 'class' else '' }}>Class, section, roll</option>
+          <option value="roll" {{ 'selected' if f.sort == 'roll' else '' }}>Roll low-high</option>
+          <option value="roll_desc" {{ 'selected' if f.sort == 'roll_desc' else '' }}>Roll high-low</option>
+          <option value="updated" {{ 'selected' if f.sort == 'updated' else '' }}>Recently updated</option>
+        </select>
+      </div>
       <div class="col-md-1">
         <label class="form-label small mb-1" for="fper">Per page</label>
         <select class="form-select form-select-sm" id="fper" name="per" onchange="this.form.submit()">

@@ -1263,6 +1263,19 @@ def teacher_dashboard():
                            role=role, user_name=name)
 
 
+_STUDENT_SORTS = {
+    "new": (Student.created_at.desc(), Student.id.desc()),
+    "old": (Student.created_at.asc(), Student.id.asc()),
+    "name": (db.func.lower(Student.name).asc(), Student.id.asc()),
+    "name_desc": (db.func.lower(Student.name).desc(), Student.id.desc()),
+    "class": (Student.class_id.asc(), Student.section_id.asc(),
+              db.cast(Student.roll_no, db.Integer).asc(), Student.id.asc()),
+    "roll": (db.cast(Student.roll_no, db.Integer).asc(), Student.id.asc()),
+    "roll_desc": (db.cast(Student.roll_no, db.Integer).desc(), Student.id.asc()),
+    "updated": (Student.updated_at.desc(), Student.id.desc()),
+}
+
+
 @app.route("/admin/students")
 def admin_students():
     guard = _admin_page()
@@ -1274,6 +1287,9 @@ def admin_students():
     gender = (request.args.get("gender") or "").strip()
     status = (request.args.get("status") or "").strip()
     lock = (request.args.get("lock") or "").strip()
+    sort = (request.args.get("sort") or "").strip()
+    if sort not in _STUDENT_SORTS:
+        sort = "new"
     per = _int_arg("per", 10)
     if per not in (10, 20, 50):
         per = 10
@@ -1305,7 +1321,7 @@ def admin_students():
         query = query.filter(~Student.locked.is_(True))
 
     items, total, page, pages, qs = _paged(
-        query.order_by(Student.created_at.desc(), Student.id.desc()),
+        query.order_by(*_STUDENT_SORTS[sort]),
         _int_arg("page", 1), per)
 
     # Latest bot job per student on this page (for the Bot status column).
@@ -1333,7 +1349,7 @@ def admin_students():
         genders=_distinct(Student.gender),
         bot_jobs=bot_jobs,
         f={"q": q, "class": class_id, "section": section, "gender": gender,
-           "status": status, "lock": lock},
+           "status": status, "lock": lock, "sort": sort},
     )
 
 

@@ -5,7 +5,8 @@ Covers the split of the old all-in-one admin dashboard into
 + /admin/bot:
   * guards      — anon 302, teacher/student 403, admin 200
   * overview    — card counts match the DB, section links, no full dump
-  * students    — 10/20/50 pagination, page clamping, filters, search
+  * students    — 10/20/50 pagination, page clamping, filters, search,
+                  sort (newest/oldest, name, class, roll, updated)
   * teachers    — pagination + filters, admin row never listed
 
 Fixtures are created (25 students, 12 teachers) and removed again; every
@@ -187,7 +188,7 @@ try:
               len(row_ids(body)) == 10, f"rows={len(row_ids(body))}")
 
         # ------------------------------------------------------------------
-        # D. Students filters + search
+        # D. Students filters + search + sorting
         # ------------------------------------------------------------------
         body, _ = spage(gender="Female", per=50)
         check("D1 gender=Female returns exactly the 8 female fixtures",
@@ -225,6 +226,46 @@ try:
         check("D8 no-match shows empty state, no rows",
               r.status_code == 200 and not row_ids(r.get_data(as_text=True))
               and "No students match" in r.get_data(as_text=True), "")
+
+        body, _ = spage(per=50)
+        ids = row_ids(body)
+        exp_asc = [str(s) for s in created_students]
+        check("D9 default sort = newest first (Y ... A)",
+              ids[0] == exp_asc[-1] and ids[-1] == exp_asc[0],
+              f"first={ids[0]} last={ids[-1]}")
+
+        body, _ = spage(sort="old", per=50)
+        ids = row_ids(body)
+        check("D10 sort=old reverses to oldest first (A ... Y)",
+              ids[0] == exp_asc[0] and ids[-1] == exp_asc[-1],
+              f"first={ids[0]} last={ids[-1]}")
+
+        body, _ = spage(sort="name", per=50)
+        ids = row_ids(body)
+        check("D11 sort=name orders A-Z",
+              ids[0] == exp_asc[0] and ids[-1] == exp_asc[-1],
+              f"first={ids[0]} last={ids[-1]}")
+
+        body, _ = spage(sort="name_desc", per=50)
+        ids = row_ids(body)
+        check("D12 sort=name_desc orders Z-A",
+              ids[0] == exp_asc[-1] and ids[-1] == exp_asc[0],
+              f"first={ids[0]} last={ids[-1]}")
+
+        body, _ = spage(sort="roll", per=50)
+        check("D13 sort=roll orders 9900..9924 numerically",
+              row_ids(body) == exp_asc,
+              f"rows={len(row_ids(body))}")
+
+        body, _ = spage(sort="bogus", per=50)
+        ids_bad = row_ids(body)
+        body, _ = spage(per=50)
+        check("D14 invalid sort falls back to default order",
+              ids_bad == row_ids(body), f"rows={len(ids_bad)}")
+
+        body, _ = spage(sort="name")
+        check("D15 sort survives pagination links + select stays selected",
+              "sort=name" in body and 'value="name" selected' in body, "")
 
         # ------------------------------------------------------------------
         # E. Teachers pagination + filters
