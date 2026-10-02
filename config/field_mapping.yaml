@@ -764,6 +764,8 @@ tab_1_personal_details:
       - Dandee
       - Chuchkal
       - Masho Khel
+      - Bhangril Kalan
+      - Pathan colony
     housing_society:
       label: Housing Society
       type: dropdown
@@ -1097,6 +1099,7 @@ tab_1_personal_details:
       - Poonch
       - Malakand
       - Lower Dir
+      - Hafizabad
     same_as_temporary:
       label: Same as Temporary Address
       type: checkbox
@@ -1424,6 +1427,8 @@ tab_1_personal_details:
       - Dandee
       - Chuchkal
       - Masho Khel
+      - Bhangril Kalan
+      - Pathan colony
     housing_society:
       label: Housing Society
       type: dropdown
