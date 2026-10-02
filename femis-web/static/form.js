@@ -345,14 +345,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // === FEMIS rule: Same as Temporary Address not allowed when the
     //     permanent City is other than Islamabad (portal disables the
-    //     checkbox in that case) - mirror the rule on data entry ===
+    //     checkbox in that case) - mirror the rule on data entry; a
+    //     blank / not-yet-selected city counts as not Islamabad ===
     (function () {
         var cb = document.getElementById("same_as_temporary");
         var city = document.querySelector('[name="city_id"]');
         if (!cb || !city) return;
         function enforceSameAsCityRule() {
             var v = (city.value || "").trim();
-            var blocked = v !== "" && v.toLowerCase() !== "islamabad";
+            var blocked = v.toLowerCase() !== "islamabad";
             cb.disabled = blocked;
             if (blocked && cb.checked) {
                 cb.checked = false;

@@ -10,9 +10,10 @@ aborting on a skipped checkbox:
               click took, and _fill_field must propagate a non-"filled" status
               instead of emitting a false OK line.
   PA side   - femis-web/static/form.js must disable + auto-uncheck
-              #same_as_temporary whenever [name="city_id"] is a non-empty
-              value other than Islamabad (FEMIS renders the checkbox disabled
-              in that case, so data entry must not allow the selection).
+              #same_as_temporary whenever [name="city_id"] is not
+              Islamabad (blank counts as not Islamabad; FEMIS renders
+              the checkbox disabled for other cities, so data entry
+              must not allow the selection).
   Fill order- address_permanent fills City before the checkbox so the portal
               has already disabled the control when the bot reaches it.
   Probe     - a disabled skip returns "skipped" (never "failed"), so refresh
@@ -255,8 +256,8 @@ check("E1 form.js gates #same_as_temporary on [name=city_id]",
       and 'querySelector(\'[name="city_id"]\')' in js)
 check("E2 the gate disables the checkbox when blocked",
       "cb.disabled = blocked" in js)
-check("E3 blocked means a non-empty city other than Islamabad",
-      'v.toLowerCase() !== "islamabad"' in js and 'var blocked = v !== ""' in js)
+check("E3 blocked means any city other than Islamabad (blank included)",
+      'var blocked = v.toLowerCase() !== "islamabad"' in js)
 check("E4 a blocked change auto-unchecks + notifies listeners",
       "if (blocked && cb.checked)" in js and "cb.checked = false" in js)
 check("E5 the gate re-runs on city change and on init",
