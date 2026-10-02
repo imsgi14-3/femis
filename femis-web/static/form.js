@@ -1135,9 +1135,18 @@ document.addEventListener("DOMContentLoaded", function () {
                         return;
                     }
 
-                    // Try radio
-                    var radio = document.querySelector('input[name="' + formName + '"][value="' + val + '"]');
-                    if (radio) { radio.checked = true; radio.dispatchEvent(new Event("change")); return; }
+                    // Try radio / exact-value input - compare values in JS;
+                    // embedding val in the selector makes querySelector throw
+                    // on a newline/quote in the value (e.g. an address ending
+                    // in Enter) and the silent catch then empties the form
+                    var inputs = document.querySelectorAll('input[name="' + formName + '"]');
+                    for (var ri = 0; ri < inputs.length; ri++) {
+                        if (inputs[ri].value === String(val)) {
+                            inputs[ri].checked = true;
+                            inputs[ri].dispatchEvent(new Event("change"));
+                            return;
+                        }
+                    }
 
                     if (formName.slice(-2) === "[]") {
                         var checks = document.querySelectorAll('input[type="checkbox"][name="' + formName + '"]');
