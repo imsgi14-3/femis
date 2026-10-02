@@ -1633,8 +1633,10 @@ def _enqueue_final_jobs(identity):
     """Create pending jobs for submitted (final) records.
 
     Submission is the only eligibility gate (the teacher's lock is not
-    required). Skips records with an open job, records whose current version
-    was already filled successfully, and records whose last attempt died on a
+    required). Skips records with an open job, records that already
+    succeeded at least once (a record edited after a success is re-pushed
+    only when the admin queues a job herself — auto runs never requeue a
+    previously successful record), and records whose last attempt died on a
     portal duplicate conflict (CNIC / admission no.) — those need a human fix
     on the portal and a manual Queue Job, so auto runs must not loop on them.
     Returns (created, skipped).
@@ -1654,12 +1656,11 @@ def _enqueue_final_jobs(identity):
         if has_open is not None:
             skipped += 1
             continue
-        done_at_version = BotJob.query.filter(
+        ever_succeeded = BotJob.query.filter(
             BotJob.student_id == st.id,
             BotJob.status == "success",
-            BotJob.student_data_version == st.updated_at,
         ).first()
-        if done_at_version is not None:
+        if ever_succeeded is not None:
             skipped += 1
             continue
         last_attempt = BotJob.query.filter(

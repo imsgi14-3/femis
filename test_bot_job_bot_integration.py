@@ -645,6 +645,49 @@ try:
     check("I5 _last_attempted_field recorded for failure evidence",
           filler._last_attempted_field == "mother_name")
 
+    # I5b: glass_prescription gate follows FEMIS/PA rule (visually_fit = No),
+    # NOT uses_glasses — the Eman Riaz bug: PA No + uses_glasses=0 meant the
+    # prescription was never written and the tab-6 save looped on required.
+    glass_cfg = {"source_field": "glass_prescription",
+                 "label": "Glasses Prescription", "required": True,
+                 "type": "text"}
+    gfills = []
+
+    async def _gfill(page, label, value, portal_name):
+        gfills.append((portal_name, value))
+
+    async def _gnoverify(*a, **k):
+        return None
+
+    orig_fill_text = filler._fill_text
+    orig_verify = filler._verify_filled
+    filler._fill_text = _gfill
+    filler._verify_filled = _gnoverify
+    try:
+        st_g_no = run(filler._fill_field(
+            None, "glass_prescription", glass_cfg,
+            {"visually_fit": "0", "uses_glasses": "0",
+             "glass_prescription": "No"}))
+        st_g_yes = run(filler._fill_field(
+            None, "glass_prescription", glass_cfg,
+            {"visually_fit": "1", "uses_glasses": "1",
+             "glass_prescription": "-1.5 / +2.0"}))
+        st_g_missing = run(filler._fill_field(
+            None, "glass_prescription", glass_cfg,
+            {"uses_glasses": "1", "glass_prescription": "-1.5 / +2.0"}))
+    finally:
+        filler._fill_text = orig_fill_text
+        filler._verify_filled = orig_verify
+    check("I5b1 visually_fit=No + uses_glasses=0 still fills (Eman case)",
+          st_g_no == "filled" and gfills == [("glass_prescription", "No")],
+          f"st={st_g_no} fills={gfills}")
+    check("I5b2 visually_fit=Yes skips (FEMIS clears/unrequires it)",
+          st_g_yes == "skipped" and len(gfills) == 1,
+          f"st={st_g_yes} fills={gfills}")
+    check("I5b3 missing visually_fit skips (gate is positive: No only)",
+          st_g_missing == "skipped" and len(gfills) == 1,
+          f"st={st_g_missing} fills={gfills}")
+
     check("I6 submit evidence reset semantics (dict rule)",
           outcome_known_from_evidence(False, False) is True
           and outcome_known_from_evidence(False, True) is True

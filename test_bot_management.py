@@ -26,7 +26,7 @@ OP_TOKEN = "botmgmt-operator-secret-8b42fe15"
 os.environ["FEMIS_BOT_TOKEN"] = BOT_TOKEN
 os.environ["FEMIS_OPERATOR_TOKEN"] = OP_TOKEN
 
-from app import app, db, Student, BotJob, AppSetting  # noqa: E402
+from app import app, db, Student, BotJob, AppSetting, _enqueue_final_jobs  # noqa: E402
 from src.job_runner import run_job_loop  # noqa: E402
 
 results = []
@@ -563,7 +563,7 @@ try:
 
     # Two eligible finals (submitted — a teacher lock is not required), one
     # duplicate-conflict final, and three that must be skipped by auto-enqueue
-    # (already filled at current version / not submitted / no B-Form number).
+    # (already succeeded at least once / not submitted / no B-Form number).
     sid_final = create_student("Bot Mgmt Final")
     sid_done = create_student("Bot Mgmt Done")
     sid_locked_only = create_student("Bot Mgmt LockedOnly")
@@ -644,7 +644,7 @@ try:
         (sid_done, sid_locked_only))
     open_others = [j for j in other_jobs if j["status"] in ("pending", "claimed", "running")]
     check(
-        "I8 skips: already-filled-at-current-version / not-submitted (locked-only)",
+        "I8 skips: already-succeeded / not-submitted (locked-only)",
         open_others == []
         and sum(1 for j in other_jobs if j["status"] == "success") == 1,
         str(other_jobs),
@@ -664,6 +664,26 @@ try:
         "I8c submitted record WITHOUT a B-Form number is never auto-queued",
         nob_job is None,
         str(nob_job),
+    )
+
+    # I8d: the success skip is version-INdependent (user rule 2026-10-02):
+    # editing a record after its success must NOT trigger an auto-requeue;
+    # only the admin's manual Queue Job may requeue it.
+    done_jobs_before = all_rows(
+        "SELECT id, status FROM bot_jobs WHERE student_id=?", (sid_done,))
+    sql("UPDATE students SET updated_at=? WHERE id=?",
+        (datetime.utcnow().isoformat(sep=" ", timespec="microseconds"),
+         sid_done))
+    with app.app_context():
+        enq_created, enq_skipped = _enqueue_final_jobs("auto-test")
+    done_jobs_after = all_rows(
+        "SELECT id, status FROM bot_jobs WHERE student_id=?", (sid_done,))
+    check(
+        "I8d previously-successful record is NOT auto-requeued after an edit "
+        "(admin Queue Job only)",
+        len(done_jobs_after) == len(done_jobs_before),
+        f"before={done_jobs_before} after={done_jobs_after} "
+        f"created={enq_created} skipped={enq_skipped}",
     )
 
     r, b = cap(bot().post("/api/bot/agent/poll",

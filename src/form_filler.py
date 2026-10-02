@@ -2270,8 +2270,13 @@ class FormFiller:
 
         if source_field == "orphan_type" and not _truthy(data.get("is_orphan")):
             return "skipped"
-        if source_field == "glass_prescription" and not _truthy(data.get("uses_glasses")):
-            return "skipped"
+        # FEMIS rule: glasses prescription is required (and shown) only when
+        # Visually fit = No — matches PA's conditionalRequired. Value is free
+        # text (placeholder e.g. -1.5 / +2.0), never gated on uses_glasses.
+        if source_field == "glass_prescription":
+            vf = data.get("visually_fit")
+            if vf is None or str(vf).strip().lower() not in ("0", "no"):
+                return "skipped"
         # Portal defaults: bus_route set => Institution Bus when transport
         # blank. The portal has no 'None' radio (only Institution Bus /
         # Private), so PA's 'None' maps to 'Private' (user decision).
