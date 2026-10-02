@@ -307,6 +307,7 @@ document.addEventListener("DOMContentLoaded", function () {
             ["housing_society_id", "present_housing_society_id"],
             ["house", "present_house"],
             ["street", "present_street"],
+            ["address", "present_address"],
         ];
         function copyVal(src, dst) {
             if (!src || !dst) return;
@@ -1087,7 +1088,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     "religion_id": "religion_id",
                     "language_id": "language_id",
                     "city_id": "city_id",
-                    "same_as_permanent_address": "same_as_permanent_address",
+                    "same_address": "same_as_permanent_address",
                     "house": "house", "street": "street",
                     "domicile_province_id": "domicile_province_id",
                     "domicile_district_id": "domicile_district_id",
@@ -1172,6 +1173,18 @@ document.addEventListener("DOMContentLoaded", function () {
                         input.dispatchEvent(new Event("change"));
                     }
                 });
+
+                // A blank city never fires the city change listener above
+                // (empty values are skipped), so re-apply the FEMIS rule here:
+                // same-as is only valid when the permanent city is Islamabad.
+                var sameCb = document.getElementById("same_as_temporary");
+                var citySel = document.querySelector('[name="city_id"]');
+                if (sameCb && sameCb.checked && citySel &&
+                        (citySel.value || "").trim().toLowerCase() !== "islamabad") {
+                    sameCb.checked = false;
+                    sameCb.disabled = true;
+                    sameCb.dispatchEvent(new Event("change", { bubbles: true }));
+                }
 
                 markClean();
             })
