@@ -1939,6 +1939,7 @@ tab_2_parents_guardian:
       - Lower South Waziristan
       - Upper South Waziristan
       - Kohistan
+      - Other than Pakistan
     is_orphan:
       label: is_orphan
       type: radio
@@ -2298,6 +2299,12 @@ tab_2_parents_guardian:
       type: text
       required: true
       source_field: range
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    specify_relation:
+      label: Specify Relation
+      type: text
+      required: true
+      source_field: guardian_relation_other
       note: Auto-discovered from portal DOM (map source_field to DB column when known)
   mothers_information:
     mothers_name:
@@ -3551,6 +3558,18 @@ tab_3_educational_details:
       type: text
       required: true
       source_field: route
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    emergency_contact_name:
+      label: Emergency Contact Name
+      type: text
+      required: true
+      source_field: emergency_name
+      note: Auto-discovered from portal DOM (map source_field to DB column when known)
+    contact_number:
+      label: Contact Number
+      type: text
+      required: true
+      source_field: emergency_contact
       note: Auto-discovered from portal DOM (map source_field to DB column when known)
   sibling_details:
     total_siblings:
