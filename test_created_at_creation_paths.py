@@ -104,9 +104,11 @@ try:
         db.session.rollback()
 
         # --- C. /login student auto-create ---------------------------------
+        # roll must be a whole number since login validation went strict
+        # (2026-10-03 directive: class/roll digits-only, section A/B/C)
         r = client.post("/login", data={
             "role": "student", "name": P3B9 + " LOGIN",
-            "class_id": "9", "section": "B", "roll_no": "P3B9R1",
+            "class_id": "9", "section": "B", "roll_no": "9701",
         })
         sid_c = None
         if r.status_code == 302:

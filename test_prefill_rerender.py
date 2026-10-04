@@ -189,7 +189,7 @@ def main():
     # Create branch carries a complete tab-1 payload — the server mandatory
     # twin (femis-web/mandatory.py) rejects partial creates with 400; the
     # suite-specific re-render values below override the fixture defaults.
-    data = tab1(name=PROBE, class_id="9", section_id="A", roll_no="P3BP",
+    data = tab1(name=PROBE, class_id="9", section_id="A", roll_no="9711",
                 sector_id="34", sub_sector_id="I-14/3",
                 birth_district_id="Faisalabad",
                 date_of_birth="01/01/2015",
@@ -214,8 +214,13 @@ def main():
 
             r = ctx.request.post(BASE + "/login", form={"role": "student", "name": PROBE,
                                                          "class_id": "9", "section": "A",
-                                                         "roll_no": "P3BP"})
-            check("student login session", r.status in (200, 302), str(r.status))
+                                                         "roll_no": "9711"})
+            # follow_redirects lands on the dashboard on success and back on
+            # /login when the server rejects the payload — assert the success
+            # landing page so a bounced login can never masquerade as OK.
+            check("student login session",
+                  r.status in (200, 302) and "student-dashboard" in r.url,
+                  f"{r.status} {r.url}")
             page.goto(f"{BASE}/form/{sid}")
             page.wait_for_load_state("networkidle")
             page.wait_for_timeout(900)

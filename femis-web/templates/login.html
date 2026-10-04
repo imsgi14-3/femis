@@ -56,8 +56,6 @@
               <label class="form-label fw-bold">Class <span class="text-danger">*</span></label>
               <select class="form-select" name="class_id" id="login_class" required>
                 <option value="">Select Class</option>
-                <option value="Nursery">Nursery</option>
-                <option value="KG">KG</option>
                 <option value="1">1</option>
                 <option value="2">2</option>
                 <option value="3">3</option>
@@ -72,14 +70,20 @@
             </div>
             <div class="mb-3">
               <label class="form-label fw-bold">Section <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" name="section" required placeholder="e.g. A, B, C">
+              <input type="text" class="form-control" name="section" required
+                     pattern="[ABC]" data-pattern="[ABC]"
+                     title="Exactly A, B or C — no other variation"
+                     placeholder="A, B or C">
             </div>
           </div>
 
           <div id="student-fields">
             <div class="mb-3">
               <label class="form-label fw-bold">Roll No <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" name="roll_no" required placeholder="e.g. 1, 2, 15">
+              <input type="text" class="form-control" name="roll_no" required
+                     pattern="[1-9][0-9]*" data-pattern="[1-9][0-9]*"
+                     inputmode="numeric" title="Whole number only, e.g. 1 or 12"
+                     placeholder="e.g. 1, 2, 15">
             </div>
           </div>
 
@@ -131,6 +135,14 @@
 
 <script>
 var roleRadios = document.querySelectorAll('input[name="role"]');
+
+function togglePatterns(group, on) {
+  group.querySelectorAll("[data-pattern]").forEach(function(i) {
+    if (on) { i.setAttribute("pattern", i.dataset.pattern); }
+    else { i.removeAttribute("pattern"); }
+  });
+}
+
 roleRadios.forEach(function(radio) {
   radio.addEventListener("change", function() {
     var sf = document.getElementById("student-fields");
@@ -146,6 +158,8 @@ roleRadios.forEach(function(radio) {
       sf.querySelectorAll("input").forEach(function(i) { i.required = true; });
       tf.querySelectorAll("input").forEach(function(i) { i.required = false; });
       cf.querySelectorAll("input, select").forEach(function(i) { i.required = true; });
+      togglePatterns(sf, true);
+      togglePatterns(cf, true);
     } else if (v === "admin") {
       sf.style.display = "none";
       tf.style.display = "block";
@@ -154,6 +168,8 @@ roleRadios.forEach(function(radio) {
       sf.querySelectorAll("input").forEach(function(i) { i.required = false; });
       tf.querySelectorAll("input").forEach(function(i) { i.required = true; });
       cf.querySelectorAll("input, select").forEach(function(i) { i.required = false; });
+      togglePatterns(sf, false);
+      togglePatterns(cf, false);
     } else {
       sf.style.display = "none";
       tf.style.display = "block";
@@ -162,6 +178,8 @@ roleRadios.forEach(function(radio) {
       sf.querySelectorAll("input").forEach(function(i) { i.required = false; });
       tf.querySelectorAll("input").forEach(function(i) { i.required = true; });
       cf.querySelectorAll("input, select").forEach(function(i) { i.required = true; });
+      togglePatterns(sf, false);
+      togglePatterns(cf, true);
     }
   });
 });

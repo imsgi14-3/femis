@@ -270,7 +270,7 @@ try:
                                    "roll_no": roll}, follow_redirects=False)
         return c, r
 
-    c1, r1 = login_as("RollKid A", "9", "YY", "961")
+    c1, r1 = login_as("RollKid A", "9", "C", "961")
     with c1.session_transaction() as s:
         sidh = s.get("student_id")
     created.append(sidh)
@@ -279,7 +279,7 @@ try:
           and "student-dashboard" in r1.headers.get("Location", ""),
           (r1.status_code, r1.headers.get("Location"), sidh))
 
-    c2, r2 = login_as("RollKid Typo", "9", "YY", "961")
+    c2, r2 = login_as("RollKid Typo", "9", "C", "961")
     page = c2.get("/login").data.decode("utf-8", "replace")
     with app.app_context():
         n_rollkid = Student.query.filter(Student.name.like("RollKid%")).count()
@@ -289,7 +289,9 @@ try:
           and n_rollkid == 1 and "already belongs" in page,
           (r2.headers.get("Location"), n_rollkid))
 
-    c3, r3 = login_as("rollkid a", "9", "yy", " 961 ")
+    # section must now be exactly A/B/C at login (2026-10-03); the ilike
+    # match is still exercised by the lowercased name and padded roll.
+    c3, r3 = login_as("rollkid a", "9", "C", " 961 ")
     with c3.session_transaction() as s:
         sid3 = s.get("student_id")
     with app.app_context():

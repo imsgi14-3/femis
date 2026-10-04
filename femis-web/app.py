@@ -700,6 +700,24 @@ def _admission_error(holder, value):
     )
 
 
+def _login_format_error(class_id, section, roll_no=None):
+    """Strict login-screen formats (user directive 2026-10-03): class and roll
+    are plain whole numbers (digits only — no leading zeros, no "10th"/"07"
+    units text, no Nursery/KG), section is exactly A, B or C — "no variation"
+    is accepted.  Values must arrive already .strip()ed (the callers strip).
+    Returns an error message, or None when every value is canonical.
+    """
+    if not re.fullmatch(r"[1-9][0-9]*", class_id or ""):
+        return ("Class must be a whole number like 7 — digits only, no "
+                "Nursery/KG text and no leading zeros.")
+    if section not in ("A", "B", "C"):
+        return "Section must be exactly A, B or C — no other variation is accepted."
+    if roll_no is not None and not re.fullmatch(r"[1-9][0-9]*", roll_no or ""):
+        return ("Roll No must be a whole number like 1, 2 or 3 — digits only, "
+                "no leading zeros.")
+    return None
+
+
 def _roll_conflict(class_id, section_id, roll_no, exclude_id=None):
     """Return the student row already holding this Class+Section+Roll, or None.
 
@@ -930,9 +948,14 @@ def api_save_tab():
         err = _uniqueness_error(mapped, exclude_id=student.id)
         if err:
             return jsonify({"ok": False, "error": err}), 409
-        err = _mandatory_error(tab, student, mapped)
-        if err:
-            return jsonify({"ok": False, "error": err}), 400
+        # Roster spelling fixes (user directive 2026-10-03): an admin renaming
+        # a record skips the mandatory gate — login-created rows carry only
+        # name/class/section/roll, and a name-only save never invents data.
+        # Any other field mix by any other role still hits the gate.
+        if not (session.get("role") == "admin" and set(data) == {"name"}):
+            err = _mandatory_error(tab, student, mapped)
+            if err:
+                return jsonify({"ok": False, "error": err}), 400
         for k, v in mapped.items():
             setattr(student, k, v)
     else:
@@ -1142,6 +1165,10 @@ def login():
             if not (name and password and class_id and section):
                 flash("Please fill all fields: Name, Password, Class, Section.", "danger")
                 return redirect(url_for("login"))
+            fmt_err = _login_format_error(class_id, section)
+            if fmt_err:
+                flash(fmt_err, "danger")
+                return redirect(url_for("login"))
             teacher = Teacher.query.filter(
                 Teacher.name.ilike(name),
                 Teacher.class_id.ilike(class_id),
@@ -1168,6 +1195,10 @@ def login():
         session["student_roll_no"] = roll_no
         if not (name and class_id and section and roll_no):
             flash("Please fill all fields: Name, Class, Section, Roll No.", "danger")
+            return redirect(url_for("login"))
+        fmt_err = _login_format_error(class_id, section, roll_no)
+        if fmt_err:
+            flash(fmt_err, "danger")
             return redirect(url_for("login"))
         student = Student.query.filter(
             Student.name.ilike(name),

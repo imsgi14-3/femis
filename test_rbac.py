@@ -137,7 +137,7 @@ try:
         r = client(role="admin").post(
             "/api/register-teacher",
             json={"name": "RBAC Temp Teacher", "password": "pw",
-                  "class_id": "9", "section": "R"})
+                  "class_id": "9", "section": "C"})
         b = r.get_json() or {}
         check("B3 admin can register teacher", r.status_code == 200 and b.get("ok"), json.dumps(b))
         if b.get("teacher_id"):
@@ -145,7 +145,7 @@ try:
 
         r = app.test_client().post("/login",
                                    data={"role": "teacher", "name": "RBAC Temp Teacher",
-                                         "password": "pw", "class_id": "9", "section": "R"},
+                                         "password": "pw", "class_id": "9", "section": "C"},
                                    follow_redirects=False)
         check("B4 registered teacher can log in",
               r.status_code == 302 and "teacher-dashboard" in (r.headers.get("Location") or ""),
@@ -335,7 +335,7 @@ try:
             r = app.test_client().post(
                 "/login",
                 data={"role": "teacher", "name": "RBAC Temp Teacher",
-                      "password": "rbac-new-pw", "class_id": "9", "section": "R"},
+                      "password": "rbac-new-pw", "class_id": "9", "section": "C"},
                 follow_redirects=False)
             check("J8 teacher logs in with reset password",
                   r.status_code == 302 and "teacher-dashboard" in (r.headers.get("Location") or ""),
@@ -343,7 +343,7 @@ try:
             r = app.test_client().post(
                 "/login",
                 data={"role": "teacher", "name": "RBAC Temp Teacher",
-                      "password": "pw", "class_id": "9", "section": "R"},
+                      "password": "pw", "class_id": "9", "section": "C"},
                 follow_redirects=False)
             check("J9 old password no longer works",
                   not (r.status_code == 302 and "teacher-dashboard" in (r.headers.get("Location") or "")),
@@ -493,6 +493,69 @@ try:
         check("L8 student Start Form button links to /form",
               r.status_code == 200 and 'href="/form"' in body,
               str(r.status_code))
+
+        # ==============================================================
+        # M. Login format strictness (user directive 2026-10-03):
+        #    class/roll = whole numbers (digits only, no leading zeros),
+        #    section = exactly A/B/C — "no variation" on the login screen.
+        # ==============================================================
+        def login_student(**over):
+            payload = {"role": "student", "name": "Test2",
+                       "class_id": "8", "section": "A", "roll_no": "2"}
+            payload.update(over)
+            c = app.test_client()
+            r = c.post("/login", data=payload, follow_redirects=True)
+            with c.session_transaction() as s:
+                sid = s.get("student_id")
+            return r, sid
+
+        for label, over, expect in [
+            ("class leading zero (08)", {"class_id": "08"}, "whole number"),
+            ("class units text (8th)", {"class_id": "8th"}, "whole number"),
+            ("class Nursery", {"class_id": "Nursery"}, "whole number"),
+            ("section lowercase (a)", {"section": "a"}, "exactly A, B or C"),
+            ("section two letters (AB)", {"section": "AB"}, "exactly A, B or C"),
+            ("roll leading zero (02)", {"roll_no": "02"}, "whole number"),
+            ("roll units text (2nd)", {"roll_no": "2nd"}, "whole number"),
+            ("roll letter suffix (2a)", {"roll_no": "2a"}, "whole number"),
+        ]:
+            r, sid = login_student(**over)
+            body = r.get_data(as_text=True)
+            check(f"M1 student login rejects {label}",
+                  r.status_code == 200 and expect in body and sid is None,
+                  f"sid={sid}")
+
+        c = app.test_client()
+        r = c.post("/login", data={"role": "student", "name": "Test2",
+                                   "class_id": "8", "section": "A",
+                                   "roll_no": "2"},
+                   follow_redirects=False)
+        with c.session_transaction() as s:
+            sid = s.get("student_id")
+        check("M2 canonical student login accepted (matches row, no create)",
+              r.status_code == 302
+              and "/student-dashboard" in (r.headers.get("Location") or "")
+              and sid == 4,
+              f"loc={r.headers.get('Location')} sid={sid}")
+
+        for label, over, expect in [
+            ("teacher section lowercase", {"section": "r"}, "exactly A, B or C"),
+            ("teacher section probe letter (R)", {"section": "R"},
+             "exactly A, B or C"),
+            ("teacher class Nursery", {"class_id": "Nursery"}, "whole number"),
+        ]:
+            c = app.test_client()
+            r = c.post("/login",
+                       data={"role": "teacher", "name": "x", "password": "y",
+                             "class_id": "9", "section": "A", **over},
+                       follow_redirects=True)
+            body = r.get_data(as_text=True)
+            with c.session_transaction() as s:
+                t_role = s.get("role")
+            check(f"M3 {label} rejected before auth",
+                  r.status_code == 200 and expect in body
+                  and t_role != "teacher",
+                  f"role={t_role}")
 
 finally:
     # ------------------------------------------------------------------

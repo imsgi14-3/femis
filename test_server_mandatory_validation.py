@@ -328,6 +328,56 @@ try:
     check("G2 legacy /submit complete payload -> 302 success + row created",
           r.status_code == 302 and b_id is not None, (r.status_code, loc))
 
+    # ==================================================================
+    # H. Admin name-only rename bypasses the mandatory gate (roster
+    #    spelling fix, 2026-10-03): login-created rows carry only
+    #    name/class/section/roll — an admin may rename them; anyone
+    #    else (or any other field mix) still hits the gate.
+    # ==================================================================
+    sid_h, b_h = mk(name="MandGuard Sparse")
+    created.append(sid_h)
+    con = sqlite3.connect(str(DB))
+    con.execute(
+        "UPDATE students SET b_form=NULL, gender=NULL, "
+        "birth_province_id=NULL, birth_district_id=NULL, "
+        "nationality=NULL, class_id='9', section_id='C' WHERE id=?",
+        (sid_h,))
+    cls_h, sec_h = con.execute(
+        "SELECT class_id, section_id FROM students WHERE id=?",
+        (sid_h,)).fetchone()
+    con.commit()
+    con.close()
+
+    tc_h = app.test_client()
+    with tc_h.session_transaction() as s:
+        s["role"] = "teacher"
+        s["user_name"] = "mand-h"
+        s["teacher_class"] = cls_h
+        s["teacher_section"] = sec_h
+    st, b = post({"name": "MandGuard Sparse Renamed"}, student_id=sid_h,
+                 client=tc_h)
+    check("H1 teacher (owner) name-only save on sparse row still gated -> 400",
+          st == 400 and "Mandatory fields missing" in (b.get("error") or ""),
+          str(b))
+
+    st, b = post({"name": "MandGuard Sparse Renamed"}, student_id=sid_h,
+                 client=admin())
+    check("H2 admin name-only rename on sparse row -> 200",
+          st == 200 and b.get("ok"), str(b))
+
+    con = sqlite3.connect(str(DB))
+    nm_h = con.execute("SELECT name FROM students WHERE id=?",
+                       (sid_h,)).fetchone()[0]
+    con.close()
+    check("H3 rename stored on sparse row",
+          nm_h == "MandGuard Sparse Renamed", nm_h)
+
+    st, b = post({"name": "MandGuard Sparse Renamed", "gender": "Female"},
+                 student_id=sid_h, client=admin())
+    check("H4 admin save with extra fields on sparse row still gated -> 400",
+          st == 400 and "Mandatory fields missing" in (b.get("error") or ""),
+          str(b))
+
 finally:
     # ------------------------------------------------------------------
     # Cleanup: every row this run created; baseline must be restored.
