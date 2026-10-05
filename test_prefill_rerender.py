@@ -68,7 +68,7 @@ FILL_JS = """
     if (el) {
         if (!el.value) {
         if (el.type === 'date') el.value = '2015-01-01';
-        else if (el.classList && el.classList.contains('fp-date')) el.value = '01/01/2015';
+        else if (el.classList && el.classList.contains('fp-date')) el.value = '01/01/2019';
         else if (fname.indexOf('cnic') >= 0 || fname.indexOf('b_form') >= 0) el.value = '3520212345678';
         else if (fname.indexOf('contact') >= 0 || fname.indexOf('phone') >= 0) el.value = '0300-1234567';
         else if (el.type === 'email') el.value = 'probe@example.com';

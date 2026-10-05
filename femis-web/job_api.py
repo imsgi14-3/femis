@@ -498,10 +498,9 @@ def svc_retry(job_id, payload, identity):
         )
 
     # A requeue must run on the LATEST student data (operator requirement):
-    # refresh the expected version by default so the next claim re-materializes
-    # a fresh snapshot from the current row.  Pass refresh_snapshot=false
-    # explicitly to pin an approved version instead — the claim then fails
-    # closed as DATA_STALE if the student changed since.
+    # refresh the stamped version by default.  The claim itself always
+    # refreshes to the current row (refresh-at-claim), so a pinned
+    # refresh_snapshot=false stamp only describes the record until claim.
     refresh_snapshot = bool(payload.get("refresh_snapshot", True))
 
     student = db.session.get(Student, job.student_id)
@@ -525,8 +524,8 @@ def svc_retry(job_id, payload, identity):
             )
         new_version = student.updated_at
     else:
-        # Retain the approved expected version; if the student changed since,
-        # the next claim fails closed as DATA_STALE until refresh is explicit.
+        # Retain the stamped expected version; the claim refreshes it to the
+        # current row regardless (refresh-at-claim).
         new_version = job.student_data_version
 
     other_open = BotJob.query.filter(
@@ -638,10 +637,11 @@ def cancel_job(job_id):
 
 @bp.route("/api/jobs/claim", methods=["POST"])
 def claim_job():
-    """Atomic CAS claim: pending -> claimed, version check, snapshot materialization.
+    """Atomic CAS claim: pending -> claimed, version refresh, snapshot materialization.
 
-    Single transaction: CAS -> read student -> version compare -> snapshot.
-    Any failure rolls back so the job remains claimable.
+    Single transaction: CAS -> read student -> refresh expected version to the
+    current row (refresh-at-claim) -> snapshot.  Any failure rolls back so the
+    job remains claimable.
     """
     guard = _require_bot()
     if guard:
@@ -698,7 +698,10 @@ def claim_job():
     db.session.expire_all()
     job = db.session.get(BotJob, job.id)
 
-    # 2) version check BEFORE snapshot materialization (fail closed — decision L)
+    # 2) refresh-at-claim (operator directive 2026-10-04): the job runs on
+    # the LATEST student row — an edit made between enqueue and claim is
+    # picked up here instead of failing the claim closed as DATA_STALE.
+    # Only a record without any version (updated_at NULL) still fails closed.
     student = db.session.get(Student, job.student_id)
     current = student.updated_at if student is not None else None
     if student is None:
@@ -711,7 +714,7 @@ def claim_job():
         db.session.commit()
         return _err("Student record missing; attempt failed closed.", "student_not_found", 409)
 
-    if current is None or current != job.student_data_version:
+    if current is None:
         expected = _iso(job.student_data_version)
         observed = _iso(current)
         job.status = "failed"
@@ -728,13 +731,17 @@ def claim_job():
             jsonify(
                 {
                     "ok": False,
-                    "error": "Student data changed after the job was created; attempt failed closed.",
+                    "error": "Student record has no version to refresh to; attempt failed closed.",
                     "error_code": "DATA_STALE",
                     "job": _job_dict(job),
                 }
             ),
             409,
         )
+    if current != job.student_data_version:
+        # Re-stamp so the snapshot and every later read agree with the row
+        # this claim is about to materialize.
+        job.student_data_version = current
 
     # 3) materialize the immutable snapshot from the canonical row (3B.1 key space)
     row = db.session.execute(

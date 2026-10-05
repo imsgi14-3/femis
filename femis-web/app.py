@@ -902,6 +902,41 @@ def _format_error(values):
     return None
 
 
+def _merged_dates(student, mapped):
+    """Stored + payload values of the two date columns (final-submit style)."""
+    values = {}
+    if student is not None:
+        values.update({k: getattr(student, k) for k in DATE_COLUMNS})
+    values.update({k: mapped[k] for k in DATE_COLUMNS if k in mapped})
+    return values
+
+
+def _admission_dob_error(values, student=None):
+    """date_of_admission must be at least 3 years after date_of_birth.
+
+    School-entry age floor (user directive 2026-10-04): the child must be
+    3+ years old on the admission date.  Already-submitted rows are exempt
+    (declared correct as-is); missing/unparseable dates are mandatory.py's
+    and the format gates' job, never this cross-field rule's.
+    """
+    if student is not None and student.submitted:
+        return None
+    dob_raw = str(values.get("date_of_birth") or "").strip()
+    adm_raw = str(values.get("date_of_admission") or "").strip()
+    if not dob_raw or not adm_raw:
+        return None
+    dob = _parse_date(dob_raw)
+    adm = _parse_date(adm_raw)
+    if dob is None or adm is None:
+        return None
+    years = adm.year - dob.year - ((adm.month, adm.day) < (dob.month, dob.day))
+    if years < 3:
+        return ("Date of Admission must be at least 3 years after Date of "
+                f"Birth (child must be 3+ at admission): DOB {dob.isoformat()}, "
+                f"admission {adm.isoformat()}")
+    return None
+
+
 def _mandatory_error(tab, student, mapped):
     """Rejection message when any mandatory field of `tab` is empty.
 
@@ -956,6 +991,10 @@ def api_save_tab():
             err = _mandatory_error(tab, student, mapped)
             if err:
                 return jsonify({"ok": False, "error": err}), 400
+            adm_err = _admission_dob_error(_merged_dates(student, mapped),
+                                           student)
+            if adm_err:
+                return jsonify({"ok": False, "error": adm_err}), 400
         for k, v in mapped.items():
             setattr(student, k, v)
     else:
@@ -965,6 +1004,9 @@ def api_save_tab():
         err = _mandatory_error(tab, None, mapped)
         if err:
             return jsonify({"ok": False, "error": err}), 400
+        adm_err = _admission_dob_error(_merged_dates(None, mapped))
+        if adm_err:
+            return jsonify({"ok": False, "error": adm_err}), 400
         student = Student(**mapped)
         db.session.add(student)
 
@@ -1005,6 +1047,10 @@ def api_final_submit():
     fmt_err = _format_error(merged_fmt)
     if fmt_err:
         return jsonify({"ok": False, "error": fmt_err}), 400
+    # School-entry age floor over stored + payload (exempt: submitted rows).
+    adm_err = _admission_dob_error(_merged_dates(student, mapped), student)
+    if adm_err:
+        return jsonify({"ok": False, "error": adm_err}), 400
     err = _uniqueness_error(mapped, exclude_id=student.id)
     if err:
         return jsonify({"ok": False, "error": err}), 409
@@ -1077,6 +1123,10 @@ def submit():
     fmt_err = _format_error(mapped)
     if fmt_err:
         flash(fmt_err, "error")
+        return redirect(url_for("index"))
+    adm_err = _admission_dob_error(_merged_dates(None, mapped))
+    if adm_err:
+        flash(adm_err, "error")
         return redirect(url_for("index"))
     per_tab = mandatory.missing_record_fields(mapped)
     if per_tab:

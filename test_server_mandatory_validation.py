@@ -12,6 +12,9 @@ Locks femis-web/mandatory.py + app.py wiring end to end:
   F. final-submit over the STORED record (the Alisha case: legacy empty
      address blocks submission until filled)
   G. legacy /submit route parity
+  I. tab-5 IDP conditional mandatory: is_refugee=Yes -> idp_status_id +
+     is_registered_refugee required (and registered=Yes -> card number);
+     is_refugee=No -> none of them required
 
 Gate order is part of the contract: CNIC length -> perms/lock -> uniqueness
 (409) -> mandatory (400) — that precedence is asserted by
@@ -377,6 +380,48 @@ try:
     check("H4 admin save with extra fields on sparse row still gated -> 400",
           st == 400 and "Mandatory fields missing" in (b.get("error") or ""),
           str(b))
+
+    # ==================================================================
+    # I. tab-5 IDP conditional mandatory (is_refugee=Yes gates
+    #    idp_status_id + is_registered_refugee; registered=Yes gates
+    #    refugee_card_number).  Radio values: is_refugee/is_registered_
+    #    refugee 1|0, idp_status_id = yaml option label.
+    # ==================================================================
+    sid_i, b = mk(name="MandGuard IDP")
+    created.append(sid_i)
+    check("I0 baseline row for tab-5 branches -> 200",
+          sid_i is not None, str(b))
+
+    st, b = post({"is_refugee": "1", "idp_status_id": "",
+                  "is_registered_refugee": ""},
+                 tab=5, student_id=sid_i, client=admin())
+    err = b.get("error") or ""
+    check("I1 refugee=Yes: idp_status_id + is_registered_refugee blank "
+          "-> 400 names both",
+          st == 400 and "tab 5: idp_status_id" in err
+          and "is_registered_refugee" in err, err)
+
+    st, b = post({"is_refugee": "0", "idp_status_id": "",
+                  "is_registered_refugee": ""},
+                 tab=5, student_id=sid_i, client=admin())
+    check("I2 refugee=No: idp_status_id + is_registered_refugee NOT "
+          "required -> 200",
+          st == 200 and b.get("ok"), str(b))
+
+    st, b = post({"is_refugee": "1", "idp_status_id": "Registered",
+                  "is_registered_refugee": "1", "refugee_card_number": ""},
+                 tab=5, student_id=sid_i, client=admin())
+    err = b.get("error") or ""
+    check("I3 registered=Yes: refugee_card_number required -> 400 names it",
+          st == 400 and "tab 5: refugee_card_number" in err, err)
+
+    st, b = post({"is_refugee": "1", "idp_status_id": "Registered",
+                  "is_registered_refugee": "1",
+                  "refugee_card_number": "12345"},
+                 tab=5, student_id=sid_i, client=admin())
+    check("I4 refugee=Yes with idp_status + registered + card filled "
+          "-> 200",
+          st == 200 and b.get("ok"), str(b))
 
 finally:
     # ------------------------------------------------------------------

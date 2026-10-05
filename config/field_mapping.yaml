@@ -1710,7 +1710,7 @@ tab_1_personal_details:
     email:
       label: Email ID
       type: text
-      required: true
+      required: false
       source_field: email
       validation: email
     girls_stipend:

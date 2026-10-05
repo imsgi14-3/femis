@@ -912,6 +912,38 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
 
+        // School-entry age floor: admission must be >= DOB + 3 years.
+        // Cross-field rule — DOB lives on tab 1 and admission on tab 3, so
+        // both are read document-wide. Empty stays the required-list's job.
+        var admEl = document.querySelector('input[name="date_of_admission"]');
+        var dobEl = document.querySelector('input[name="date_of_birth"]');
+        if (admEl && dobEl && admEl.value && dobEl.value) {
+            var parseMDYISO = function (v) {
+                var m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(v);
+                if (m) return new Date(+m[3], +m[1] - 1, +m[2]);
+                var i = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(v);
+                if (i) return new Date(+i[1], +i[2] - 1, +i[3]);
+                return null;
+            };
+            var admDate = parseMDYISO(admEl.value);
+            var dobDate2 = parseMDYISO(dobEl.value);
+            if (admDate && dobDate2 && !isNaN(admDate.getTime())
+                    && !isNaN(dobDate2.getTime())) {
+                var ageYears = admDate.getFullYear() - dobDate2.getFullYear();
+                if (admDate.getMonth() < dobDate2.getMonth()
+                        || (admDate.getMonth() === dobDate2.getMonth()
+                            && admDate.getDate() < dobDate2.getDate())) {
+                    ageYears--;
+                }
+                if (ageYears < 3) {
+                    missing.push(
+                        "Date of Admission (must be at least 3 years after "
+                        + "Date of Birth — child must be 3+ at admission)"
+                    );
+                }
+            }
+        }
+
         if (missing.length > 0) {
             alert("Tab " + (tabIndex + 1) + " — please fill the following mandatory fields:\n\n• " + missing.join("\n• "));
             return false;

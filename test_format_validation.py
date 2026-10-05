@@ -5,14 +5,19 @@ Server twin of form.js validateTab (app.py _format_error + mandatory.py):
      email shape, date_of_birth strictly before today (create + partial
      update paths; empty values pass — required-ness is mandatory.py's job)
   B. final-submit over the STORED record (the Eman case: a DOB stored as
-     today blocks submission until fixed; stored bad phone likewise)
+     today blocks submission until fixed; stored bad phone or junk email
+     likewise; a cleared/empty email passes)
   C. legacy /submit parity (flash + redirect, no row created)
   D. conditional address rules — Address Type=Village -> village_id,
      Housing Society -> housing_society_id (temp + present), and the
      same-as-permanent branch that turns the present rules off
-  E. mother_name is unconditional (dead-mother case: the always-visible
-     input stays required; the hidden mother-details group does not)
-  F. client-side guard text present in form.js (static parity)
+   E. mother_name is unconditional (dead-mother case: the always-visible
+      input stays required; the hidden mother-details group does not)
+   F. client-side guard text present in form.js (static parity)
+   G. school-entry age floor — date_of_admission >= date_of_birth + 3 years
+      (create, save-tab update, final-submit, legacy /submit; already
+      submitted rows exempt; missing dates stay mandatory.py's job) and the
+      form.js twin guard
 
 Run: python test_format_validation.py   (exit 0 = all pass)
 """
@@ -26,7 +31,7 @@ sys.path.insert(0, str(ROOT / "femis-web"))
 sys.path.insert(0, str(ROOT))
 
 from app import app, db, Student  # noqa: E402
-from form_payloads import create_full, form_all, tab1, tab2  # noqa: E402
+from form_payloads import create_full, form_all, tab1, tab2, tab3  # noqa: E402
 
 DB = ROOT / "femis-web" / "instance" / "femis.db"
 JS = (ROOT / "femis-web" / "static" / "form.js").read_text(encoding="utf-8")
@@ -175,6 +180,17 @@ try:
     check("A17 multi-word alphabet father_name -> 200",
           st == 200 and b.get("ok"), str(b))
 
+    st, b = post(tab1(name="FmtGuard NoMail", email=""))
+    sid_nm = b.get("student_id")
+    created.append(sid_nm)
+    check("A18 empty email -> 200 create (email is not mandatory)",
+          st == 200 and sid_nm, str(b))
+
+    st, b = post(tab1(name="FmtGuard JunkMail", email="nill"))
+    err = b.get("error") or ""
+    check("A19 junk email 'nill' (the id40 value) -> 400 valid email",
+          st == 400 and "must be a valid email address" in err, err)
+
     # ==================================================================
     # B. final-submit over the STORED record (merged format gate)
     # ==================================================================
@@ -211,12 +227,23 @@ try:
           r.status_code == 400 and "only letters and spaces" in err, err)
     sql("UPDATE students SET name='FmtGuard Stale' WHERE id=?", (sid_b,))
 
+    sql("UPDATE students SET email='nill' WHERE id=?", (sid_b,))
+    r = admin().post("/api/final-submit", json={"student_id": sid_b,
+                                                "data": {}})
+    err = (r.get_json() or {}).get("error") or ""
+    check("B2c stored junk email 'nill' blocks final-submit -> 400 "
+          "valid email",
+          r.status_code == 400 and "must be a valid email address" in err
+          and "Mandatory" not in err, err)
+
+    sql("UPDATE students SET email='' WHERE id=?", (sid_b,))
     sql("UPDATE students SET contact_number='0300-1234567' WHERE id=?",
         (sid_b,))
     r = admin().post("/api/final-submit", json={"student_id": sid_b,
                                                 "data": {}})
     body = r.get_json() or {}
-    check("B3 final-submit after fix -> 200 + submitted + redirect",
+    check("B3 final-submit after fix (email empty — allowed) -> 200 "
+          "+ submitted + redirect",
           r.status_code == 200 and body.get("ok")
           and str(body.get("redirect", "")).startswith("/success/"),
           str(body))
@@ -385,6 +412,95 @@ try:
           "/^[A-Za-z ]+$/" in JS and "letters and spaces only" in JS,
           "same pattern as app.py _NAME_RE")
 
+    # ==================================================================
+    # G. school-entry age floor: admission >= DOB + 3 years (backlog #3)
+    # ==================================================================
+    st, b = post(tab1(name="FmtGuard Age Floor"))
+    sid_g = b.get("student_id")
+    created.append(sid_g)
+    check("G0a non-submitted student created (tab 1, dob 2015-01-15)",
+          st == 200 and sid_g, str(b))
+    st, b = post(tab3(), tab=3, student_id=sid_g, client=admin())
+    check("G0b baseline tab-3 save (admission 2019 = dob+4y) -> 200",
+          st == 200 and b.get("ok"), str(b))
+
+    st, b = post({"date_of_admission": "2015-01-20"}, tab=3,
+                 student_id=sid_g, client=admin())
+    err = b.get("error") or ""
+    check("G1 admission same-year as DOB -> 400 names the rule",
+          st == 400 and "at least 3 years after Date of Birth" in err, err)
+
+    st, b = post({"date_of_admission": "2018-01-14"}, tab=3,
+                 student_id=sid_g, client=admin())
+    err = b.get("error") or ""
+    check("G2 admission 1 day before the +3y birthday -> 400",
+          st == 400 and "at least 3 years after Date of Birth" in err, err)
+
+    st, b = post({"date_of_admission": "01/15/2018"}, tab=3,
+                 student_id=sid_g, client=admin())
+    check("G3 admission exactly DOB+3y (MM/DD/YYYY) -> 200 (boundary inclusive)",
+          st == 200 and b.get("ok"), str(b))
+
+    st, b = post({"date_of_admission": "2016-06-01"}, tab=3,
+                 student_id=sid_g, client=admin())
+    check("G4 later violating admission -> 400",
+          st == 400 and "at least 3 years" in (b.get("error") or ""),
+          str(b))
+
+    sql("UPDATE students SET date_of_admission='2015-06-01' WHERE id=?",
+        (sid_g,))
+    st, b = post({"father_name": "Ghulam Rasool"}, tab=1, student_id=sid_g,
+                 client=admin())
+    err = b.get("error") or ""
+    check("G5 stored violating pair blocks unrelated save-tab update",
+          st == 400 and "at least 3 years after Date of Birth" in err, err)
+
+    st, b = post({"date_of_admission": "2019-01-15"}, tab=3,
+                 student_id=sid_g, client=admin())
+    check("G6 fixing admission to DOB+3y+ -> 200 (save path unblocks)",
+          st == 200 and b.get("ok"), str(b))
+
+    sql("UPDATE students SET date_of_admission='2015-06-01' WHERE id=?",
+        (sid_g,))
+    r = admin().post("/api/final-submit", json={"student_id": sid_g,
+                                                "data": {}})
+    err = (r.get_json() or {}).get("error") or ""
+    check("G7 final-submit over violating pair -> 400 names the rule",
+          r.status_code == 400 and "at least 3 years after Date of Birth" in err,
+          err)
+
+    r = anon().post("/submit",
+                    data=form_all(name="FmtGuard Legacy AgeBad",
+                                  date_of_birth="2015-01-15",
+                                  date_of_admission="2015-02-01"),
+                    follow_redirects=False)
+    con = sqlite3.connect(str(DB))
+    n_age = con.execute("SELECT COUNT(*) FROM students "
+                        "WHERE name='FmtGuard Legacy AgeBad'").fetchone()[0]
+    con.close()
+    check("G8 legacy /submit admission < DOB+3y -> rejected, no row",
+          n_age == 0 and r.status_code == 302
+          and "/success/" not in (r.headers.get("Location") or ""),
+          (n_age, r.status_code, r.headers.get("Location")))
+
+    sql("UPDATE students SET date_of_admission='2015-06-01' WHERE id=?",
+        (sid_b,))
+    st, b = post({"father_name": "Rehmat Gul"}, tab=2, student_id=sid_b,
+                 client=admin())
+    check("G9 submitted row exempt: violating stored pair does not block",
+          st == 200 and b.get("ok"), str(b))
+
+    st, b = post(tab1(name="FmtGuard NoAdmission"))
+    sid_na = b.get("student_id")
+    created.append(sid_na)
+    check("G10 create with DOB but no admission -> 200 (rule skipped)",
+          st == 200 and sid_na, str(b))
+
+    check("G11 JS twin present (admission >= DOB + 3y guard in validateTab)",
+          "at least 3 years after" in JS
+          and 'input[name="date_of_admission"]' in JS,
+          "form.js cross-field guard")
+
 finally:
     # ------------------------------------------------------------------
     # Cleanup: every row this run created; baseline must be restored.
@@ -395,8 +511,8 @@ finally:
             if row:
                 db.session.delete(row)
         for nm in ("FmtGuard Legacy Bad", "FmtGuard Legacy BadMail",
-                   "FmtGuard Legacy Good", "FmtGuard Probe",
-                   "FmtGuard Village", "FmtGuard Housing"):
+                   "FmtGuard Legacy Good", "FmtGuard Legacy AgeBad",
+                   "FmtGuard Probe", "FmtGuard Village", "FmtGuard Housing"):
             for row in Student.query.filter(Student.name == nm).all():
                 db.session.delete(row)
         db.session.commit()

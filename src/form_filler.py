@@ -1432,12 +1432,90 @@ class FormFiller:
             return merged
         return overlay
 
+    _FIELD_CFG_ATTRS = ("label", "type", "source_field", "required",
+                        "options", "placeholder", "note", "validation", "format")
+
+    @classmethod
+    def _is_field_cfg(cls, v) -> bool:
+        return isinstance(v, dict) and any(a in v for a in cls._FIELD_CFG_ATTRS)
+
+    @classmethod
+    def _junk_filter(cls, mem, disk):
+        """Blocklist junk learned entries before memory is merged over disk.
+
+        A worker's in-memory map can carry knowledge read from inactive or
+        stale panes (see the fill-loop comment at the probe-skip branch), and
+        the saver used to merge memory over disk unchecked — one run could
+        therefore grow cross-tab duplicate source_fields (96 counted in
+        config/field_mapping.yaml as of 2026-10-04) or clobber a curator's
+        just-edited entry with a stale in-memory copy.
+
+        Rules per learned field entry:
+          * same path exists on disk and differs -> drop the memory copy
+            (curated disk wins; byte-identical re-learn passes silently);
+          * source_field already covered on disk or earlier in this batch ->
+            drop (first-wins; the curated or first-seen entry stands);
+          * otherwise keep (genuinely new control).  Dicts without a
+            source_field are sections/tabs and are recursed.
+        Returns (filtered_memory, dropped_notes).
+        """
+        if not isinstance(mem, dict):
+            return mem, []
+        disk = disk if isinstance(disk, dict) else {}
+        disk_paths: dict = {}
+        disk_sources: set = set()
+
+        def walk_disk(d, path=()):
+            for k, v in d.items():
+                if isinstance(v, dict):
+                    p = path + (k,)
+                    disk_paths[p] = v
+                    if cls._is_field_cfg(v):
+                        sf = v.get("source_field")
+                        if isinstance(sf, str) and sf:
+                            disk_sources.add(sf)
+                    walk_disk(v, p)
+
+        walk_disk(disk)
+        seen_sources: set = set()
+        dropped: list = []
+
+        def walk_mem(m, path=()):
+            out = {}
+            for k, v in m.items():
+                p = path + (k,)
+                if not isinstance(v, dict):
+                    out[k] = v
+                    continue
+                if cls._is_field_cfg(v):
+                    sf = v.get("source_field")
+                    sf = sf if isinstance(sf, str) and sf else None
+                    if p in disk_paths:
+                        if v != disk_paths[p]:
+                            dropped.append(".".join(p) + " (diverges from curated disk entry)")
+                        else:
+                            out[k] = v
+                        continue
+                    if sf and (sf in disk_sources or sf in seen_sources):
+                        dropped.append(".".join(p) + f" (dup source_field {sf})")
+                        continue
+                    if sf:
+                        seen_sources.add(sf)
+                    out[k] = v
+                    continue
+                out[k] = walk_mem(v, p)
+            return out
+
+        return walk_mem(mem), dropped
+
     def _save_field_map(self):
         # Atomic (tmp + rename) and merged over the ON-DISK copy.  Workers
         # rewrite this file from their own memory; dumping memory directly
         # let a stale/partial load erase curated entries (concurrent runs on
         # 2026-09-29 wiped tabs 3-7 this way), and a non-atomic write let a
         # reader parse a half-written file and spread the truncation.
+        # _junk_filter drops divergent same-path copies (curated wins) and
+        # cross-tab duplicate source_fields before the merge.
         tmp_path = FIELD_MAP_PATH.parent / (FIELD_MAP_PATH.name + ".tmp")
         try:
             disk = None
@@ -1448,8 +1526,15 @@ class FormFiller:
                 disk = None
             except Exception as e:
                 logger.warning(f"  field_mapping disk copy unreadable, merging into memory only: {e}")
-            merged = (self._deep_merge(disk, self.field_map)
-                      if isinstance(disk, dict) else self.field_map)
+            filtered_mem, dropped = self._junk_filter(self.field_map, disk)
+            if dropped:
+                logger.info(
+                    f"  field_mapping: blocklisted {len(dropped)} junk learn "
+                    f"entries: " + "; ".join(dropped[:10])
+                    + ("; ..." if len(dropped) > 10 else "")
+                )
+            merged = (self._deep_merge(disk, filtered_mem)
+                      if isinstance(disk, dict) else filtered_mem)
             with open(tmp_path, "w", encoding="utf-8") as f:
                 yaml.safe_dump(merged, f, allow_unicode=True, sort_keys=False,
                                default_flow_style=False)

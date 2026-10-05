@@ -1,7 +1,8 @@
 """Phase 3B.4 API tests: admin-only bot-job endpoints (store/lifecycle only).
 
 Covers: auth matrix (operator session+token / bot machine token, all fail-closed),
-create + idempotency, list/get, atomic claim + DATA_STALE, lease + fencing,
+create + idempotency, list/get, atomic claim + refresh-at-claim (DATA_STALE only
+when the record has no version), lease + fencing,
 progress, success/failure completion evidence, retry-as-new-attempt, cancel,
 races (create/claim/claim-next/cancel-claim/complete), and regression guards.
 
@@ -383,7 +384,7 @@ try:
         check("C10 non-integer student filter -> 422", r == 422, str(b))
 
         # =================================================================
-        # D. claim (CAS + snapshot + DATA_STALE)
+        # D. claim (CAS + snapshot + refresh-at-claim / DATA_STALE)
         # =================================================================
         oldest = one("SELECT id FROM bot_jobs WHERE status='pending' ORDER BY created_at ASC, id ASC")
         check("D0 oldest pending is SQ's job", oldest and oldest["id"] == sq_job, str(oldest))
@@ -423,21 +424,42 @@ try:
         r, b = cap(bot().post("/api/jobs/claim", json={"job_id": s3_job}, headers=BOT_H))
         check("D4 claim missing claimed_by -> 422", r == 422 and b.get("error_code") == "validation_error", str(b))
         edit_student(S3, "PBFour S Three STALE EDITED")
+        s3_pre = job_row(s3_job)
         r, b = cap(bot().post("/api/jobs/claim", json={"claimed_by": "w-stale", "job_id": s3_job}, headers=BOT_H))
         s3 = job_row(s3_job)
+        s3_snap = b.get("student_snapshot") or {}
+        s3_data = s3_snap.get("data") or {}
         check(
-            "D5 DATA_STALE: 409 + failed closed (no snapshot)",
-            r == 409 and b.get("error_code") == "DATA_STALE"
-            and s3["status"] == "failed" and s3["failure_category"] == "validation"
-            and s3["bot_result_code"] == "DATA_STALE" and s3["outcome_known"] == 1
-            and s3["lease_expires_at"] is None and s3["snapshot_json"] is None
-            and s3["completed_at"] is not None
-            and str(s3["error_message"]).startswith("DATA_STALE:"),
+            "D5 refresh-at-claim: edited row claimed, version re-stamped, fresh snapshot",
+            r == 200 and b.get("ok") and b.get("job", {}).get("status") == "claimed"
+            and s3["status"] == "claimed"
+            and str(s3["student_data_version"]) != str(s3_pre["student_data_version"])
+            and s3["snapshot_json"] is not None
+            and s3_data.get("name") == "PBFour S Three STALE EDITED"
+            and s3_snap.get("version") == b.get("job", {}).get("student_data_version"),
             json.dumps(b)[:300],
         )
         s3_gen = s3["claim_generation"]
         r, b = cap(bot().post("/api/jobs/claim", json={"claimed_by": "w-stale", "job_id": s3_job}, headers=BOT_H))
-        check("D6 claim terminal job -> 409 invalid_transition", r == 409 and b.get("error_code") == "invalid_transition", str(b))
+        check("D6 claim already-claimed job -> 409 already_claimed", r == 409 and b.get("error_code") == "already_claimed", str(b))
+        sid_stale = create_student("PBFour S Null Version")
+        r, b = cap(op_c.post("/api/jobs", json=create_payload(sid_stale), headers=OP_H))
+        null_job = b.get("job", {}).get("job_id")
+        check("D6b null-version student job queued", r == 200 and b.get("ok") and null_job, str(b))
+        sql("UPDATE students SET updated_at=NULL WHERE id=?", (sid_stale,))
+        r, b = cap(bot().post("/api/jobs/claim", json={"claimed_by": "w-null", "job_id": null_job}, headers=BOT_H))
+        nj = job_row(null_job) if null_job else None
+        check(
+            "D6c no version to refresh -> 409 DATA_STALE failed closed (no snapshot)",
+            r == 409 and b.get("error_code") == "DATA_STALE"
+            and nj is not None and nj["status"] == "failed"
+            and nj["failure_category"] == "validation"
+            and nj["bot_result_code"] == "DATA_STALE" and nj["outcome_known"] == 1
+            and nj["lease_expires_at"] is None and nj["snapshot_json"] is None
+            and nj["completed_at"] is not None
+            and str(nj["error_message"]).startswith("DATA_STALE:"),
+            json.dumps(b)[:300],
+        )
         r, b = cap(bot().post("/api/jobs/claim", json={"claimed_by": "w", "job_id": 999999}, headers=BOT_H))
         check("D7 claim unknown job -> 404", r == 404 and b.get("error_code") == "job_not_found", str(b))
         edit_student(S2, "PBFour S Two HAPPY EDITED")
@@ -457,6 +479,10 @@ try:
         # =================================================================
         r, b = cap(bot().post(f"/api/jobs/{s2_job}/heartbeat", json={"claimed_by": "w-main", "claim_generation": s2_gen}, headers=BOT_H))
         lease_before = job_row(s2_job)["lease_expires_at"]
+        # This box's wall clock ticks ~15ms: two beats inside one tick stamp
+        # the same lease value and SQLAlchemy issues no UPDATE.  Production
+        # beats are 15s apart; only the back-to-test pair needs the gap.
+        time.sleep(0.03)
         r, b = cap(bot().post(f"/api/jobs/{s2_job}/heartbeat", json={"claimed_by": "w-main", "claim_generation": s2_gen}, headers=BOT_H))
         lease_after = job_row(s2_job)["lease_expires_at"]
         hb = b.get("job", {})
@@ -473,6 +499,10 @@ try:
         check("E3 wrong generation -> 409 fencing_conflict", r == 409 and b.get("error_code") == "fencing_conflict", str(b))
         r, b = cap(bot().post(f"/api/jobs/{s2_job}/heartbeat", json={"claimed_by": "w-main"}, headers=BOT_H))
         check("E4 missing claim_generation -> 422", r == 422, str(b))
+        # s3 is still claimed from D5 — terminalize it so the heartbeat below
+        # exercises the terminal-job path (refresh-at-claim left it open).
+        set_job_cols(s3_job, status="failed", failure_category="validation",
+                     outcome_known=1, lease_expires_at=None, completed_at=datetime.utcnow())
         r, b = cap(bot().post(f"/api/jobs/{s3_job}/heartbeat", json={"claimed_by": "w-stale", "claim_generation": s3_gen}, headers=BOT_H))
         check("E5 heartbeat terminal job -> 409 invalid_transition", r == 409 and b.get("error_code") == "invalid_transition", str(b))
         set_job_cols(s2_job, lease_expires_at=datetime.utcnow() - timedelta(seconds=5))

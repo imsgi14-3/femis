@@ -7,8 +7,10 @@ on a local ephemeral-port Werkzeug server (no Playwright, no live FEMIS):
   - heartbeat/lease/fencing on a background thread, abort-on-lost claim
   - progress transitions and failure-path preservation
   - success evidence only (fill-only / Finish-only / indicator-only never success)
-  - failure taxonomy mapping, DATA_STALE (never filled), retry-new-attempt,
-    superseded worker cannot complete, queue drain + conflict retry
+  - failure taxonomy mapping, refresh-at-claim (fresh edit is filled; a record
+    with no version still fails closed as DATA_STALE, never filled),
+    retry-new-attempt, superseded worker cannot complete, queue drain + conflict
+    retry
   - FormFiller integration seams (progress callback, abort check, last_submit)
 
 No baseline file is modified. Everything created here is deleted here.
@@ -514,11 +516,14 @@ try:
           f"{job_e6['failure_category']}")
 
     # =======================================================================
-    # F. DATA_STALE never filled; loop continues to next job
+    # F. Refresh-at-claim fills the latest edit; no-version rows fail closed
     # =======================================================================
     sid_f1 = create_student("PBFive Student F One")
     create_job(sid_f1)
     edit_student(sid_f1, "PBFive Student F One Edited")
+    sid_fs = create_student("PBFive Student F Stale")
+    create_job(sid_fs)
+    sql("UPDATE students SET updated_at=NULL WHERE id=?", (sid_fs,))
     sid_f2 = create_student("PBFive Student F Two")
     create_job(sid_f2)
     seen_f = []
@@ -526,15 +531,21 @@ try:
     run(run_job_loop(api(), "w-loop", make_worker(evidence=SUCCESS_EVIDENCE, seen=seen_f),
                      on_result=recs_f.append, claim_pause=0.05))
     job_f1 = one("SELECT * FROM bot_jobs WHERE student_id=? ORDER BY id DESC", (sid_f1,))
+    job_fs = one("SELECT * FROM bot_jobs WHERE student_id=? ORDER BY id DESC", (sid_fs,))
     job_f2 = one("SELECT * FROM bot_jobs WHERE student_id=? ORDER BY id DESC", (sid_f2,))
     stale_recs = [r for r in recs_f if "DATA_STALE" in (r.get("reason") or "")]
-    check("F1 DATA_STALE: job failed closed, never filled",
-          job_f1["status"] == "failed" and job_f1["bot_result_code"] == "DATA_STALE"
-          and job_f1["outcome_known"] == 1 and job_f1["failure_category"] == "validation"
-          and "F1" not in "".join(seen_f) and bool(stale_recs),
+    check("F1 refresh-at-claim: edited row filled fresh, success",
+          job_f1["status"] == "success" and job_f1["bot_result_code"] == "success"
+          and seen_f and seen_f[0] == "PBFive Student F One Edited",
           f"{job_f1['status']} seen={seen_f}")
-    check("F2 loop continues past DATA_STALE to next job",
-          job_f2["status"] == "success" and seen_f == ["PBFive Student F Two"],
+    check("F2 no-version row: failed closed DATA_STALE, never filled",
+          job_fs["status"] == "failed" and job_fs["bot_result_code"] == "DATA_STALE"
+          and job_fs["outcome_known"] == 1 and job_fs["failure_category"] == "validation"
+          and not any(s and "F Stale" in s for s in seen_f) and bool(stale_recs),
+          f"{job_fs['status']} seen={seen_f}")
+    check("F3 loop continues past both to next job",
+          job_f2["status"] == "success"
+          and seen_f == ["PBFive Student F One Edited", "PBFive Student F Two"],
           f"{job_f2['status']} seen={seen_f}")
 
     # =======================================================================
