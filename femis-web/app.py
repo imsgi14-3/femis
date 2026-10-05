@@ -13,6 +13,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.exc import IntegrityError
 
 import mandatory
+import student_export
 
 try:
     from dotenv import load_dotenv
@@ -1649,6 +1650,98 @@ def api_admin_export():
                      mimetype="application/octet-stream")
     resp.call_on_close(lambda: snapshot.unlink(missing_ok=True))
     return resp
+
+
+# ---------------------------------------------------------------------------
+# Data export (teacher/admin): pick fields, download Excel or PDF
+# ---------------------------------------------------------------------------
+
+_EXPORT_GROUPS, _EXPORT_YESNO = student_export.build_catalog(
+    {c.name for c in Student.__table__.columns}, FORM_FIELD_MAP)
+_EXPORT_LABELS = {col: label for _, items in _EXPORT_GROUPS for col, label in items}
+_EXPORT_DEFAULTS = [c for c in student_export.DEFAULT_COLUMNS if c in _EXPORT_LABELS]
+
+
+def _export_query(role):
+    """Scoped, deterministic export rows: teachers get their class+section."""
+    q = Student.query
+    if role == "teacher":
+        q = q.filter(Student.class_id.ilike(session.get("teacher_class") or ""),
+                     Student.section_id.ilike(session.get("teacher_section") or ""))
+    return q.order_by(Student.class_id.asc(), Student.section_id.asc(),
+                      db.cast(Student.roll_no, db.Integer).asc(),
+                      Student.id.asc())
+
+
+@app.route("/export")
+def export_page():
+    role = session.get("role")
+    if not role:
+        return redirect(url_for("login"))
+    if role == "student":
+        abort(403)
+    count = _export_query(role).count()
+    if role == "teacher":
+        scope = (f"Class {session.get('teacher_class')} - "
+                 f"Section {session.get('teacher_section')}")
+    else:
+        scope = "All classes"
+    return render_template("export.html", groups=_EXPORT_GROUPS,
+                           defaults=_EXPORT_DEFAULTS, scope=scope,
+                           count=count)
+
+
+@app.route("/api/export/students", methods=["POST"])
+def api_export_students():
+    role = session.get("role")
+    if not role:
+        return jsonify({"ok": False, "error": "Authentication required."}), 401
+    if role == "student":
+        return jsonify({"ok": False, "error": "Not allowed."}), 403
+    payload = request.get_json(silent=True) or {}
+    fmt = str(payload.get("format") or "").strip().lower()
+    if fmt not in ("xlsx", "pdf"):
+        return jsonify({"ok": False,
+                        "error": "Format must be xlsx or pdf."}), 422
+    fields = payload.get("fields")
+    if not isinstance(fields, list) or not fields:
+        return jsonify({"ok": False,
+                        "error": "Select at least one field to export."}), 422
+    fields = [f for f in fields if isinstance(f, str)]
+    fields = list(dict.fromkeys(fields))
+    if not fields:
+        return jsonify({"ok": False,
+                        "error": "Select at least one field to export."}), 422
+    unknown = [f for f in fields if f not in _EXPORT_LABELS]
+    if unknown:
+        return jsonify({"ok": False, "error": "Unknown field(s): "
+                        + ", ".join(unknown[:8])}), 422
+    if fmt == "pdf" and len(fields) > 30:
+        return jsonify({"ok": False, "error": "PDF supports up to 30 columns "
+                        "- export more fields as Excel instead."}), 422
+    rows = _export_query(role).all()
+    if role == "teacher":
+        tag = f"{session.get('teacher_class')}{session.get('teacher_section')}"
+        scope = (f"Class {session.get('teacher_class')} - "
+                 f"Section {session.get('teacher_section')}")
+    else:
+        tag, scope = "all", "All classes"
+    labels = [_EXPORT_LABELS[c] for c in fields]
+    title = f"Student List - {scope}"
+    stamp = datetime.now().strftime("%Y%m%d")
+    if fmt == "xlsx":
+        buf = student_export.students_to_xlsx(rows, fields, labels,
+                                              _EXPORT_YESNO)
+        name = f"students_{tag}_{stamp}.xlsx"
+        mime = ("application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet")
+    else:
+        buf = student_export.students_to_pdf(rows, fields, labels, title,
+                                             _EXPORT_YESNO)
+        name = f"students_{tag}_{stamp}.pdf"
+        mime = "application/pdf"
+    return send_file(buf, as_attachment=True, download_name=name,
+                     mimetype=mime)
 
 
 # ---------------------------------------------------------------------------

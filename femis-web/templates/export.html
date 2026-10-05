@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Export Data — FEMIS{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0"><i class="bi bi-file-earmark-arrow-down me-2"></i>Export Student Data</h4>
+  <div>
+    <span class="badge bg-info text-dark me-2">{{ scope }}</span>
+    <span class="badge bg-secondary me-3">{{ count }} student(s)</span>
+    <a href="/teacher-dashboard" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back</a>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
+    <strong><i class="bi bi-list-check me-2"></i>Choose fields to export</strong>
+    <div class="btn-group btn-group-sm">
+      <button type="button" class="btn btn-outline-primary" id="selAll">Select all</button>
+      <button type="button" class="btn btn-outline-primary" id="selNone">Clear</button>
+      <button type="button" class="btn btn-outline-primary" id="selDefault">Defaults</button>
+    </div>
+  </div>
+  <div class="card-body" style="max-height: 55vh; overflow-y: auto;">
+    <div class="accordion" id="exportFields">
+      {% for title, items in groups %}
+      <div class="accordion-item">
+        <h2 class="accordion-header" id="head{{ loop.index }}">
+          <button class="accordion-button {% if not loop.first %}collapsed{% endif %}"
+                  type="button" data-bs-toggle="collapse"
+                  data-bs-target="#grp{{ loop.index }}"
+                  aria-expanded="{{ 'true' if loop.first else 'false' }}">
+            <strong>{{ title }}</strong>
+            <span class="badge bg-light text-dark border ms-2">{{ items|length }}</span>
+          </button>
+        </h2>
+        <div id="grp{{ loop.index }}" class="accordion-collapse collapse {{ 'show' if loop.first }}"
+             aria-labelledby="head{{ loop.index }}" data-bs-parent="#exportFields">
+          <div class="accordion-body row g-2">
+            {% for col, label in items %}
+            <div class="col-6 col-md-4 col-xl-3">
+              <div class="form-check">
+                <input class="form-check-input exp-field" type="checkbox"
+                       value="{{ col }}" id="f_{{ col }}"
+                       {% if col in defaults %}checked{% endif %}>
+                <label class="form-check-label" for="f_{{ col }}"
+                       title="{{ col }}">{{ label }}</label>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="card-footer bg-white d-flex align-items-center gap-3 flex-wrap">
+    <span class="text-muted" id="selInfo"></span>
+    <button class="btn btn-success" id="btnXlsx" type="button">
+      <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
+    </button>
+    <button class="btn btn-danger" id="btnPdf" type="button">
+      <i class="bi bi-file-earmark-pdf me-1"></i>Export PDF
+    </button>
+    <span class="text-danger" id="exportErr"></span>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var defaults = {{ defaults | tojson }};
+  var info = document.getElementById("selInfo");
+  var errBox = document.getElementById("exportErr");
+  var btnX = document.getElementById("btnXlsx");
+  var btnP = document.getElementById("btnPdf");
+
+  function fields() {
+    return Array.prototype.map.call(
+      document.querySelectorAll(".exp-field:checked"),
+      function (i) { return i.value; });
+  }
+  function updateInfo() {
+    info.textContent = fields().length + " field(s) selected — {{ count }} student(s) in scope";
+  }
+  function setErr(msg) { errBox.textContent = msg || ""; }
+
+  document.getElementById("selAll").addEventListener("click", function () {
+    document.querySelectorAll(".exp-field").forEach(function (i) { i.checked = true; });
+    setErr(""); updateInfo();
+  });
+  document.getElementById("selNone").addEventListener("click", function () {
+    document.querySelectorAll(".exp-field").forEach(function (i) { i.checked = false; });
+    setErr(""); updateInfo();
+  });
+  document.getElementById("selDefault").addEventListener("click", function () {
+    document.querySelectorAll(".exp-field").forEach(function (i) {
+      i.checked = defaults.indexOf(i.value) !== -1;
+    });
+    setErr(""); updateInfo();
+  });
+  document.getElementById("exportFields").addEventListener("change", function () {
+    setErr(""); updateInfo();
+  });
+
+  function doExport(fmt) {
+    var cols = fields();
+    if (!cols.length) { setErr("Select at least one field first."); return; }
+    setErr("");
+    btnX.disabled = true; btnP.disabled = true;
+    fetch("/api/export/students", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ format: fmt, fields: cols })
+    }).then(function (r) {
+      if (!r.ok) {
+        return r.json().then(function (j) {
+          throw new Error(j.error || ("Export failed (HTTP " + r.status + ")"));
+        }, function () { throw new Error("Export failed (HTTP " + r.status + ")"); });
+      }
+      var disp = r.headers.get("Content-Disposition") || "";
+      return r.blob().then(function (b) { return { blob: b, disp: disp }; });
+    }).then(function (res) {
+      var m = /filename="?([^";]+)"?/.exec(res.disp);
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(res.blob);
+      a.download = m ? m[1] : ("students." + fmt);
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
+    }).catch(function (e) {
+      setErr(e.message);
+    }).then(function () {
+      btnX.disabled = false; btnP.disabled = false;
+    });
+  }
+
+  btnX.addEventListener("click", function () { doExport("xlsx"); });
+  btnP.addEventListener("click", function () { doExport("pdf"); });
+  updateInfo();
+})();
+</script>
+{% endblock %}
