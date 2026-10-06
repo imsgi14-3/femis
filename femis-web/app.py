@@ -1653,7 +1653,8 @@ def api_admin_export():
 
 
 # ---------------------------------------------------------------------------
-# Data export (teacher/admin): pick fields, download Excel or PDF
+# Data export (teacher/admin): WHERE filters + field picker -> on-site table
+# preview + Excel/PDF download of the same query
 # ---------------------------------------------------------------------------
 
 _EXPORT_GROUPS, _EXPORT_YESNO = student_export.build_catalog(
@@ -1661,13 +1662,114 @@ _EXPORT_GROUPS, _EXPORT_YESNO = student_export.build_catalog(
 _EXPORT_LABELS = {col: label for _, items in _EXPORT_GROUPS for col, label in items}
 _EXPORT_DEFAULTS = [c for c in student_export.DEFAULT_COLUMNS if c in _EXPORT_LABELS]
 
+_EXPORT_FILTER_KEYS = {"q", "class", "section", "gender", "status", "lock"}
+_EXPORT_STATUSES = ("", "submitted", "draft")
+_EXPORT_LOCKS = ("", "locked", "unlocked")
+_EXPORT_PER = (25, 50, 100)
 
-def _export_query(role):
-    """Scoped, deterministic export rows: teachers get their class+section."""
+
+def _export_scope(role):
+    """Role ceiling: teachers only ever see their own class+section."""
     q = Student.query
     if role == "teacher":
         q = q.filter(Student.class_id.ilike(session.get("teacher_class") or ""),
                      Student.section_id.ilike(session.get("teacher_section") or ""))
+    return q
+
+
+def _export_scope_label(role):
+    if role == "teacher":
+        return (f"Class {session.get('teacher_class')} - "
+                f"Section {session.get('teacher_section')}")
+    return "All classes"
+
+
+def _export_filters(payload):
+    """Validate the WHERE dict; ValueError carries the 422 message."""
+    raw = payload.get("filters")
+    if raw is None:
+        raw = {}
+    if not isinstance(raw, dict):
+        raise ValueError("filters must be an object of filter -> value.")
+    unknown = sorted(set(raw) - _EXPORT_FILTER_KEYS)
+    if unknown:
+        raise ValueError("Unknown filter(s): " + ", ".join(unknown))
+    out = {}
+    for key in ("q", "class", "section", "gender"):
+        val = str(raw.get(key) or "").strip()
+        if key == "q" and len(val) > 100:
+            raise ValueError("Search text must be 100 characters or fewer.")
+        out[key] = val
+    status = str(raw.get("status") or "").strip().lower()
+    if status not in _EXPORT_STATUSES:
+        raise ValueError("status filter must be 'submitted' or 'draft'.")
+    lock = str(raw.get("lock") or "").strip().lower()
+    if lock not in _EXPORT_LOCKS:
+        raise ValueError("lock filter must be 'locked' or 'unlocked'.")
+    out["status"] = status
+    out["lock"] = lock
+    return out
+
+
+def _export_fields(payload):
+    """Validate the requested column list (shared by preview + downloads)."""
+    fields = payload.get("fields")
+    if not isinstance(fields, list) or not fields:
+        raise ValueError("Select at least one field to export.")
+    fields = [f for f in fields if isinstance(f, str)]
+    fields = list(dict.fromkeys(fields))
+    if not fields:
+        raise ValueError("Select at least one field to export.")
+    unknown = [f for f in fields if f not in _EXPORT_LABELS]
+    if unknown:
+        raise ValueError("Unknown field(s): " + ", ".join(unknown[:8]))
+    return fields
+
+
+def _export_sort(raw):
+    sort = str(raw or "").strip()
+    if not sort:
+        return None
+    if sort not in _STUDENT_SORTS:
+        raise ValueError("Unknown sort: " + sort)
+    return sort
+
+
+def _export_query(role, filters=None, sort=None):
+    """Scoped + filtered rows in deterministic order.
+
+    The role scope is applied FIRST and always — WHERE filters can only
+    narrow it, never widen it (a teacher filtering class=8 over their own
+    9/A scope gets zero rows, never another class's students).
+    """
+    q = _export_scope(role)
+    f = filters or {}
+    search = f.get("q") or ""
+    if search:
+        like = f"%{search}%"
+        q = q.filter(db.or_(
+            Student.name.ilike(like),
+            Student.b_form.ilike(like),
+            Student.roll_no.ilike(like),
+            Student.father_name.ilike(like),
+            Student.admission_number.ilike(like),
+            Student.contact_number.ilike(like)))
+    if f.get("class"):
+        q = q.filter(Student.class_id.ilike(f["class"]))
+    if f.get("section"):
+        q = q.filter(Student.section_id.ilike(f["section"]))
+    if f.get("gender"):
+        q = q.filter(Student.gender.ilike(f["gender"]))
+    if f.get("status") == "submitted":
+        q = q.filter(Student.submitted.is_(True))
+    elif f.get("status") == "draft":
+        q = q.filter(~Student.submitted.is_(True))
+    if f.get("lock") == "locked":
+        q = q.filter(Student.locked.is_(True))
+    elif f.get("lock") == "unlocked":
+        q = q.filter(~Student.locked.is_(True))
+    if sort:
+        return q.order_by(*_STUDENT_SORTS[sort])
     return q.order_by(Student.class_id.asc(), Student.section_id.asc(),
                       db.cast(Student.roll_no, db.Integer).asc(),
                       Student.id.asc())
@@ -1680,15 +1782,65 @@ def export_page():
         return redirect(url_for("login"))
     if role == "student":
         abort(403)
-    count = _export_query(role).count()
-    if role == "teacher":
-        scope = (f"Class {session.get('teacher_class')} - "
-                 f"Section {session.get('teacher_section')}")
-    else:
-        scope = "All classes"
-    return render_template("export.html", groups=_EXPORT_GROUPS,
-                           defaults=_EXPORT_DEFAULTS, scope=scope,
-                           count=count)
+    scope_q = _export_scope(role)
+    count = scope_q.count()
+    # Filter options come from the SAME scoped query, so a teacher never
+    # even sees another class's values in the dropdowns.
+    classes = sorted({v for (v,) in
+                      scope_q.with_entities(Student.class_id).distinct() if v})
+    sections = sorted({v for (v,) in
+                       scope_q.with_entities(Student.section_id).distinct() if v})
+    genders = sorted({v for (v,) in
+                      scope_q.with_entities(Student.gender).distinct() if v})
+    return render_template(
+        "export.html", groups=_EXPORT_GROUPS, defaults=_EXPORT_DEFAULTS,
+        scope=_export_scope_label(role), count=count,
+        classes=classes, sections=sections, genders=genders)
+
+
+@app.route("/api/export/preview", methods=["POST"])
+def api_export_preview():
+    """One page of the query result as cell strings — identical rendering
+    to the downloaded file (WYSIWYG: same cell_value, same ordering)."""
+    role = session.get("role")
+    if not role:
+        return jsonify({"ok": False, "error": "Authentication required."}), 401
+    if role == "student":
+        return jsonify({"ok": False, "error": "Not allowed."}), 403
+    payload = request.get_json(silent=True) or {}
+    try:
+        filters = _export_filters(payload)
+        fields = _export_fields(payload)
+        sort = _export_sort(payload.get("sort"))
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 422
+    try:
+        page = int(payload.get("page") or 1)
+    except (TypeError, ValueError):
+        page = 1
+    try:
+        per = int(payload.get("per") or 25)
+    except (TypeError, ValueError):
+        per = 25
+    if per not in _EXPORT_PER:
+        per = 25
+    query = _export_query(role, filters, sort)
+    total = query.count()
+    pages = max(1, math.ceil(total / per)) if total else 1
+    page = min(max(1, page), pages)
+    rows = query.offset((page - 1) * per).limit(per).all()
+    return jsonify({
+        "ok": True,
+        "total": total,
+        "page": page,
+        "pages": pages,
+        "per": per,
+        "scope": _export_scope_label(role),
+        "columns": fields,
+        "labels": [_EXPORT_LABELS[c] for c in fields],
+        "rows": [[student_export.cell_value(s, c, c in _EXPORT_YESNO)
+                  for c in fields] for s in rows],
+    })
 
 
 @app.route("/api/export/students", methods=["POST"])
@@ -1703,29 +1855,21 @@ def api_export_students():
     if fmt not in ("xlsx", "pdf"):
         return jsonify({"ok": False,
                         "error": "Format must be xlsx or pdf."}), 422
-    fields = payload.get("fields")
-    if not isinstance(fields, list) or not fields:
-        return jsonify({"ok": False,
-                        "error": "Select at least one field to export."}), 422
-    fields = [f for f in fields if isinstance(f, str)]
-    fields = list(dict.fromkeys(fields))
-    if not fields:
-        return jsonify({"ok": False,
-                        "error": "Select at least one field to export."}), 422
-    unknown = [f for f in fields if f not in _EXPORT_LABELS]
-    if unknown:
-        return jsonify({"ok": False, "error": "Unknown field(s): "
-                        + ", ".join(unknown[:8])}), 422
+    try:
+        fields = _export_fields(payload)
+        filters = _export_filters(payload)
+        sort = _export_sort(payload.get("sort"))
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 422
     if fmt == "pdf" and len(fields) > 30:
         return jsonify({"ok": False, "error": "PDF supports up to 30 columns "
                         "- export more fields as Excel instead."}), 422
-    rows = _export_query(role).all()
+    rows = _export_query(role, filters, sort).all()
     if role == "teacher":
         tag = f"{session.get('teacher_class')}{session.get('teacher_section')}"
-        scope = (f"Class {session.get('teacher_class')} - "
-                 f"Section {session.get('teacher_section')}")
     else:
-        tag, scope = "all", "All classes"
+        tag = "all"
+    scope = _export_scope_label(role)
     labels = [_EXPORT_LABELS[c] for c in fields]
     title = f"Student List - {scope}"
     stamp = datetime.now().strftime("%Y%m%d")

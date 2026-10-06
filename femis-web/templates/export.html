@@ -2,24 +2,84 @@
 {% block title %}Export Data — FEMIS{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <h4 class="mb-0"><i class="bi bi-file-earmark-arrow-down me-2"></i>Export Student Data</h4>
+  <h4 class="mb-0"><i class="bi bi-table me-2"></i>Export Student Data</h4>
   <div>
     <span class="badge bg-info text-dark me-2">{{ scope }}</span>
-    <span class="badge bg-secondary me-3">{{ count }} student(s)</span>
+    <span class="badge bg-secondary me-3" id="matchBadge">{{ count }} in scope</span>
     <a href="/teacher-dashboard" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back</a>
   </div>
 </div>
 
-<div class="card shadow-sm border-0">
+{# ---------------------------------------------------------------- WHERE #}
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-header bg-white py-2"><strong><i class="bi bi-funnel me-2"></i>1 — Select students (WHERE)</strong></div>
+  <div class="card-body py-3">
+    <div class="row g-2 align-items-end">
+      <div class="col-6 col-md-2">
+        <label class="form-label small mb-1" for="filterClass">Class</label>
+        <select class="form-select form-select-sm" id="filterClass">
+          <option value="">All</option>
+          {% for v in classes %}<option value="{{ v }}">{{ v }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small mb-1" for="filterSection">Section</label>
+        <select class="form-select form-select-sm" id="filterSection">
+          <option value="">All</option>
+          {% for v in sections %}<option value="{{ v }}">{{ v }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small mb-1" for="filterGender">Gender</label>
+        <select class="form-select form-select-sm" id="filterGender">
+          <option value="">All</option>
+          {% for v in genders %}<option value="{{ v }}">{{ v }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small mb-1" for="filterStatus">Status</label>
+        <select class="form-select form-select-sm" id="filterStatus">
+          <option value="">All</option>
+          <option value="submitted">Submitted</option>
+          <option value="draft">Draft</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small mb-1" for="filterLock">Lock</label>
+        <select class="form-select form-select-sm" id="filterLock">
+          <option value="">All</option>
+          <option value="locked">Locked</option>
+          <option value="unlocked">Unlocked</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small mb-1" for="filterQ">Search</label>
+        <input class="form-control form-control-sm" id="filterQ" type="search"
+               placeholder="name, CNIC, roll…" maxlength="100">
+      </div>
+      <div class="col-12 d-flex gap-2 mt-1">
+        <button class="btn btn-primary btn-sm" id="runQuery" type="button">
+          <i class="bi bi-play-fill me-1"></i>Run Query
+        </button>
+        <button class="btn btn-outline-secondary btn-sm" id="resetFilters" type="button">
+          <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# --------------------------------------------------------------- SELECT #}
+<div class="card shadow-sm border-0 mb-3">
   <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
-    <strong><i class="bi bi-list-check me-2"></i>Choose fields to export</strong>
+    <strong><i class="bi bi-list-check me-2"></i>2 — Choose fields (SELECT)</strong>
     <div class="btn-group btn-group-sm">
       <button type="button" class="btn btn-outline-primary" id="selAll">Select all</button>
       <button type="button" class="btn btn-outline-primary" id="selNone">Clear</button>
       <button type="button" class="btn btn-outline-primary" id="selDefault">Defaults</button>
     </div>
   </div>
-  <div class="card-body" style="max-height: 55vh; overflow-y: auto;">
+  <div class="card-body" style="max-height: 34vh; overflow-y: auto;">
     <div class="accordion" id="exportFields">
       {% for title, items in groups %}
       <div class="accordion-item">
@@ -52,15 +112,52 @@
       {% endfor %}
     </div>
   </div>
-  <div class="card-footer bg-white d-flex align-items-center gap-3 flex-wrap">
-    <span class="text-muted" id="selInfo"></span>
-    <button class="btn btn-success" id="btnXlsx" type="button">
+  <div class="card-footer bg-white py-2">
+    <span class="text-muted small" id="selInfo"></span>
+  </div>
+</div>
+
+{--------------------------------------------------------------- RESULT #}
+<div class="card shadow-sm border-0">
+  <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
+    <strong><i class="bi bi-table me-2"></i>3 — Result</strong>
+    <span class="badge bg-warning text-dark d-none" id="resultStale">
+      <i class="bi bi-arrow-clockwise me-1"></i>Changed — press Run Query
+    </span>
+    <span class="small text-muted" id="resultMeta">Press Run Query to render the table</span>
+  </div>
+  <div class="card-body p-0" style="max-height: 55vh; overflow: auto;">
+    <table class="table table-sm table-striped table-hover mb-0 align-middle" id="resultTable">
+      <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
+        <tr id="resultHead"><th>Result appears here</th></tr>
+      </thead>
+      <tbody id="resultBody">
+        <tr id="resultEmpty"><td class="text-muted text-center py-4">
+          Choose fields, set filters and press <strong>Run Query</strong>.
+        </td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="card-footer bg-white d-flex align-items-center gap-3 flex-wrap py-2">
+    <span class="text-muted small" id="rangeInfo"></span>
+    <div class="btn-group btn-group-sm">
+      <button class="btn btn-outline-secondary" id="pagePrev" type="button" disabled>‹ Prev</button>
+      <button class="btn btn-outline-secondary" id="pageNext" type="button" disabled>Next ›</button>
+    </div>
+    <span class="text-muted small" id="pageInfo"></span>
+    <select class="form-select form-select-sm w-auto" id="perPage" title="Rows per page">
+      <option value="25">25 / page</option>
+      <option value="50">50 / page</option>
+      <option value="100">100 / page</option>
+    </select>
+    <span class="flex-grow-1"></span>
+    <button class="btn btn-success btn-sm" id="btnXlsx" type="button" disabled>
       <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
     </button>
-    <button class="btn btn-danger" id="btnPdf" type="button">
+    <button class="btn btn-danger btn-sm" id="btnPdf" type="button" disabled>
       <i class="bi bi-file-earmark-pdf me-1"></i>Export PDF
     </button>
-    <span class="text-danger" id="exportErr"></span>
+    <span class="text-danger small" id="exportErr"></span>
   </div>
 </div>
 {% endblock %}
@@ -69,40 +166,142 @@
 <script>
 (function () {
   var defaults = {{ defaults | tojson }};
+  var SORT_KEYS = {          // column -> [asc key, desc key or null]
+    "name":       ["name", "name_desc"],
+    "class_id":   ["class", null],
+    "roll_no":    ["roll", "roll_desc"],
+    "updated_at": ["updated", null]
+  };
+  var state = { page: 1, per: 25, sort: "", ran: false, stale: false };
   var info = document.getElementById("selInfo");
   var errBox = document.getElementById("exportErr");
   var btnX = document.getElementById("btnXlsx");
   var btnP = document.getElementById("btnPdf");
+  var matchBadge = document.getElementById("matchBadge");
+  var resultMeta = document.getElementById("resultMeta");
+  var staleBadge = document.getElementById("resultStale");
+  var head = document.getElementById("resultHead");
+  var body = document.getElementById("resultBody");
 
+  function $(id) { return document.getElementById(id); }
   function fields() {
     return Array.prototype.map.call(
       document.querySelectorAll(".exp-field:checked"),
       function (i) { return i.value; });
   }
-  function updateInfo() {
-    info.textContent = fields().length + " field(s) selected — {{ count }} student(s) in scope";
+  function readFilters() {
+    return {
+      q: $("filterQ").value.trim(),
+      class: $("filterClass").value,
+      section: $("filterSection").value,
+      gender: $("filterGender").value,
+      status: $("filterStatus").value,
+      lock: $("filterLock").value
+    };
   }
   function setErr(msg) { errBox.textContent = msg || ""; }
+  function updateSelInfo() {
+    info.textContent = fields().length + " field(s) selected";
+  }
+  function updateButtons() {
+    var ok = state.ran && !state.stale && fields().length > 0;
+    btnX.disabled = !ok;
+    btnP.disabled = !ok;
+  }
+  function markStale() {
+    setErr("");
+    if (state.ran) { state.stale = true; staleBadge.classList.remove("d-none"); }
+    updateButtons();
+  }
 
-  document.getElementById("selAll").addEventListener("click", function () {
-    document.querySelectorAll(".exp-field").forEach(function (i) { i.checked = true; });
-    setErr(""); updateInfo();
-  });
-  document.getElementById("selNone").addEventListener("click", function () {
-    document.querySelectorAll(".exp-field").forEach(function (i) { i.checked = false; });
-    setErr(""); updateInfo();
-  });
-  document.getElementById("selDefault").addEventListener("click", function () {
-    document.querySelectorAll(".exp-field").forEach(function (i) {
-      i.checked = defaults.indexOf(i.value) !== -1;
+  // ------------------------------------------------------------- render
+  function render(d) {
+    state.ran = true;
+    state.stale = false;
+    state.page = d.page;
+    state.per = d.per;
+    staleBadge.classList.add("d-none");
+    matchBadge.textContent = d.total + " matched (" + d.scope + ")";
+
+    // header — sortable where a sort key exists for the column
+    head.innerHTML = "";
+    d.columns.forEach(function (col, i) {
+      var th = document.createElement("th");
+      th.textContent = d.labels[i];
+      if (SORT_KEYS[col]) {
+        th.style.cursor = "pointer";
+        th.title = "Click to sort";
+        th.dataset.col = col;
+        var cur = state.sort;
+        var keys = SORT_KEYS[col];
+        if (cur === keys[0]) th.innerHTML += " <span>&#9650;</span>";
+        else if (keys[1] && cur === keys[1]) th.innerHTML += " <span>&#9660;</span>";
+        else th.innerHTML += " <span class=\"text-muted\">&#8645;</span>";
+      }
+      head.appendChild(th);
     });
-    setErr(""); updateInfo();
-  });
-  document.getElementById("exportFields").addEventListener("change", function () {
-    setErr(""); updateInfo();
-  });
 
-  function doExport(fmt) {
+    // rows — textContent only (no HTML injection)
+    body.innerHTML = "";
+    if (!d.rows.length) {
+      var tr0 = document.createElement("tr");
+      var td0 = document.createElement("td");
+      td0.colSpan = d.columns.length || 1;
+      td0.className = "text-muted text-center py-4";
+      td0.textContent = "No students match this query.";
+      tr0.appendChild(td0);
+      body.appendChild(tr0);
+    } else {
+      d.rows.forEach(function (r) {
+        var tr = document.createElement("tr");
+        r.forEach(function (v) {
+          var td = document.createElement("td");
+          td.textContent = v;
+          tr.appendChild(td);
+        });
+        body.appendChild(tr);
+      });
+    }
+
+    // footer
+    var start = d.total ? (d.page - 1) * d.per : 0;
+    $("rangeInfo").textContent = d.total
+      ? "Showing " + (start + 1) + "–" + (start + d.rows.length) + " of " + d.total + " student(s)"
+      : "0 students";
+    $("pageInfo").textContent = "Page " + d.page + " / " + d.pages;
+    $("pagePrev").disabled = d.page <= 1;
+    $("pageNext").disabled = d.page >= d.pages;
+    $("perPage").value = String(d.per);
+    resultMeta.textContent = d.total + " row(s) × " + d.columns.length + " field(s)";
+    updateButtons();
+  }
+
+  // --------------------------------------------------------------- query
+  function runQuery() {
+    var cols = fields();
+    if (!cols.length) { setErr("Select at least one field first."); return; }
+    setErr("");
+    btnX.disabled = true; btnP.disabled = true;
+    fetch("/api/export/preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fields: cols, filters: readFilters(),
+        page: state.page, per: state.per, sort: state.sort
+      })
+    }).then(function (r) {
+      return r.json().then(function (j) {
+        if (!r.ok || !j.ok) throw new Error(j.error || ("Query failed (HTTP " + r.status + ")"));
+        return j;
+      });
+    }).then(render).catch(function (e) {
+      setErr(e.message);
+      updateButtons();
+    });
+  }
+
+  function exportFile(fmt) {
+    if (!state.ran || state.stale) { setErr("Run the query first."); return; }
     var cols = fields();
     if (!cols.length) { setErr("Select at least one field first."); return; }
     setErr("");
@@ -110,7 +309,9 @@
     fetch("/api/export/students", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ format: fmt, fields: cols })
+      body: JSON.stringify({
+        format: fmt, fields: cols, filters: readFilters(), sort: state.sort
+      })
     }).then(function (r) {
       if (!r.ok) {
         return r.json().then(function (j) {
@@ -131,13 +332,77 @@
     }).catch(function (e) {
       setErr(e.message);
     }).then(function () {
-      btnX.disabled = false; btnP.disabled = false;
+      updateButtons();
     });
   }
 
-  btnX.addEventListener("click", function () { doExport("xlsx"); });
-  btnP.addEventListener("click", function () { doExport("pdf"); });
-  updateInfo();
+  // ------------------------------------------------------------ controls
+  $("runQuery").addEventListener("click", function () {
+    state.page = 1;
+    runQuery();
+  });
+  $("resetFilters").addEventListener("click", function () {
+    ["filterClass", "filterSection", "filterGender", "filterStatus",
+     "filterLock", "filterQ"].forEach(function (id) { $(id).value = ""; });
+    state.page = 1;
+    markStale();
+  });
+  ["filterClass", "filterSection", "filterGender", "filterStatus",
+   "filterLock"].forEach(function (id) {
+    $(id).addEventListener("change", markStale);
+  });
+  $("filterQ").addEventListener("input", markStale);
+  $("filterQ").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); state.page = 1; runQuery(); }
+  });
+
+  document.getElementById("selAll").addEventListener("click", function () {
+    document.querySelectorAll(".exp-field").forEach(function (i) { i.checked = true; });
+    updateSelInfo(); markStale();
+  });
+  document.getElementById("selNone").addEventListener("click", function () {
+    document.querySelectorAll(".exp-field").forEach(function (i) { i.checked = false; });
+    updateSelInfo(); markStale();
+  });
+  document.getElementById("selDefault").addEventListener("click", function () {
+    document.querySelectorAll(".exp-field").forEach(function (i) {
+      i.checked = defaults.indexOf(i.value) !== -1;
+    });
+    updateSelInfo(); markStale();
+  });
+  document.getElementById("exportFields").addEventListener("change", function () {
+    updateSelInfo(); markStale();
+  });
+
+  head.addEventListener("click", function (e) {
+    var th = e.target.closest("th[data-col]");
+    if (!th) return;
+    var keys = SORT_KEYS[th.dataset.col];
+    var cur = state.sort;
+    if (cur !== keys[0]) state.sort = keys[0];
+    else if (keys[1]) state.sort = (cur === keys[1] ? "" : keys[1]);
+    else state.sort = "";
+    state.page = 1;
+    runQuery();
+  });
+  $("pagePrev").addEventListener("click", function () {
+    if (state.page > 1) { state.page--; runQuery(); }
+  });
+  $("pageNext").addEventListener("click", function () {
+    state.page++;
+    runQuery();
+  });
+  $("perPage").addEventListener("change", function () {
+    state.per = parseInt(this.value, 10) || 25;
+    state.page = 1;
+    runQuery();
+  });
+
+  btnX.addEventListener("click", function () { exportFile("xlsx"); });
+  btnP.addEventListener("click", function () { exportFile("pdf"); });
+
+  updateSelInfo();
+  updateButtons();
 })();
 </script>
 {% endblock %}

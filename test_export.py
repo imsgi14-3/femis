@@ -321,6 +321,202 @@ try:
     check("I2 admin dashboard links /export",
           'href="/export"' in adash, adash.count('href="/export"'))
 
+    check("I3 export page has WHERE controls + Run Query + result table",
+          'id="filterClass"' in body and 'id="runQuery"' in body
+          and 'id="resultTable"' in body and 'id="perPage"' in body
+          and 'id="btnXlsx"' in body,
+          "marker scan")
+
+    # ------------------------------------------------------------------
+    # J. Preview API: guards + payload validation
+    # ------------------------------------------------------------------
+    r = anon.post("/api/export/preview", json={"fields": ["name"]})
+    check("J1 anon preview -> 401", r.status_code == 401, r.status_code)
+    r = stu.post("/api/export/preview", json={"fields": ["name"]})
+    check("J2 student preview -> 403", r.status_code == 403, r.status_code)
+
+    r = tch.post("/api/export/preview", json={"fields": ["name"]})
+    d = r.get_json() or {}
+    check("J3 teacher preview 200 with labels/rows/scope",
+          r.status_code == 200 and d.get("ok")
+          and d.get("labels") == ["Name"]
+          and isinstance(d.get("rows"), list)
+          and d.get("scope") == f"Class {TEACHER_CLASS} - Section {TEACHER_SECTION}",
+          (r.status_code, d.get("scope")))
+
+    for label, payload, needle in [
+        ("unknown filter key", {"fields": ["name"], "filters": {"bogus": "x"}},
+         "bogus"),
+        ("filters not an object", {"fields": ["name"], "filters": "class=7"},
+         "object"),
+        ("bad status value", {"fields": ["name"], "filters": {"status": "maybe"}},
+         "status"),
+        ("bad lock value", {"fields": ["name"], "filters": {"lock": "yes"}},
+         "lock"),
+        ("q too long", {"fields": ["name"], "filters": {"q": "x" * 101}},
+         "100"),
+        ("unknown field", {"fields": ["nope"]}, "nope"),
+        ("bad sort", {"fields": ["name"], "sort": "bogus"}, "sort"),
+        ("no fields", {"fields": []}, "at least one"),
+    ]:
+        r = adm.post("/api/export/preview", json=payload)
+        b = r.get_json() or {}
+        check(f"J4 preview validation: {label} -> 422",
+              r.status_code == 422
+              and needle.lower() in (b.get("error") or "").lower(),
+              b.get("error"))
+
+    r = adm.post("/api/export/preview", json={"fields": ["name"], "per": "all"})
+    d = r.get_json() or {}
+    check("J5 invalid per defaults to 25",
+          r.status_code == 200 and d.get("per") == 25, d.get("per"))
+
+    # ------------------------------------------------------------------
+    # K. WHERE filters actually filter (+ teacher scope ceiling)
+    # ------------------------------------------------------------------
+    def db_col(sql, params):
+        with app.app_context():
+            return [r[0] for r in db.session.execute(text(sql), params)]
+
+    r = adm.post("/api/export/preview",
+                 json={"fields": ["name"], "filters": {"class": OTHER_CLASS}})
+    d = r.get_json() or {}
+    names = [row[0] for row in d.get("rows", [])]
+    expected_other = db_col(
+        "SELECT name FROM students WHERE class_id = :c", {"c": OTHER_CLASS})
+    check("K1 class filter total == DB set; own excluded, other present",
+          r.status_code == 200 and d.get("total") == len(expected_other)
+          and "Export Other Student" in names
+          and "Export Own Student" not in names,
+          (d.get("total"), len(expected_other)))
+
+    r = adm.post("/api/export/preview",
+                 json={"fields": ["name"], "filters": {"q": "Export Own"}})
+    d = r.get_json() or {}
+    check("K2 text search narrows to the matching name",
+          r.status_code == 200 and d.get("total") == 1
+          and d.get("rows") == [["Export Own Student"]],
+          (d.get("total"), d.get("rows")))
+
+    r = adm.post("/api/export/preview",
+                 json={"fields": ["name"],
+                       "filters": {"q": "Export", "status": "draft"}})
+    d = r.get_json() or {}
+    draft_names = [row[0] for row in d.get("rows", [])]
+    check("K3 status=draft contains both fresh fixtures",
+          r.status_code == 200
+          and {"Export Own Student", "Export Other Student"} <= set(draft_names),
+          draft_names)
+
+    r = adm.post("/api/export/preview",
+                 json={"fields": ["name"],
+                       "filters": {"q": "Export", "status": "submitted"}})
+    d = r.get_json() or {}
+    check("K4 status=submitted excludes the draft fixtures",
+          r.status_code == 200 and d.get("total") == 0
+          and d.get("rows") == [],
+          d.get("total"))
+
+    with app.app_context():
+        db.session.execute(
+            text("UPDATE students SET locked = 1 WHERE id = :i"),
+            {"i": sid_own})
+        db.session.commit()
+    r_lock = adm.post("/api/export/preview",
+                      json={"fields": ["name"],
+                            "filters": {"q": "Export", "lock": "locked"}})
+    r_unl = adm.post("/api/export/preview",
+                     json={"fields": ["name"],
+                           "filters": {"q": "Export", "lock": "unlocked"}})
+    lock_names = [row[0] for row in (r_lock.get_json() or {}).get("rows", [])]
+    unl_names = [row[0] for row in (r_unl.get_json() or {}).get("rows", [])]
+    check("K5 lock filter separates locked vs unlocked fixtures",
+          lock_names == ["Export Own Student"]
+          and unl_names == ["Export Other Student"],
+          (lock_names, unl_names))
+
+    r = tch.post("/api/export/preview",
+                 json={"fields": ["name"], "filters": {"class": OTHER_CLASS}})
+    d = r.get_json() or {}
+    check("K6 teacher foreign-class filter -> 0 rows (scope ceiling)",
+          r.status_code == 200 and d.get("total") == 0
+          and d.get("rows") == [],
+          d.get("total"))
+
+    expected_own = db_col(
+        "SELECT name FROM students WHERE class_id = :c AND section_id = :s",
+        {"c": TEACHER_CLASS, "s": TEACHER_SECTION})
+    r = tch.post("/api/export/preview", json={"fields": ["name"]})
+    d = r.get_json() or {}
+    check("K7 teacher default preview total == own class+section count",
+          r.status_code == 200 and d.get("total") == len(expected_own),
+          (d.get("total"), len(expected_own)))
+
+    # ------------------------------------------------------------------
+    # L. Pagination + sort
+    # ------------------------------------------------------------------
+    r = adm.post("/api/export/preview",
+                 json={"fields": ["name"], "per": 25, "page": 1})
+    d = r.get_json() or {}
+    total = d.get("total") or 0
+    exp_pages = max(1, -(-total // 25))
+    check("L1 page-1 math: pages, row count, per echoed",
+          r.status_code == 200 and d.get("pages") == exp_pages
+          and d.get("page") == 1 and d.get("per") == 25
+          and len(d.get("rows") or []) == min(25, total),
+          (total, d.get("pages"), len(d.get("rows") or [])))
+
+    r = adm.post("/api/export/preview",
+                 json={"fields": ["name"], "per": 25, "page": 999})
+    d = r.get_json() or {}
+    last_page_rows = total - (exp_pages - 1) * 25 if total else 0
+    check("L2 out-of-range page clamps to last page",
+          r.status_code == 200 and d.get("page") == exp_pages
+          and len(d.get("rows") or []) == last_page_rows,
+          (d.get("page"), exp_pages, len(d.get("rows") or [])))
+
+    r = adm.post("/api/export/preview",
+                 json={"fields": ["name"], "sort": "name"})
+    d = r.get_json() or {}
+    got = [row[0] for row in d.get("rows") or []]
+    check("L3 sort=name returns rows A->Z (case-insensitive)",
+          r.status_code == 200 and len(got) <= 25
+          and got == sorted(got, key=lambda s: (s or "").casefold()),
+          got[:5])
+
+    # ------------------------------------------------------------------
+    # M. Filtered downloads + preview/file parity (WYSIWYG)
+    # ------------------------------------------------------------------
+    r = adm.post("/api/export/students",
+                 json={"format": "xlsx", "fields": ["name"],
+                       "filters": {"class": OTHER_CLASS}})
+    xnames = {row[0] for row in sheet_rows(r)[1:]}
+    check("M1 filtered admin export == the filtered DB set",
+          r.status_code == 200 and xnames == set(expected_other)
+          and "Export Own Student" not in xnames,
+          len(xnames))
+
+    r = tch.post("/api/export/students",
+                 json={"format": "xlsx", "fields": ["name"],
+                       "filters": {"class": OTHER_CLASS}})
+    mrows = sheet_rows(r) if r.status_code == 200 else [["bad"]]
+    check("M2 teacher export + foreign filter -> header only (0 rows)",
+          r.status_code == 200 and len(mrows) == 1,
+          len(mrows))
+
+    wfields = ["name", "class_id", "section_id", "roll_no"]
+    p = adm.post("/api/export/preview",
+                 json={"fields": wfields, "filters": {"q": "Export"},
+                       "per": 100}).get_json() or {}
+    x = adm.post("/api/export/students",
+                 json={"format": "xlsx", "fields": wfields,
+                       "filters": {"q": "Export"}})
+    xrows = sheet_rows(x)
+    check("M3 WYSIWYG: preview rows == downloaded xlsx rows",
+          list(xrows[0]) == p.get("labels")
+          and [[str(v) for v in row] for row in xrows[1:]] == p.get("rows"),
+          (len(xrows) - 1, len(p.get("rows") or [])))
+
 finally:
     # ------------------------------------------------------------------
     # Cleanup: temp students removed; baseline ids restored; DB read-only
