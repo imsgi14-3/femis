@@ -18,6 +18,7 @@ against any restored DB state.
 Run: python test_export.py   (exit 0 = all pass)
 """
 import io
+import re
 import sqlite3
 import sys
 from datetime import date, datetime
@@ -275,6 +276,19 @@ try:
           r.status_code == 200 and r.data[:4] == b"%PDF"
           and "students_9A_" in (r.headers.get("Content-Disposition") or ""),
           r.status_code)
+
+    # G4: a pdf of 100 rows must span multiple pages — with auto page break
+    # off the table rendered ONE page and silently dropped everything past
+    # row ~22 (live bug: excel had all students, pdf had one page).
+    fake_rows = [SimpleNamespace(name=f"Pagefill Student {i:03d}",
+                                 class_id="7", section_id="A", roll_no=str(i))
+                 for i in range(1, 101)]
+    buf = student_export.students_to_pdf(
+        fake_rows, ["name", "class_id", "section_id", "roll_no"],
+        ["Name", "Class", "Section", "Roll No"], "Student List - Test")
+    pages = len(re.findall(rb"/Type\s*/Page(?!s)", buf.getvalue()))
+    check("G4 pdf paginates: 100 rows span >= 2 pages (no dropped rows)",
+          pages >= 2, f"{pages} page(s)")
 
     # ------------------------------------------------------------------
     # H. cell_value unit rules

@@ -210,7 +210,9 @@ _PDF_MAX_CHARS = 90
 
 def students_to_pdf(rows, columns, labels, title, yesno=frozenset()):
     pdf = FPDF(orientation="L", format="A4")
-    pdf.set_auto_page_break(False)
+    # auto page break must stay ON: with it off the table rendered exactly
+    # one page and every row past it was silently dropped (~22 rows).
+    pdf.set_auto_page_break(True, margin=12)
     pdf.add_page()
     pdf.set_font("Helvetica", "B", 13)
     pdf.cell(0, 8, title, new_x="LMARGIN", new_y="NEXT")
