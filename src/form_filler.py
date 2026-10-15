@@ -58,6 +58,18 @@ CAPITAL_NAME_SOURCES = {
     "previous_school_name",
 }
 
+# Sub-sector selects whose options load ONLY from the parent chain's change
+# handlers.  On a second attempt the record arrives prefilled, and selecting
+# an already-selected option dispatches no change event — so the portal never
+# reloads the options, the sub-sector stays empty, and the save is rejected.
+# _retrigger_address_cascade re-fires this chain: the programmatic equivalent
+# of the manual workaround (re-select Address Type, then Sector, then the Sub
+# Sector field loads).
+ADDRESS_CASCADE_PARENTS = {
+    "sub_sector_id": ("address_type", "sector_id"),
+    "present_sub_sector_id": ("present_address_type", "present_sector_id"),
+}
+
 # Shared in-page helper: resolve a control to the label FEMIS shows for it
 # (label[for] -> wrapping label -> group heading, radio/checkbox preferring
 # the group heading so a VALUE label like "Male" never names the field),
@@ -2603,6 +2615,91 @@ class FormFiller:
 
         raise RuntimeError(f"No input found for label={label!r} name={portal_name!r}")
 
+    async def _wait_options_loaded(self, sel, attempts: int = 24) -> bool:
+        """Poll a cascade select until its real options arrive (more than the
+        placeholder entry).  Returns False when the wait is exhausted or the
+        select vanishes (page transition)."""
+        for _ in range(attempts):
+            try:
+                if await sel.locator("option").count() > 1:
+                    return True
+            except Exception:
+                return False
+            await asyncio.sleep(0.25)
+        return False
+
+    async def _fire_cascade_change(self, page: Page, type_name: str,
+                                   sector_name: str, toggle: bool) -> bool:
+        """Dispatch the Address Type -> Sector change chain on the portal.
+
+        toggle=False re-fires both handlers at their current values (covers
+        handlers that run unconditionally).  toggle=True additionally goes
+        Sector -> '' -> value so handlers guarding on a real value change
+        still run.  The address-type handler may clear the sector select on
+        re-fire, so the captured values are restored before the sector event
+        fires.  Returns False when the sector select is missing/empty or the
+        evaluate fails.
+        """
+        try:
+            return bool(await page.evaluate(
+                """(args) => {
+                    const [type_name, sector_name, toggle] = args;
+                    const fire = (el) => {
+                        if (!el) return;
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                        const jq = window.jQuery;
+                        if (typeof jq === 'function') {
+                            try { jq(el).trigger('change'); } catch (e) {}
+                        }
+                    };
+                    const typeSel = document.querySelector('select[name="' + type_name + '"]');
+                    const sectorSel = document.querySelector('select[name="' + sector_name + '"]');
+                    if (!sectorSel) return false;
+                    const savedType = typeSel ? typeSel.value : null;
+                    const savedSector = sectorSel.value;
+                    if (!savedSector) return false;
+                    fire(typeSel);
+                    if (typeSel && savedType && typeSel.value !== savedType) {
+                        typeSel.value = savedType;
+                    }
+                    if (sectorSel.value !== savedSector) {
+                        sectorSel.value = savedSector;
+                    }
+                    if (toggle) {
+                        sectorSel.value = '';
+                        fire(sectorSel);
+                        sectorSel.value = savedSector;
+                    }
+                    fire(sectorSel);
+                    return true;
+                }""",
+                [type_name, sector_name, toggle],
+            ))
+        except Exception as e:
+            logger.warning(f"  Cascade change dispatch failed: {e}")
+            return False
+
+    async def _retrigger_address_cascade(self, page: Page, sub_name: str, sel) -> bool:
+        """Load a sub-sector select whose parent change never fired (second-
+        attempt prefilled record: same-value select_option dispatches no
+        change event, so the portal's option loader never runs and the save
+        errors).  Pass 1 re-fires the change handlers; pass 2 value-toggles
+        the Sector.  True once options are present.
+        """
+        parents = ADDRESS_CASCADE_PARENTS.get(sub_name)
+        if not parents:
+            return False
+        type_name, sector_name = parents
+        for toggle in (False, True):
+            if await self._fire_cascade_change(page, type_name, sector_name, toggle):
+                if await self._wait_options_loaded(sel, attempts=16):
+                    logger.info(
+                        f"  Cascade re-triggered for {sub_name} "
+                        f"({'value toggle' if toggle else 'change re-fire'})")
+                    return True
+        logger.warning(f"  Cascade re-trigger did not load options for {sub_name}")
+        return False
+
     async def _fill_dropdown(self, page: Page, label: str, value: str, options: list, portal_name: str = ""):
         sel = None
         if portal_name:
@@ -2652,14 +2749,14 @@ class FormFiller:
             "domicile_district_id",
         }
         if portal_name in cascade_names:
-            for _ in range(24):
-                try:
-                    n = await sel.locator("option").count()
-                    if n > 1:
-                        break
-                except Exception:
-                    break
-                await asyncio.sleep(0.25)
+            if not await self._wait_options_loaded(sel):
+                # Second-attempt record: parents are prefilled, so the portal
+                # never ran its option loader (selecting an already-selected
+                # option dispatches no change event) and the sub-sector select
+                # is still empty.  Re-fire Address Type -> Sector — the
+                # programmatic equivalent of the manual workaround (re-select
+                # type, re-select sector, sub sector loads).
+                await self._retrigger_address_cascade(page, portal_name, sel)
 
         # 1. Exact label match
         try:

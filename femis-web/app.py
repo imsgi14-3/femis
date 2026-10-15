@@ -802,6 +802,27 @@ def _cnic_length_error(mapped):
     return None
 
 
+def _cnic_conflict_error(mapped):
+    """Father CNIC and Mother CNIC must differ (digits-only compare).
+
+    Dashes/spaces are display formatting, so '35202-1234567-1' and
+    '35202 1234567 1' are the same number.  Empty/absent values pass —
+    required-ness belongs to the form; this gate rejects only an actual
+    conflict.  Callers pass the EFFECTIVE pair (stored record merged with
+    the payload) when the save touches a parent CNIC.
+    """
+    father_raw = str(mapped.get("father_cnic") or "").strip()
+    mother_raw = str(mapped.get("mother_cnic") or "").strip()
+    father = re.sub(r"\D", "", father_raw)
+    mother = re.sub(r"\D", "", mother_raw)
+    if father and mother and father == mother:
+        return (
+            "Father CNIC and Mother CNIC cannot be the same: got "
+            f"'{father_raw}' for both"
+        )
+    return None
+
+
 # Format gates (server twin of form.js validateTab): phone/email/DOB/name
 # shapes.  Empty/absent values pass — required-ness is mandatory.py's job.
 MOBILE_FIELDS = (
@@ -969,6 +990,21 @@ def api_save_tab():
     cnic_err = _cnic_length_error(mapped)
     if cnic_err:
         return jsonify({"ok": False, "error": cnic_err}), 400
+    # Father/Mother conflict gate — only when THIS save touches a parent
+    # CNIC (a legacy conflict must not block unrelated tab saves); for
+    # updates the stored value completes the pair, so what is written is
+    # judged against the record as it will stand.
+    if "father_cnic" in mapped or "mother_cnic" in mapped:
+        eff_cnic = dict(mapped)
+        if student_id:
+            st_row = Student.query.get(student_id)
+            if st_row is not None:
+                for _ck in ("father_cnic", "mother_cnic"):
+                    if _ck not in eff_cnic:
+                        eff_cnic[_ck] = getattr(st_row, _ck)
+        conflict_err = _cnic_conflict_error(eff_cnic)
+        if conflict_err:
+            return jsonify({"ok": False, "error": conflict_err}), 400
     fmt_err = _format_error(mapped)
     if fmt_err:
         return jsonify({"ok": False, "error": fmt_err}), 400
@@ -1041,6 +1077,9 @@ def api_final_submit():
     cnic_err = _cnic_length_error(merged_cnic)
     if cnic_err:
         return jsonify({"ok": False, "error": cnic_err}), 400
+    conflict_err = _cnic_conflict_error(merged_cnic)
+    if conflict_err:
+        return jsonify({"ok": False, "error": conflict_err}), 400
     # Format gates over stored + payload: final-submit may carry a record
     # created before this validation existed (e.g. a DOB of today).
     merged_fmt = {k: getattr(student, k) for k in FORMAT_FIELDS}
@@ -1112,6 +1151,10 @@ def submit():
     cnic_err = _cnic_length_error(data)
     if cnic_err:
         flash(cnic_err, "error")
+        return redirect(url_for("index"))
+    conflict_err = _cnic_conflict_error(data)
+    if conflict_err:
+        flash(conflict_err, "error")
         return redirect(url_for("index"))
     uniq = {k: v for k, v in data.items()
             if k in ("b_form", "admission_number",

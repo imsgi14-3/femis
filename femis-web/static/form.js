@@ -827,6 +827,21 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
 
+        // Father/Mother CNIC: the same number can't be both parents'
+        // (server twin: app.py _cnic_conflict_error). Digits-only compare
+        // — dashes/spaces are display formatting; empty stays legal.
+        var fcCtl = fieldControl(pane, "father_cnic");
+        var mcCtl = fieldControl(pane, "mother_cnic");
+        if (fcCtl && mcCtl &&
+            !isHiddenWithin(pane, fcCtl.els[0]) &&
+            !isHiddenWithin(pane, mcCtl.els[0])) {
+            var fcDigits = controlValue(fcCtl).replace(/[^0-9]/g, "");
+            var mcDigits = controlValue(mcCtl).replace(/[^0-9]/g, "");
+            if (fcDigits && mcDigits && fcDigits === mcDigits) {
+                missing.push("Father CNIC and Mother CNIC cannot be the same");
+            }
+        }
+
         // Phones (server twin: app.py _format_error). Empty stays legal —
         // required-ness is enforced above; this rejects wrong shape/length.
         [
