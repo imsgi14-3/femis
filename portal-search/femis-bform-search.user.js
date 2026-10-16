@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FEMIS B-Form Search
 // @namespace    imsg.femis
-// @version      1.0.0
+// @version      1.1.0
 // @description  Search ALL FEMIS students by B-Form / Student ID / TMP ID / name (server-side list API, cached client-side)
 // @match        https://femis.fde.gov.pk/students*
 // @grant        none
@@ -16,6 +16,15 @@
   var CACHE_KEY = 'fbs_cache_v1';
   var CACHE_TTL_MS = 15 * 60 * 1000;
   var PAGE_LENGTH = 1000;
+  var OPEN_KEY = 'fbs_open';
+
+  function readOpenPref() {
+    try { return localStorage.getItem(OPEN_KEY); } catch (e) { return null; }
+  }
+
+  function writeOpenPref(v) {
+    try { localStorage.setItem(OPEN_KEY, v); } catch (e) { }
+  }
 
   // ---- data layer ---------------------------------------------------------
 
@@ -201,6 +210,7 @@
   toggle.id = 'fbs-toggle';
   toggle.textContent = 'B-Form Search';
   toggle.addEventListener('click', function () {
+    writeOpenPref('1');
     toggle.style.display = 'none';
     panel.style.display = 'flex';
   });
@@ -224,6 +234,17 @@
   ].join('');
   document.body.appendChild(panel);
 
+  // Restore open/closed preference: once the user closes the panel it stays
+  // closed across URL changes, new tabs and restarts (localStorage) until
+  // they click the B-Form Search toggle again. First-ever load: open.
+  if (readOpenPref() === '0') {
+    panel.style.display = 'none';
+    toggle.style.display = 'block';
+  } else {
+    panel.style.display = 'flex';
+    toggle.style.display = 'none';
+  }
+
   var $ = function (id) { return document.getElementById(id); };
   var statusEl = $('fbs-status');
   var resultsEl = $('fbs-results');
@@ -232,6 +253,7 @@
   var batchTa = $('fbs-batch-ta');
 
   $('fbs-close').addEventListener('click', function () {
+    writeOpenPref('0');
     panel.style.display = 'none';
     toggle.style.display = 'block';
   });

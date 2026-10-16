@@ -34,6 +34,9 @@ Alternative: Tampermonkey → Create a new script → paste the file contents �
 6. **Batch mode**: paste a list (one B-Form/TMP per line) → all resolved at once.
 7. Results show Name, B-Form, TMP ID, Gender, Class, School, Status and
    **view / edit** links that open the record in a new tab.
+8. The panel's open/closed state is remembered on the device: once you close
+   it (×), it stays closed across page changes, new tabs and restarts —
+   reopen any time with the small **B-Form Search** button (top-right).
 
 ## How it works
 

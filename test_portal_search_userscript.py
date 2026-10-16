@@ -50,6 +50,10 @@ check("session-expired detection via content-type",
       "indexOf('json') === -1" in src)
 
 check("15-min sessionStorage cache", "sessionStorage" in src and "CACHE_TTL_MS" in src)
+check("open/closed state persisted in localStorage (stays closed across URL changes)",
+      "localStorage" in src and "OPEN_KEY" in src and "readOpenPref" in src)
+check("close persists closed; toggle persists open",
+      "writeOpenPref('0')" in src and "writeOpenPref('1')" in src)
 check("batch mode", "fbs-batch" in src and "Batch mode" in src)
 check("record links built from uuid", "'/students/' + row.uuid" in src)
 check("edit link from uuid", "'/students/' + row.uuid + '/edit'" in src)
