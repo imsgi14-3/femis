@@ -1,0 +1,368 @@
+// ==UserScript==
+// @name         FEMIS B-Form Search
+// @namespace    imsg.femis
+// @version      1.0.0
+// @description  Search ALL FEMIS students by B-Form / Student ID / TMP ID / name (server-side list API, cached client-side)
+// @match        https://femis.fde.gov.pk/students*
+// @grant        none
+// @run-at       document-idle
+// ==/UserScript==
+
+(function () {
+  'use strict';
+
+  if (document.getElementById('fbs-panel')) return;
+
+  var CACHE_KEY = 'fbs_cache_v1';
+  var CACHE_TTL_MS = 15 * 60 * 1000;
+  var PAGE_LENGTH = 1000;
+
+  // ---- data layer ---------------------------------------------------------
+
+  function buildParams(start, length) {
+    var cols = [
+      { data: 'index', name: 'index', searchable: 'false', orderable: 'false' },
+      { data: 'name', name: '', searchable: 'true', orderable: 'true' },
+      { data: 'b_form', name: 'b_form', searchable: 'true', orderable: 'true' },
+      { data: 'gender', name: '', searchable: 'true', orderable: 'true' },
+      { data: 'class.name', name: '', searchable: 'true', orderable: 'true' },
+      { data: 'school.name', name: '', searchable: 'true', orderable: 'true' },
+      { data: 'status', name: '', searchable: 'true', orderable: 'true' },
+      { data: 'action', name: '', searchable: 'false', orderable: 'true' },
+      { data: 'temporary_bform_id', name: 'students.temporary_bform_id', searchable: 'false', orderable: 'false' }
+    ];
+    var q = [
+      'draw=' + Date.now(),
+      'start=' + start,
+      'length=' + length,
+      'search[value]=',
+      'search[regex]=false'
+    ];
+    for (var i = 0; i < cols.length; i++) {
+      var c = cols[i];
+      q.push('columns[' + i + '][data]=' + encodeURIComponent(c.data));
+      if (c.name) q.push('columns[' + i + '][name]=' + encodeURIComponent(c.name));
+      q.push('columns[' + i + '][searchable]=' + c.searchable);
+      q.push('columns[' + i + '][orderable]=' + c.orderable);
+      q.push('columns[' + i + '][search][value]=');
+      q.push('columns[' + i + '][search][regex]=false');
+    }
+    q.push('order[0][column]=1');
+    q.push('order[0][dir]=asc');
+    return q.join('&');
+  }
+
+  function normalizeDigits(s) {
+    return String(s || '').replace(/\D/g, '');
+  }
+
+  function stripHtml(html) {
+    var d = document.createElement('div');
+    d.innerHTML = String(html || '');
+    return (d.textContent || '').replace(/\s+/g, ' ').trim();
+  }
+
+  async function fetchPage(start) {
+    var r = await fetch('/students?' + buildParams(start, PAGE_LENGTH), {
+      headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      credentials: 'same-origin'
+    });
+    var ct = r.headers.get('content-type') || '';
+    if (!r.ok || ct.indexOf('json') === -1) {
+      throw new Error('SESSION');
+    }
+    return r.json();
+  }
+
+  async function fetchAll(onProgress) {
+    var rows = [];
+    var start = 0;
+    for (var page = 0; page < 20; page++) {
+      if (onProgress) onProgress('Loading page ' + (page + 1) + '…');
+      var j = await fetchPage(start);
+      var data = j.data || [];
+      rows = rows.concat(data);
+      if (onProgress) onProgress('Loaded ' + rows.length + ' of ' + (j.recordsFiltered || j.recordsTotal || '?') + ' students');
+      if (data.length < PAGE_LENGTH) break;
+      start += data.length;
+      await new Promise(function (res) { setTimeout(res, 300); });
+    }
+    return rows;
+  }
+
+  function readCache() {
+    try {
+      var raw = sessionStorage.getItem(CACHE_KEY);
+      if (!raw) return null;
+      var c = JSON.parse(raw);
+      if (!c || !c.t || !Array.isArray(c.rows)) return null;
+      if (Date.now() - c.t > CACHE_TTL_MS) return null;
+      return c;
+    } catch (e) { return null; }
+  }
+
+  function writeCache(rows) {
+    try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), rows: rows })); }
+    catch (e) { /* quota — cache is optional */ }
+  }
+
+  function clearCache() {
+    try { sessionStorage.removeItem(CACHE_KEY); } catch (e) { }
+  }
+
+  async function getRows(force, onProgress) {
+    if (!force) {
+      var c = readCache();
+      if (c) { onProgress('Using cached list (' + c.rows.length + ' students)'); return c.rows; }
+    }
+    var rows = await fetchAll(onProgress);
+    writeCache(rows);
+    return rows;
+  }
+
+  // ---- search layer ---------------------------------------------------------
+
+  function matchQuery(rows, query) {
+    var q = String(query || '').trim();
+    if (!q) return { exact: [], partial: [], mode: 'empty' };
+    var digits = normalizeDigits(q);
+    var upper = q.toUpperCase();
+    var exact = [], partial = [];
+    if (/^TMP/i.test(q)) {
+      var tq = upper;
+      rows.forEach(function (row) {
+        var t = String(row.temporary_bform_id || '').toUpperCase();
+        if (t && t.indexOf(tq) !== -1) exact.push(row);
+      });
+      return { exact: exact, partial: partial, mode: 'tmp' };
+    }
+    if (digits.length >= 4) {
+      rows.forEach(function (row) {
+        var s = row.b_form == null ? '' : String(row.b_form);
+        if (s === digits) exact.push(row);
+        else if (s && s.indexOf(digits) !== -1) partial.push(row);
+      });
+      return { exact: exact, partial: partial, mode: 'bform' };
+    }
+    rows.forEach(function (row) {
+      if (String(row.name || '').toUpperCase().indexOf(upper) !== -1) exact.push(row);
+    });
+    return { exact: exact, partial: partial, mode: 'name' };
+  }
+
+  function applyNameFilter(rows, nameFilter) {
+    var f = String(nameFilter || '').trim().toUpperCase();
+    if (!f) return rows;
+    return rows.filter(function (row) {
+      return String(row.name || '').toUpperCase().indexOf(f) !== -1;
+    });
+  }
+
+  function byName(a, b) {
+    return String(a.name || '').localeCompare(String(b.name || ''));
+  }
+
+  // ---- UI --------------------------------------------------------------------
+
+  var style = document.createElement('style');
+  style.textContent = [
+    '#fbs-panel{position:fixed;top:70px;right:16px;width:760px;max-width:95vw;max-height:85vh;',
+    'background:#fff;border:2px solid #0d6efd;border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.25);',
+    'z-index:99999;font:13px/1.45 Segoe UI,Arial,sans-serif;color:#222;display:flex;flex-direction:column;}',
+    '#fbs-panel .fbs-head{display:flex;align-items:center;gap:8px;background:#0d6efd;color:#fff;',
+    'padding:8px 12px;border-radius:6px 6px 0 0;font-weight:600;}',
+    '#fbs-panel .fbs-head span{flex:1;}',
+    '#fbs-panel .fbs-head button{background:rgba(255,255,255,.2);border:0;color:#fff;',
+    'border-radius:4px;cursor:pointer;padding:2px 9px;font-size:13px;}',
+    '#fbs-panel .fbs-body{padding:10px 12px;overflow:auto;}',
+    '#fbs-panel input[type=text],#fbs-panel textarea{width:100%;box-sizing:border-box;padding:6px 8px;',
+    'margin:3px 0;border:1px solid #bbb;border-radius:4px;font:inherit;}',
+    '#fbs-panel .fbs-row{display:flex;gap:8px;align-items:center;margin:4px 0;}',
+    '#fbs-panel .fbs-row label{white-space:nowrap;}',
+    '#fbs-panel #fbs-search{background:#0d6efd;color:#fff;border:0;border-radius:4px;',
+    'padding:7px 18px;cursor:pointer;font:inherit;font-weight:600;}',
+    '#fbs-panel #fbs-search:disabled{opacity:.55;}',
+    '#fbs-panel #fbs-status{margin:6px 0;min-height:18px;color:#555;font-style:italic;}',
+    '#fbs-panel #fbs-status.fbs-err{color:#b02a37;font-style:normal;font-weight:600;}',
+    '#fbs-panel table{width:100%;border-collapse:collapse;margin-top:4px;}',
+    '#fbs-panel th,#fbs-panel td{border:1px solid #ddd;padding:4px 6px;text-align:left;vertical-align:top;}',
+    '#fbs-panel th{background:#f2f4f7;position:sticky;top:0;}',
+    '#fbs-panel tr.fbs-partial td{background:#fff8e6;}',
+    '#fbs-panel a{color:#0d6efd;}',
+    '#fbs-panel .fbs-section{font-weight:700;margin:10px 0 2px;}',
+    '#fbs-toggle{position:fixed;top:70px;right:16px;z-index:99999;background:#0d6efd;color:#fff;',
+    'border:0;border-radius:18px;padding:8px 14px;cursor:pointer;font:600 13px Segoe UI,Arial;',
+    'box-shadow:0 4px 14px rgba(0,0,0,.3);}',
+    '#fbs-panel #fbs-batch-ta{height:72px;display:none;}'
+  ].join('');
+  document.head.appendChild(style);
+
+  var toggle = document.createElement('button');
+  toggle.id = 'fbs-toggle';
+  toggle.textContent = 'B-Form Search';
+  toggle.addEventListener('click', function () {
+    toggle.style.display = 'none';
+    panel.style.display = 'flex';
+  });
+  document.body.appendChild(toggle);
+
+  var panel = document.createElement('div');
+  panel.id = 'fbs-panel';
+  panel.innerHTML = [
+    '<div class="fbs-head"><span>FEMIS B-Form Search</span>',
+    '<button id="fbs-refresh" title="Reload list from portal">&#8635; Refresh</button>',
+    '<button id="fbs-close" title="Hide panel">&times;</button></div>',
+    '<div class="fbs-body">',
+    '<input type="text" id="fbs-q" placeholder="B-Form no. / TMP ID / student name (min 4 chars for name)">',
+    '<input type="text" id="fbs-name" placeholder="Optional: filter results by name">',
+    '<div class="fbs-row"><label><input type="checkbox" id="fbs-batch"> Batch mode (one B-Form/TMP per line)</label></div>',
+    '<textarea id="fbs-batch-ta" placeholder="3740245784474&#10TMP-2026-36033"></textarea>',
+    '<div class="fbs-row"><button id="fbs-search">Search</button></div>',
+    '<div id="fbs-status"></div>',
+    '<div id="fbs-results"></div>',
+    '</div>'
+  ].join('');
+  document.body.appendChild(panel);
+
+  var $ = function (id) { return document.getElementById(id); };
+  var statusEl = $('fbs-status');
+  var resultsEl = $('fbs-results');
+  var searchBtn = $('fbs-search');
+  var batchChk = $('fbs-batch');
+  var batchTa = $('fbs-batch-ta');
+
+  $('fbs-close').addEventListener('click', function () {
+    panel.style.display = 'none';
+    toggle.style.display = 'block';
+  });
+  $('fbs-refresh').addEventListener('click', function () { runSearch(true); });
+  batchChk.addEventListener('change', function () {
+    batchTa.style.display = batchChk.checked ? 'block' : 'none';
+  });
+  $('fbs-q').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !batchChk.checked) runSearch(false);
+  });
+
+  function setStatus(text, isErr) {
+    statusEl.textContent = text || '';
+    statusEl.className = isErr ? 'fbs-err' : '';
+  }
+
+  function makeCell(row, text, isPartial) {
+    var td = document.createElement('td');
+    td.textContent = text == null ? '' : String(text);
+    if (isPartial) td.className = 'fbs-partial';
+    return td;
+  }
+
+  function resultTable(rows, isPartial) {
+    var table = document.createElement('table');
+    var thead = document.createElement('thead');
+    var htr = document.createElement('tr');
+    ['Name', 'B-Form', 'TMP ID', 'Gender', 'Class', 'School', 'Status', 'Record'].forEach(function (h) {
+      var th = document.createElement('th');
+      th.textContent = h;
+      htr.appendChild(th);
+    });
+    thead.appendChild(htr);
+    table.appendChild(thead);
+    var tbody = document.createElement('tbody');
+    rows.forEach(function (row) {
+      var tr = document.createElement('tr');
+      if (isPartial) tr.className = 'fbs-partial';
+      tr.appendChild(makeCell(row, row.name, isPartial));
+      tr.appendChild(makeCell(row, row.b_form == null ? '—' : row.b_form, isPartial));
+      tr.appendChild(makeCell(row, row.temporary_bform_id || '—', isPartial));
+      tr.appendChild(makeCell(row, row.gender, isPartial));
+      tr.appendChild(makeCell(row, row.class && row.class.name ? row.class.name : '', isPartial));
+      tr.appendChild(makeCell(row, row.school && row.school.name ? row.school.name : '', isPartial));
+      tr.appendChild(makeCell(row, stripHtml(row.status) || (row.is_active ? 'Active' : 'Inactive'), isPartial));
+      var td = document.createElement('td');
+      if (row.uuid) {
+        var view = document.createElement('a');
+        view.href = '/students/' + row.uuid;
+        view.target = '_blank';
+        view.textContent = 'view';
+        var edit = document.createElement('a');
+        edit.href = '/students/' + row.uuid + '/edit';
+        edit.target = '_blank';
+        edit.textContent = 'edit';
+        td.appendChild(view);
+        td.appendChild(document.createTextNode(' | '));
+        td.appendChild(edit);
+      }
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    return table;
+  }
+
+  function renderGroup(container, label, res) {
+    if (res.exact.length) {
+      var h1 = document.createElement('div');
+      h1.className = 'fbs-section';
+      h1.textContent = label + ' — ' + res.exact.length + ' exact match' + (res.exact.length === 1 ? '' : 'es');
+      container.appendChild(h1);
+      container.appendChild(resultTable(res.exact.slice().sort(byName), false));
+    }
+    if (res.partial.length) {
+      var h2 = document.createElement('div');
+      h2.className = 'fbs-section';
+      h2.textContent = label + ' — ' + res.partial.length + ' partial match' + (res.partial.length === 1 ? '' : 'es') + ' (contains the digits)';
+      container.appendChild(h2);
+      container.appendChild(resultTable(res.partial.slice().sort(byName), true));
+    }
+  }
+
+  async function runSearch(force) {
+    searchBtn.disabled = true;
+    resultsEl.textContent = '';
+    try {
+      var rows = await getRows(force, function (p) { setStatus(p); });
+      setStatus('List ready: ' + rows.length + ' students');
+      if (batchChk.checked) {
+        var lines = batchTa.value.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
+        if (!lines.length) { setStatus('Batch list is empty', true); return; }
+        var total = 0;
+        lines.forEach(function (line) {
+          var res = matchQuery(rows, line);
+          res.exact = applyNameFilter(res.exact, '');
+          if (!res.exact.length && !res.partial.length) {
+            var h = document.createElement('div');
+            h.className = 'fbs-section';
+            h.textContent = line + ' — no matches';
+            resultsEl.appendChild(h);
+            return;
+          }
+          renderGroup(resultsEl, line, res);
+          total += res.exact.length;
+        });
+        setStatus(lines.length + ' queries, ' + total + ' exact match(es)');
+        return;
+      }
+      var q = $('fbs-q').value;
+      if (!q.trim()) { setStatus('Enter a B-Form, TMP ID, or name', true); return; }
+      var result = matchQuery(rows, q);
+      result.exact = applyNameFilter(result.exact, $('fbs-name').value);
+      result.partial = applyNameFilter(result.partial, $('fbs-name').value);
+      if (!result.exact.length && !result.partial.length) {
+        setStatus('No matches for "' + q + '"');
+        return;
+      }
+      renderGroup(resultsEl, q, result);
+      setStatus(result.exact.length + ' exact, ' + result.partial.length + ' partial — ' + rows.length + ' students scanned');
+    } catch (e) {
+      if (String(e && e.message) === 'SESSION') {
+        setStatus('Portal session expired or not logged in. Log in at /login, then reload this page.', true);
+      } else {
+        setStatus('Search failed: ' + (e && e.message ? e.message : e), true);
+      }
+    } finally {
+      searchBtn.disabled = false;
+    }
+  }
+
+  searchBtn.addEventListener('click', function () { runSearch(false); });
+  $('fbs-q').focus();
+})();
