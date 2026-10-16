@@ -56,6 +56,16 @@ Alternative: Tampermonkey → Create a new script → paste the file contents �
   then reload the list page.
 - **Nothing matches** → try partial digits, or clear with ↻ Refresh (the list
   may have changed since the cache was written).
+- **Tampermonkey warning: "Limited runtime host permissions…"** → generic
+  notice, not a security alert. It fires because this script only runs on
+  `femis.fde.gov.pk`, so Chrome grants Tampermonkey narrow site access.
+  It does **not** affect searching (the script uses no GM_* APIs — only a
+  plain same-origin fetch on the portal). The one feature it can affect is
+  **auto-update** from the GitHub raw URL: if updates don't arrive, either
+  (a) Chrome → Extensions → Tampermonkey → *Site access* → add
+  `https://raw.githubusercontent.com` (or set "On all sites"), or
+  (b) update manually — open the raw script URL above; Tampermonkey will
+  offer the new version. The warning itself can be dismissed.
 
 ## Source of truth
 
