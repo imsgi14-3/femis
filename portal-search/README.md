@@ -36,13 +36,17 @@ Alternative: Tampermonkey → Create a new script → paste the file contents �
 7. Optional **Class** dropdown — populated from the actual list with counts
    (e.g. "Class 9 (150)") — plus a **Blank (no class)** entry to find
    students not assigned to any class. Also applies to batch mode.
-8. **Batch mode**: paste a list (one B-Form/TMP per line) → all resolved at once.
-9. Results show Name, B-Form, TMP ID, Gender, Class, School, Status and
-   **view / edit** links that open the record in a new tab (blank class shows
-   as —).
-10. The panel's open/closed state is remembered on the device: once you close
-   it (×), it stays closed across page changes, new tabs and restarts —
-   reopen any time with the small **B-Form Search** button (top-right).
+8. **Filters work alone**: leave the search box empty, pick a Status and/or
+   Class filter and press Search — the full matching set is listed (e.g. all
+   Inactive students, or every blank-class record), no B-Form needed. The
+   input prompt only appears when the box *and* all filters are empty.
+9. **Batch mode**: paste a list (one B-Form/TMP per line) → all resolved at once.
+10. Results show Name, B-Form, TMP ID, Gender, Class, School, Status and
+    **view / edit** links that open the record in a new tab (blank class shows
+    as —).
+11. The panel's open/closed state is remembered on the device: once you close
+    it (×), it stays closed across page changes, new tabs and restarts —
+    reopen any time with the small **B-Form Search** button (top-right).
 
 ## How it works
 

@@ -65,6 +65,13 @@ check("class filter dropdown (dynamic options with counts)",
 check("blank-class students filterable (need to know blanks)",
       "__BLANK__" in src and "Blank (no class)" in src and "classLabel" in src)
 check("class column shows dash for blanks", "classLabel(row) || '—'" in src)
+check("filters work without a query (show ALL inactive / blank class)",
+      "if (!statusVal && !classVal && !nameVal.trim())" in src and
+      "No students match the selected filters" in src and
+      "students shown" in src and
+      "filter-only mode" in src)
+check("input prompt only when box AND all filters empty",
+      "'Enter a B-Form, TMP ID, or name'" in src)
 check("list warmed so class dropdown is ready before first search",
       "function warm()" in src and "warming" in src)
 check("record links built from uuid", "'/students/' + row.uuid" in src)

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FEMIS B-Form Search
 // @namespace    imsg.femis
-// @version      1.3.0
+// @version      1.3.1
 // @description  Search ALL FEMIS students by B-Form / Student ID / TMP ID / name (server-side list API, cached client-side)
 // @match        https://femis.fde.gov.pk/students*
 // @grant        none
@@ -434,7 +434,33 @@
         return;
       }
       var q = $('fbs-q').value;
-      if (!q.trim()) { setStatus('Enter a B-Form, TMP ID, or name', true); return; }
+      var statusVal = $('fbs-status-filter').value;
+      var classVal = $('fbs-class-filter').value;
+      var nameVal = $('fbs-name').value;
+      if (!q.trim()) {
+        // filter-only mode: Status/Class/Name filter alone drives the results
+        // (show ALL inactive, ALL blank-class, etc. without entering a B-Form)
+        if (!statusVal && !classVal && !nameVal.trim()) {
+          setStatus('Enter a B-Form, TMP ID, or name', true);
+          return;
+        }
+        var frows = applyNameFilter(rows, nameVal);
+        if (!frows.length) {
+          setStatus('No students match the selected filters');
+          return;
+        }
+        var parts = [];
+        if (statusVal) parts.push('Status: ' + statusVal);
+        if (classVal) parts.push('Class: ' + (classVal === '__BLANK__' ? 'Blank (no class)' : classVal));
+        if (nameVal.trim()) parts.push('Name contains "' + nameVal.trim() + '"');
+        var fh = document.createElement('div');
+        fh.className = 'fbs-section';
+        fh.textContent = parts.join(' | ') + ' — ' + frows.length + ' student' + (frows.length === 1 ? '' : 's');
+        resultsEl.appendChild(fh);
+        resultsEl.appendChild(resultTable(frows.slice().sort(byName), false));
+        setStatus(frows.length + ' of ' + all.length + ' students shown');
+        return;
+      }
       var result = matchQuery(rows, q);
       result.exact = applyNameFilter(result.exact, $('fbs-name').value);
       result.partial = applyNameFilter(result.partial, $('fbs-name').value);
