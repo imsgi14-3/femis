@@ -31,10 +31,16 @@ Alternative: Tampermonkey → Create a new script → paste the file contents �
    - `TMP-2026-…` temporary ID (any case)
    - Student name (4+ letters)
 5. Optional name filter narrows results further.
-6. **Batch mode**: paste a list (one B-Form/TMP per line) → all resolved at once.
-7. Results show Name, B-Form, TMP ID, Gender, Class, School, Status and
-   **view / edit** links that open the record in a new tab.
-8. The panel's open/closed state is remembered on the device: once you close
+6. Optional **Status** dropdown (Any / Active / Inactive) limits results to
+   students with that status — applies to batch mode too.
+7. Optional **Class** dropdown — populated from the actual list with counts
+   (e.g. "Class 9 (150)") — plus a **Blank (no class)** entry to find
+   students not assigned to any class. Also applies to batch mode.
+8. **Batch mode**: paste a list (one B-Form/TMP per line) → all resolved at once.
+9. Results show Name, B-Form, TMP ID, Gender, Class, School, Status and
+   **view / edit** links that open the record in a new tab (blank class shows
+   as —).
+10. The panel's open/closed state is remembered on the device: once you close
    it (×), it stays closed across page changes, new tabs and restarts —
    reopen any time with the small **B-Form Search** button (top-right).
 

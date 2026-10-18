@@ -55,6 +55,18 @@ check("open/closed state persisted in localStorage (stays closed across URL chan
 check("close persists closed; toggle persists open",
       "writeOpenPref('0')" in src and "writeOpenPref('1')" in src)
 check("batch mode", "fbs-batch" in src and "Batch mode" in src)
+check("status filter dropdown (Any/Active/Inactive)",
+      "fbs-status-filter" in src and "applyStatusFilter" in src and
+      "Any status" in src and "Active" in src and "Inactive" in src)
+check("status label from badge HTML with is_active fallback",
+      "statusLabel" in src and "row.is_active ? 'Active' : 'Inactive'" in src)
+check("class filter dropdown (dynamic options with counts)",
+      "fbs-class-filter" in src and "populateClassFilter" in src and "applyClassFilter" in src)
+check("blank-class students filterable (need to know blanks)",
+      "__BLANK__" in src and "Blank (no class)" in src and "classLabel" in src)
+check("class column shows dash for blanks", "classLabel(row) || '—'" in src)
+check("list warmed so class dropdown is ready before first search",
+      "function warm()" in src and "warming" in src)
 check("record links built from uuid", "'/students/' + row.uuid" in src)
 check("edit link from uuid", "'/students/' + row.uuid + '/edit'" in src)
 
