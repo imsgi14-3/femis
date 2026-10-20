@@ -43,7 +43,13 @@ Alternative: Tampermonkey → Create a new script → paste the file contents �
 9. **Batch mode**: paste a list (one B-Form/TMP per line) → all resolved at once.
 10. Results show Name, B-Form, TMP ID, Gender, Class, School, Status and
     **view / edit** links that open the record in a new tab (blank class shows
-    as —).
+    as —). Every row also carries a **status action** link pointing at the
+    *other* state — **inactive** on Active rows, **active** on Inactive rows.
+    Confirm the prompt and the record flips via the portal's own
+    `update-status` endpoint; the result row, the 15-min cache and the link
+    direction update immediately, so clicking the same link again flips it
+    back. The page behind the panel keeps showing the old badge until you
+    reload it (F5) or press **↻ Refresh**.
 11. The panel's open/closed state is remembered on the device: once you close
     it (×), it stays closed across page changes, new tabs and restarts —
     reopen any time with the small **B-Form Search** button (top-right).

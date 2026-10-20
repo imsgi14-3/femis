@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FEMIS B-Form Search
 // @namespace    imsg.femis
-// @version      1.3.1
+// @version      1.5.0
 // @description  Search ALL FEMIS students by B-Form / Student ID / TMP ID / name (server-side list API, cached client-side)
 // @match        https://femis.fde.gov.pk/students*
 // @grant        none
@@ -197,6 +197,54 @@
     return String(a.name || '').localeCompare(String(b.name || ''));
   }
 
+  // ---- status action ---------------------------------------------------------
+  // Portal route (verified from the embedded route map):
+  //   GET /students/update-status/{student}  — Toggles Active <-> Inactive.
+  // Every row shows the link for the OPPOSITE direction of its current state
+  // ("inactive" on Active rows, "active" on Inactive rows) and the direction
+  // is re-read from the row at click time, so the label flips immediately
+  // after each change and a second click always moves it back.
+
+  function patchRowInCache(uuid, isActive) {
+    try {
+      var raw = sessionStorage.getItem(CACHE_KEY);
+      if (!raw) return;
+      var c = JSON.parse(raw);
+      if (!c || !Array.isArray(c.rows)) return;
+      for (var i = 0; i < c.rows.length; i++) {
+        var r = c.rows[i];
+        if (r && r.uuid === uuid) { r.status = ''; r.is_active = isActive; break; }
+      }
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify(c));
+    } catch (e) { /* cache patch is best-effort */ }
+  }
+
+  function toggleStatus(row, linkEl) {
+    if (!row || !row.uuid) return;
+    var makeInactive = statusLabel(row) !== 'Inactive';
+    var target = makeInactive ? 'Inactive' : 'Active';
+    if (!window.confirm('Set "' + row.name + '" to ' + target + '?')) return;
+    setStatus('Setting ' + row.name + ' to ' + target + '…');
+    fetch('/students/update-status/' + row.uuid, { credentials: 'same-origin' })
+      .then(function (resp) {
+        if (resp.url && resp.url.indexOf('/login') !== -1) throw new Error('SESSION');
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        row.status = '';
+        row.is_active = !makeInactive;
+        patchRowInCache(row.uuid, !makeInactive);
+        var tr = linkEl.closest('tr');
+        var cells = tr ? tr.querySelectorAll('td') : [];
+        if (cells.length >= 7) cells[6].textContent = target;
+        linkEl.textContent = makeInactive ? 'active' : 'inactive';
+        setStatus('"' + row.name + '" is now ' + target);
+      })
+      .catch(function (e) {
+        setStatus(String(e && e.message) === 'SESSION'
+          ? 'Portal session expired — status NOT changed. Log in at /login, reload this page, then try again.'
+          : 'Status change failed for "' + row.name + '": ' + (e && e.message ? e.message : e), true);
+      });
+  }
+
   // ---- UI --------------------------------------------------------------------
 
   var style = document.createElement('style');
@@ -378,6 +426,16 @@
         td.appendChild(view);
         td.appendChild(document.createTextNode(' | '));
         td.appendChild(edit);
+        td.appendChild(document.createTextNode(' | '));
+        var stat = document.createElement('a');
+        stat.href = '#';
+        stat.className = 'fbs-status-act';
+        stat.textContent = statusLabel(row) === 'Inactive' ? 'active' : 'inactive';
+        stat.addEventListener('click', function (ev) {
+          ev.preventDefault();
+          toggleStatus(row, stat);
+        });
+        td.appendChild(stat);
       }
       tr.appendChild(td);
       tbody.appendChild(tr);

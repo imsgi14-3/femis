@@ -76,6 +76,19 @@ check("list warmed so class dropdown is ready before first search",
       "function warm()" in src and "warming" in src)
 check("record links built from uuid", "'/students/' + row.uuid" in src)
 check("edit link from uuid", "'/students/' + row.uuid + '/edit'" in src)
+check("per-row status action next to view/edit (portal update-status route)",
+      "fbs-status-act" in src and "'/students/update-status/'" in src and
+      "function toggleStatus" in src)
+check("link direction mirrors current state (inactive on Active, active on Inactive)",
+      "statusLabel(row) === 'Inactive' ? 'active' : 'inactive'" in src and
+      "linkEl.textContent = makeInactive ? 'active' : 'inactive'" in src)
+check("confirm prompt names the target state",
+      "window.confirm(" in src and "+ target + '?'" in src)
+check("status change updates row, rendered cell, link direction and cache",
+      "patchRowInCache" in src and "row.is_active = !makeInactive" in src and
+      "cells[6].textContent = target" in src)
+check("login redirect detected on status change (no silent fake success)",
+      "indexOf('/login')" in src)
 
 check("no eval", "eval(" not in src)
 check("no new Function", "new Function" not in src)
