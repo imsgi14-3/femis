@@ -1,7 +1,8 @@
 # FEMIS B-Form Search (browser userscript)
 
-Search **all** students on `femis.fde.gov.pk` by B-Form / Student ID, TMP ID, or
-name — the portal's own search box only matches names; this finds everything.
+Search **all** students on `femis.fde.gov.pk` by B-Form / Student ID, admission
+number, TMP ID, or name — the portal's own search box only matches names; this
+finds everything.
 
 Runs inside Chrome/Edge/Chromebook via Tampermonkey. Uses **your own portal
 login** — no credentials are stored or transmitted anywhere. Works on any
@@ -27,6 +28,8 @@ Alternative: Tampermonkey → Create a new script → paste the file contents �
 3. Click the blue **B-Form Search** button (top-right).
 4. Type any of:
    - B-Form number — with or without dashes (`3740245784474` or `37402-4578447-4`)
+   - Admission number (`3210`) — exact at any length; 4+ digit queries also
+     show "contains" matches, merged with B-Form results (deduplicated)
    - Partial digits (4+ digits) → exact matches first, "contains" matches highlighted below
    - `TMP-2026-…` temporary ID (any case)
    - Student name (4+ letters)
@@ -40,7 +43,8 @@ Alternative: Tampermonkey → Create a new script → paste the file contents �
    Class filter and press Search — the full matching set is listed (e.g. all
    Inactive students, or every blank-class record), no B-Form needed. The
    input prompt only appears when the box *and* all filters are empty.
-9. **Batch mode**: paste a list (one B-Form/TMP per line) → all resolved at once.
+9. **Batch mode**: paste a list (one B-Form / TMP / admission no. per line) →
+   all resolved at once.
 10. Results show Name, B-Form, TMP ID, Gender, Class, School, Status and
     **view / edit** links that open the record in a new tab (blank class shows
     as —). Every row also carries a **status action** link pointing at the

@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         FEMIS B-Form Search
 // @namespace    imsg.femis
-// @version      1.5.0
-// @description  Search ALL FEMIS students by B-Form / Student ID / TMP ID / name (server-side list API, cached client-side)
+// @version      1.6.0
+// @description  Search ALL FEMIS students by B-Form / Student ID / admission no. / TMP ID / name (server-side list API, cached client-side)
 // @match        https://femis.fde.gov.pk/students*
 // @grant        none
 // @run-at       document-idle
@@ -145,13 +145,31 @@
       });
       return { exact: exact, partial: partial, mode: 'tmp' };
     }
+    var admissionDigits = function (row) {
+      return row.admission_number == null ? '' : String(row.admission_number).replace(/\D/g, '');
+    };
     if (digits.length >= 4) {
+      // b_form exact/partial AND admission-number exact/partial in one pass,
+      // deduped: a row matching both shows once, exact beats partial
+      var seen = {};
       rows.forEach(function (row) {
+        var k = row.uuid || row.id;
         var s = row.b_form == null ? '' : String(row.b_form);
-        if (s === digits) exact.push(row);
-        else if (s && s.indexOf(digits) !== -1) partial.push(row);
+        var a = admissionDigits(row);
+        if (s === digits || a === digits) {
+          if (!seen[k]) { seen[k] = 1; exact.push(row); }
+        } else if ((s && s.indexOf(digits) !== -1) || (a && a.indexOf(digits) !== -1)) {
+          if (!seen[k]) { seen[k] = 1; partial.push(row); }
+        }
       });
       return { exact: exact, partial: partial, mode: 'bform' };
+    }
+    if (digits.length >= 1 && /^[0-9\s-]+$/.test(q)) {
+      // short numeric query (1-3 digits): exact admission-number match
+      rows.forEach(function (row) {
+        if (admissionDigits(row) === digits) exact.push(row);
+      });
+      return { exact: exact, partial: partial, mode: 'admission' };
     }
     rows.forEach(function (row) {
       if (String(row.name || '').toUpperCase().indexOf(upper) !== -1) exact.push(row);
@@ -299,7 +317,7 @@
     '<button id="fbs-refresh" title="Reload list from portal">&#8635; Refresh</button>',
     '<button id="fbs-close" title="Hide panel">&times;</button></div>',
     '<div class="fbs-body">',
-    '<input type="text" id="fbs-q" placeholder="B-Form no. / TMP ID / student name (min 4 chars for name)">',
+    '<input type="text" id="fbs-q" placeholder="B-Form / admission no. / TMP ID / student name (min 4 chars for name)">',
     '<input type="text" id="fbs-name" placeholder="Optional: filter results by name">',
     '<div class="fbs-row"><label>Status: <select id="fbs-status-filter">',
     '<option value="">Any status</option>',
@@ -309,7 +327,7 @@
     '<div class="fbs-row"><label>Class: <select id="fbs-class-filter">',
     '<option value="">Any class</option>',
     '</select></label></div>',
-    '<div class="fbs-row"><label><input type="checkbox" id="fbs-batch"> Batch mode (one B-Form/TMP per line)</label></div>',
+    '<div class="fbs-row"><label><input type="checkbox" id="fbs-batch"> Batch mode (one B-Form / TMP / admission no. per line)</label></div>',
     '<textarea id="fbs-batch-ta" placeholder="3740245784474&#10TMP-2026-36033"></textarea>',
     '<div class="fbs-row"><button id="fbs-search">Search</button></div>',
     '<div id="fbs-status"></div>',

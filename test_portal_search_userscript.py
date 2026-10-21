@@ -39,6 +39,11 @@ check("@version present (update propagation)",
 check("digits normalization present", "replace(/\\D/g" in src)
 check("TMP id search branch", re.search(r"/\^TMP/i\.test", src) is not None)
 check("exact-then-partial split", "partial.push" in src and "exact.push" in src)
+check("admission number searchable (exact any length, partial 4+ digits)",
+      "admission_number" in src and "mode: 'admission'" in src and
+      "/^[0-9\\s-]+$/.test(q)" in src)
+check("b_form + admission matches deduped (exact beats partial)",
+      "var seen = {}" in src and "seen[k] = 1" in src)
 
 check("same-origin fetch of portal list",
       "fetch('/students?" in src and "credentials: 'same-origin'" in src)
